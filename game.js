@@ -1,10 +1,10 @@
 const c=document.getElementById('game'),ctx=c.getContext('2d');
-let W=0,H=0,dpr=1,last=0,room=1,kills=0,gold=0,gameOver=false,roomCleared=false;
+let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12;
 const player={x:0,y:0,r:14,hp:100,maxHp:100,speed:215,fire:0,damage:25,flash:0};
 let enemies=[],loot=[],bullets=[],particles=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
 const P={ink:'#061316',deep:'#0a1c20',wall:'#172d31',wall2:'#234247',stone:'#29494a',moss:'#3f6d43',vine:'#2f603c',teal:'#52d8c0',teal2:'#83f0d7',cream:'#d8d4bd',gold:'#e5b94d',gold2:'#ffd86a',red:'#c95159',red2:'#ed6a70',blue:'#5fa9c7',green:'#4dbb88'};
 
-function resize(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}
+function resize(){dpr=Math.min(devicePixelRatio||1,2);c.width=360*dpr;c.height=480*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);W=360;H=480}
 addEventListener('resize',resize);resize();
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
@@ -14,6 +14,10 @@ function updateHud(){
  document.getElementById('room').textContent=`Room ${room}`;
  document.getElementById('kills').textContent=`Kills: ${kills}`;
  document.getElementById('hp').style.width=Math.max(0,player.hp/player.maxHp*100)+'%';
+ document.getElementById('hpText').textContent=`${Math.ceil(player.hp)} / ${player.maxHp}`;
+ document.getElementById('gold').textContent=gold;
+ document.getElementById('xp').style.width=Math.max(0,Math.min(100,xp/xpNeed*100))+'%';
+ document.getElementById('levelText').textContent=`LV ${level}`;
 }
 
 function resetRoom(){
@@ -41,6 +45,20 @@ function spawnLoot(x,y){
  if(type==='Gold') showPickup(`🪙 ${amount} gold dropped — walk over it to collect`);
  else if(type==='Heart') showPickup('♥ RARE HEART — full heal!');
  else showPickup('✚ RARE POTION — small heal');
+}
+
+function awardXP(amount){
+ xp+=amount;
+ let levelled=false,bonusTotal=0;
+ while(xp>=xpNeed){
+  xp-=xpNeed; level++; levelled=true;
+  xpNeed=12+(level-1)*6;
+  player.maxHp+=5; player.hp=clamp(player.hp+5,0,player.maxHp);
+  const bonus=10+Math.floor(Math.random()*11); gold+=bonus; bonusTotal+=bonus;
+  player.damage+=2;
+ }
+ if(levelled){showPickup(`★ LEVEL ${level}!  +5 MAX HP  +${bonusTotal} GOLD  +2 DAMAGE`);msg(`LEVEL UP!  You feel stronger.`);}
+ updateHud();
 }
 
 function shoot(){
@@ -72,7 +90,7 @@ function update(dt){
   const b=bullets[i];let hit=false;
   for(let j=enemies.length-1;j>=0;j--){const e=enemies[j];
    if(Math.hypot(b.x-e.x,b.y-e.y)<b.r+e.r){e.hp-=b.damage;e.hit=.12;hit=true;burst(b.x,b.y,'hit',5);
-    if(e.hp<=0){spawnLoot(e.x,e.y);enemies.splice(j,1);kills++;burst(e.x,e.y,'death',12);updateHud()}break}
+    if(e.hp<=0){spawnLoot(e.x,e.y);enemies.splice(j,1);kills++;awardXP(e.type==='bat'?3:e.type==='slime'?4:5);burst(e.x,e.y,'death',12);updateHud()}break}
   }
   if(hit||b.x<0||b.x>W||b.y<50||b.y>H)bullets.splice(i,1);
  }
@@ -92,7 +110,7 @@ function update(dt){
 
  if(enemies.length===0&&!roomCleared){roomCleared=true;msg('ROOM CLEARED — reach the EXIT »');showPickup('Room cleared — walk to the glowing exit')}
  if(roomCleared){
-  const ex={x:W-58,y:H/2};
+  const ex={x:W-43,y:H/2};
   if(Math.hypot(player.x-ex.x,player.y-ex.y)<58){room++;resetRoom();showPickup(`Entering room ${room}`)}
  }
  updateHud();
@@ -211,10 +229,11 @@ function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw
 resetRoom();requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space')fireHeld=true;if(gameOver&&e.code==='Space')restart()});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function restart(){gameOver=false;room=1;kills=0;gold=0;player.hp=100;player.damage=25;resetRoom()}
+function restart(){gameOver=false;room=1;kills=0;gold=0;xp=0;level=1;xpNeed=12;player.hp=100;player.maxHp=100;player.damage=25;resetRoom()}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
 function joyMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,m=Math.min(45,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*m/45;joy.y=Math.sin(a)*m/45;nub.style.transform=`translate(${joy.x*45}px,${joy.y*45}px)`}
 stick.addEventListener('pointerdown',e=>{joy.active=true;stick.setPointerCapture(e.pointerId);joyMove(e)});stick.addEventListener('pointermove',e=>{if(joy.active)joyMove(e)});stick.addEventListener('pointerup',()=>{joy.active=false;joy.x=joy.y=0;nub.style.transform='translate(0,0)'});stick.addEventListener('pointercancel',()=>{joy.active=false;joy.x=joy.y=0;nub.style.transform='translate(0,0)'});
 const f=document.getElementById('fire');f.addEventListener('pointerdown',()=>{if(gameOver)restart();fireHeld=true});f.addEventListener('pointerup',()=>fireHeld=false);f.addEventListener('pointercancel',()=>fireHeld=false);
+if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('portrait').catch(()=>{});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
