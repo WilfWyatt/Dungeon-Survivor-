@@ -1,10 +1,1 @@
-{
-  "name":"Dungeon Survivor",
-  "short_name":"Dungeon Survivor",
-  "start_url":"./",
-  "display":"standalone",
-  "background_color":"#061316",
-  "theme_color":"#061316",
-  "orientation":"portrait",
-  "icons":[]
-}
+{"name":"Dungeon Survivor","short_name":"Dungeon Survivor","start_url":"./","display":"standalone","background_color":"#061316","theme_color":"#061316","orientation":"portrait","icons":[]}
