@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#11151a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <title>Dungeon Survivor</title>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="hud">
+    <div class="top"><span id="room">Room 1</span><span id="kills">Kills: 0</span></div>
+    <div class="bar"><div id="hp"></div></div>
+    <div id="message"></div>
+  </div>
+  <div id="touch">
+    <div id="stick"><div id="nub"></div></div>
+    <div id="fire">●</div>
+  </div>
+  <div id="pickupNotice"></div>
+  <script src="game.js"></script>
+</body>
+</html>
