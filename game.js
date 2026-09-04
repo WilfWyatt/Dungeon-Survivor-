@@ -3,7 +3,9 @@ let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,gameOver=false,roomCleared=fa
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:215,fire:0,damage:25,flash:0};
-let enemies=[],loot=[],slashes=[],deathMarks=[],particles=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
+let enemies=[],loot=[],slashes=[],deathMarks=[],particles=[],projectiles=[],entrances=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
+let spawnQueue=[],spawnTimer=0,totalSpawned=0,totalQuota=0,activeCap=0,bossPatternTimer=0,bossPatternStep=0,bossPatternMode='burst';
+const ROOM_PLAN={1:{cap:5,total:10,weights:[['bat',.80],['goblin',.10],['skeleton',.10]]},2:{cap:6,total:12,weights:[['bat',.70],['goblin',.15],['skeleton',.15]]},3:{cap:7,total:14,weights:[['bat',.60],['goblin',.20],['skeleton',.20]]},4:{cap:8,total:17,weights:[['bat',.50],['goblin',.25],['skeleton',.25]]},5:{cap:10,total:20,weights:[['bat',.40],['goblin',.30],['skeleton',.30]]},6:{cap:12,total:22,weights:[['bat',1/3],['goblin',1/3],['skeleton',1/3]]}};
 let shopMessage='';
 let nextSwingSide=1, swingCooldown=0, facing=0;
 const P={ink:'#061316',deep:'#0a1c20',wall:'#172d31',wall2:'#234247',stone:'#29494a',moss:'#3f6d43',vine:'#2f603c',teal:'#52d8c0',teal2:'#83f0d7',cream:'#d8d4bd',gold:'#e5b94d',gold2:'#ffd86a',red:'#c95159',red2:'#ed6a70',blue:'#5fa9c7',green:'#4dbb88'};
@@ -25,26 +27,53 @@ function updateHud(){
  document.getElementById('levelText').textContent=`LV ${level}`;
 }
 
+function chooseEnemyType(weights){
+ const r=Math.random();let acc=0;for(const [type,w] of weights){acc+=w;if(r<=acc)return type}return weights[weights.length-1][0];
+}
 function resetRoom(){
  player.x=Math.max(120,W/2);player.y=Math.max(110,H/2);player.hp=clamp(player.hp,0,player.maxHp);player.flash=0;
- enemies=[];loot=[];slashes=[];deathMarks=[];particles=[];roomCleared=false;atShop=false;areaComplete=false;
+ enemies=[];loot=[];slashes=[];deathMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=false;atShop=false;areaComplete=false;
+ spawnQueue=[];spawnTimer=.35;totalSpawned=0;bossPatternTimer=1.1;bossPatternStep=0;bossPatternMode='burst';
  const isBoss=room===bossRoom;
- const count=isBoss?1:Math.min(5+room*2,18);
- const top=82,bottom=Math.max(top+120,H-78),left=42,right=Math.max(left+210,W-42);
  if(isBoss){
-  enemies.push({x:W-105,y:H/2,r:34*SPRITE_SCALE,type:'boss',hp:650+area*100,max:650+area*100,speed:35+area*2,hit:0,boss:true});
+  totalQuota=1;activeCap=1;
+  const hp=650+area*100;
+  enemies.push({x:W-105,y:H/2,r:34*SPRITE_SCALE,type:'boss',hp,max:hp,speed:35+area*2,hit:0,boss:true,attackTimer:1.1});
   msg('BOSS ROOM — DEFEAT THE GUARDIAN');
  }else{
-  for(let i=0;i<count;i++){
-   let x,y,tries=0;
-   do{x=left+Math.random()*(right-left);y=top+Math.random()*(bottom-top);tries++}while(Math.hypot(x-player.x,y-player.y)<150&&tries<30);
-   const type=i%4===0?'bat':(i%3===0?'slime':'skeleton');
-   const base=type==='bat'?34:type==='slime'?46:54;
-   enemies.push({x,y,r:(type==='bat'?14:15+Math.random()*3)*SPRITE_SCALE,type,hp:base+room*7,max:base+room*7,speed:(type==='bat'?65:45)+room*2,hit:0});
-  }
+  const plan=ROOM_PLAN[room]||ROOM_PLAN[6];activeCap=plan.cap;totalQuota=plan.total;
+  for(let i=0;i<totalQuota;i++)spawnQueue.push(chooseEnemyType(plan.weights));
   msg(`AREA ${area} • ${areaName} — ROOM ${room} • CLEAR THE ROOM`);
+  trySpawnEnemy(.2);
  }
  updateHud();
+}
+function getFurthestSpawnPoint(){
+ const left=43,right=W-43,top=82,bottom=H-78;
+ const candidates=[];
+ for(let x=left;x<=right;x+=35){candidates.push({x,y:top});candidates.push({x,y:bottom})}
+ for(let y=top+20;y<=bottom-20;y+=35){candidates.push({x:left,y});candidates.push({x:right,y})}
+ const scored=candidates.map(p=>({p,d:Math.hypot(p.x-player.x,p.y-player.y)})).sort((a,b)=>b.d-a.d);
+ const topBand=scored.slice(0,Math.max(4,Math.ceil(scored.length*.22)));
+ return topBand[Math.floor(Math.random()*topBand.length)].p;
+}
+function startEntrance(type){
+ const p=getFurthestSpawnPoint();
+ entrances.push({x:p.x,y:p.y,type,age:0,duration:type==='bat'?.58:.68,active:false,shadow:type==='bat'});
+}
+function trySpawnEnemy(delay=0){
+ if(isBossRoom()||roomCleared||spawnQueue.length===0)return;
+ if(enemies.length+entrances.length>=activeCap)return;
+ if(spawnTimer>0){spawnTimer=Math.max(spawnTimer,delay);return}
+ const type=spawnQueue.shift();totalSpawned++;
+ startEntrance(type);spawnTimer=.65;
+}
+function activateEntrance(ent){
+ const base=ent.type==='bat'?34:ent.type==='goblin'?48:58;
+ const speed=ent.type==='bat'?78:ent.type==='goblin'?42:34;
+ const r=ent.type==='bat'?11:15;
+ const hp=base+room*7;
+ enemies.push({x:ent.x,y:ent.y,r:r*SPRITE_SCALE,type:ent.type,hp,max:hp,speed:speed+room*2,hit:0,attackCooldown:.8,windup:0,active:true});
 }
 
 function isBossRoom(){return room===bossRoom}
@@ -123,66 +152,75 @@ function update(dt){
  player.x=clamp(player.x+mx*player.speed*dt,30,W-30);player.y=clamp(player.y+my*player.speed*dt,70,H-70);
  if(fireHeld)performSwing();
 
- enemies.forEach(e=>{
-  e.hit=Math.max(0,e.hit-dt);
-  const a=Math.atan2(player.y-e.y,player.x-e.x);e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt;
-  if(dist(e,player)<e.r+player.r){player.hp-=22*dt;player.flash=.08;if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to restart')}}
- });
+ spawnTimer=Math.max(0,spawnTimer-dt);
+ if(enemies.length<activeCap && spawnQueue.length && spawnTimer<=0)trySpawnEnemy();
 
- for(let i=slashes.length-1;i>=0;i--){
-  const s=slashes[i];
-  s.age+=dt;
-  const progress=s.age/s.duration;
-  const centre=s.angle+s.side*.72;
-  const reach=58;
-  for(const e of [...enemies]){
-   if(s.hit.has(e))continue;
-   const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);
-   let da=Math.atan2(dy,dx)-centre;
-   da=Math.atan2(Math.sin(da),Math.cos(da));
-   if(d<reach+e.r && Math.abs(da)<.82){
-    e.hp-=s.damage;s.hit.add(e);e.hit=.12;burst(e.x,e.y,'hit',4);
-    if(e.hp<=0){deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type);enemies.splice(enemies.indexOf(e),1);kills++;awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='slime'?4:5);burst(e.x,e.y,'death',e.type==='boss'?28:12);}
+ for(let i=entrances.length-1;i>=0;i--){
+  const ent=entrances[i];ent.age+=dt;
+  if(ent.age>=ent.duration){activateEntrance(ent);entrances.splice(i,1);burst(ent.x,ent.y,'spawn',ent.type==='skeleton'?12:10,ent.type)}
+ }
+
+ for(const e of enemies){
+  e.hit=Math.max(0,e.hit-dt);
+  const d=dist(e,player);
+  if(e.type==='goblin'){
+   const a=Math.atan2(player.y-e.y,player.x-e.x);
+   const desired=135;
+   let move=0;if(d>desired+20)move=1;else if(d<desired-25)move=-1;
+   const strafe=Math.sin(performance.now()/700+e.x)*.55;
+   e.x+=((Math.cos(a)*move)+Math.cos(a+Math.PI/2)*strafe)*e.speed*dt;
+   e.y+=((Math.sin(a)*move)+Math.sin(a+Math.PI/2)*strafe)*e.speed*dt;
+   e.attackCooldown-=dt;
+   if(d<260&&e.attackCooldown<=0&&e.windup<=0){e.windup=.38;e.attackCooldown=1.45;}
+   if(e.windup>0){e.windup-=dt;if(e.windup<=0){shootProjectile(e.x,e.y,a,115,10,'arrow')}}
+  }else if(e.type==='skeleton'){
+   const a=Math.atan2(player.y-e.y,player.x-e.x);
+   if(d>52){e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt}
+   e.attackCooldown-=dt;
+   if(d<78&&e.attackCooldown<=0&&e.windup<=0)e.windup=.48;
+   if(e.windup>0){e.windup-=dt;if(e.windup<=0){player.hp-=14;player.flash=.12;burst(player.x,player.y,'hit',5);e.attackCooldown=1.2}}
+  }else if(e.type==='bat'){
+   const a=Math.atan2(player.y-e.y,player.x-e.x);e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt;
+  }else if(e.type==='boss'){
+   const a=Math.atan2(player.y-e.y,player.x-e.x);
+   if(d>150){e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt}
+   e.attackTimer-=dt;
+   if(e.attackTimer<=0){bossPatternMode=bossPatternStep%2===0?'burst':'spiral';bossPatternStep++;e.attackTimer=bossPatternMode==='burst'?3.2:5.4;bossPatternTimer=0;}
+   if(bossPatternMode==='burst'&&bossPatternTimer<1.0){
+    const n=5, gap=.16, idx=Math.floor(bossPatternTimer/gap);
+    if(idx< n && Math.abs(bossPatternTimer-idx*gap)<dt*1.2){const base=Math.atan2(player.y-e.y,player.x-e.x);shootProjectile(e.x,e.y,base+(idx-2)*.11,105,14,'boss')}
+    bossPatternTimer+=dt;
+   }else if(bossPatternMode==='spiral'&&bossPatternTimer<3.6){
+    const idx=Math.floor(bossPatternTimer/.14);const prev=Math.floor((bossPatternTimer-dt)/.14);
+    if(idx!==prev){const a=idx*.48;shootProjectile(e.x,e.y,a,88,12,'spiral');shootProjectile(e.x,e.y,a+Math.PI,88,12,'spiral')}
+    bossPatternTimer+=dt;
    }
   }
+  e.x=clamp(e.x,32,W-32);e.y=clamp(e.y,72,H-72);
+  if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){player.hp-=e.type==='boss'?30*dt:22*dt;player.flash=.08}
+  if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to restart')}
+ }
+
+ for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){player.hp-=q.damage;player.flash=.15;burst(player.x,player.y,'hit',5);projectiles.splice(i,1);if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to restart')}}}
+
+ for(let i=slashes.length-1;i>=0;i--){
+  const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const centre=s.angle+s.side*.72;const reach=58;
+  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){e.hp-=s.damage;s.hit.add(e);e.hit=.12;burst(e.x,e.y,'hit',4);if(e.hp<=0){deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type);enemies.splice(enemies.indexOf(e),1);kills++;awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5);burst(e.x,e.y,'death',e.type==='boss'?28:12);if(!isBossRoom())spawnTimer=.65;}}}
   if(progress>=1)slashes.splice(i,1);
  }
 
  loot.forEach(l=>{l.bob+=dt*3;l.spin+=dt*2});
- for(let i=loot.length-1;i>=0;i--){
-  const l=loot[i];
-  if(dist(player,l)<player.r+l.r+9){
-   if(l.type==='Gold'){gold+=l.amount;showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}
-   if(l.type==='Heart'){player.hp=player.maxHp;showPickup('♥ FULL HEAL!')}
-   if(l.type==='Potion'){const before=player.hp;player.hp=clamp(player.hp+18,0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}
-   burst(l.x,l.y,l.type==='Gold'?'coin':'heal',8);loot.splice(i,1);updateHud()
-  }
- }
-
+ for(let i=loot.length-1;i>=0;i--){const l=loot[i];if(dist(player,l)<player.r+l.r+9){if(l.type==='Gold'){gold+=l.amount;showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;player.hp=clamp(player.hp+18,0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}burst(l.x,l.y,l.type==='Gold'?'coin':'heal',8);loot.splice(i,1);updateHud()}}
  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0);
-
- if(enemies.length===0&&!roomCleared){
-  roomCleared=true;
-  if(isBossRoom()){
-   msg(`AREA ${area} COMPLETE — reach the EXIT »`);
-   showPickup('Guardian defeated — walk to the exit');
-  }else{
-   msg('ROOM CLEARED — reach the EXIT »');
-   showPickup('Room cleared — walk to the glowing exit');
-  }
- }
- if(roomCleared&&!atShop){
-  const ex={x:W-22,y:H/2};
-  if(Math.abs(player.x-ex.x)<30 && Math.abs(player.y-ex.y)<66){
-   if(isBossRoom()) beginAreaShop();
-   else {room++;resetRoom();showPickup(`Entering room ${room}`)}
-  }
- }
+ if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){roomCleared=true;msg('ROOM CLEARED — reach the EXIT »');showPickup('Room cleared — walk to the glowing exit')}
+ if(isBossRoom()&&enemies.length===0&&!roomCleared){roomCleared=true;msg(`AREA ${area} COMPLETE — reach the EXIT »`);showPickup('Guardian defeated — walk to the exit')}
+ if(roomCleared&&!atShop){const ex={x:W-22,y:H/2};if(Math.abs(player.x-ex.x)<30&&Math.abs(player.y-ex.y)<66){if(isBossRoom())beginAreaShop();else{room++;resetRoom();showPickup(`Entering room ${room}`)}}}
  updateHud();
 }
+function shootProjectile(x,y,a,speed,damage,type){projectiles.push({x,y,a,speed,damage,r:type==='arrow'?4:5,life:type==='arrow'?2.6:3.2,type})}
 
-function burst(x,y,type='death',n=8){
- for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=25+Math.random()*110;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:type==='shot'?.12:.45,type})}
+function burst(x,y,type='death',n=8,spawnType=''){
+ for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=25+Math.random()*110;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:type==='shot'?.12:.45,type,spawnType})}
 }
 function pixelRect(x,y,w,h,fill){ctx.fillStyle=fill;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
 function text(t,x,y,size,fill,align='left'){ctx.fillStyle=fill;ctx.font=`700 ${size}px ui-monospace,monospace`;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.fillText(t,x,y)}
@@ -246,23 +284,34 @@ function drawPlayer(){
 function drawEnemy(e,i){
  const x=e.x,y=e.y;ctx.save();ctx.translate(x,y);ctx.scale(SPRITE_SCALE,SPRITE_SCALE);ctx.shadowBlur=9;ctx.shadowColor=e.type==='bat'?P.red:P.teal;
  if(e.type==='boss'){
-  // Giant castle guardian: chunky goblin silhouette, deliberately much larger than normal enemies.
-  pixelRect(-25,5,50,30,'#244b3d');pixelRect(-31,-4,62,25,'#397d55');pixelRect(-24,-28,48,28,'#4c9a63');
-  pixelRect(-17,-21,11,9,P.red2);pixelRect(6,-21,11,9,P.red2);pixelRect(-11,-13,22,8,'#17251f');
-  pixelRect(-37,8,12,26,'#315f4a');pixelRect(25,8,12,26,'#315f4a');
-  pixelRect(-20,32,14,9,'#122a24');pixelRect(6,32,14,9,'#122a24');
-  pixelRect(31,-2,15,5,P.cream);pixelRect(43,-5,5,11,P.cream);
+  pixelRect(-25,5,50,30,'#244b3d');pixelRect(-31,-4,62,25,'#397d55');pixelRect(-24,-28,48,28,'#4c9a63');pixelRect(-17,-21,11,9,P.red2);pixelRect(6,-21,11,9,P.red2);pixelRect(-11,-13,22,8,'#17251f');pixelRect(-37,8,12,26,'#315f4a');pixelRect(25,8,12,26,'#315f4a');pixelRect(-20,32,14,9,'#122a24');pixelRect(6,32,14,9,'#122a24');pixelRect(31,-2,15,5,P.cream);pixelRect(43,-5,5,11,P.cream);
  }else if(e.type==='skeleton'){
   pixelRect(-10,-6,20,14,P.cream);pixelRect(-8,-17,16,12,'#e3ddc8');pixelRect(-4,-13,3,4,P.ink);pixelRect(2,-13,3,4,P.ink);pixelRect(-14,6,8,4,'#b9b5a3');pixelRect(6,6,8,4,'#b9b5a3');pixelRect(-10,12,7,5,'#8f8c7f');pixelRect(3,12,7,5,'#8f8c7f');pixelRect(-2,-1,4,3,'#8d887a');
+  ctx.save();ctx.rotate(-.65-(e.windup>0?.5:0));pixelRect(12,-2,4,4,'#6b5539');pixelRect(15,-15,22,4,P.cream);ctx.restore();
  }else if(e.type==='bat'){
-  pixelRect(-7,-5,14,15,'#16262b');pixelRect(-21,-13,14,20,'#234b4a');pixelRect(7,-13,14,20,'#234b4a');pixelRect(-16,-8,7,11,'#1a3839');pixelRect(9,-8,7,11,'#1a3839');pixelRect(-4,-1,3,3,P.red2);pixelRect(2,-1,3,3,P.red2);
+  const flap=Math.sin(performance.now()/90+i)*3;pixelRect(-7,-5,14,15,'#16262b');pixelRect(-21,-13-flap,14,20+flap,'#234b4a');pixelRect(7,-13+flap,14,20-flap,'#234b4a');pixelRect(-16,-8,7,11,'#1a3839');pixelRect(9,-8,7,11,'#1a3839');pixelRect(-4,-1,3,3,P.red2);pixelRect(2,-1,3,3,P.red2);
  }else{
   pixelRect(-14,-5,28,15,'#397d65');pixelRect(-10,-11,20,7,'#57b48b');pixelRect(-7,-7,14,4,'#6ac89b');pixelRect(-6,-1,4,3,P.ink);pixelRect(2,-1,4,3,P.ink);pixelRect(-12,7,5,3,'#275b4b');pixelRect(7,7,5,3,'#275b4b');
+  ctx.save();ctx.rotate(Math.atan2(player.y-y,player.x-x));pixelRect(9,-2,3,3,'#6f4f32');pixelRect(11,-3,18,3,'#c7a87a');ctx.restore();
+ }
+ if(e.windup>0){ctx.strokeStyle=P.gold2;ctx.lineWidth=2;ctx.globalAlpha=Math.min(1,e.windup/.48);ctx.beginPath();ctx.arc(0,0,e.r+7,-1.7,-.4);ctx.stroke()}
+ ctx.restore();
+ pixelRect(x-e.r,y-e.r-11,e.r*2,4,'#0a1719');pixelRect(x-e.r,y-e.r-11,e.r*2*Math.max(0,e.hp/e.max),4,e.type==='boss'?P.gold:P.red);if(e.type==='boss')text('GUARDIAN',x,y-e.r-18,7,P.cream,'center');
+}
+function drawEntrance(ent){
+ const p=Math.min(1,ent.age/ent.duration),x=ent.x,y=ent.y;ctx.save();ctx.translate(x,y);
+ if(ent.type==='bat'){
+  const h=(1-p)*28,shadow=10+p*8;ctx.globalAlpha=.35;ctx.fillStyle='#02090a';ctx.beginPath();ctx.ellipse(0,10,shadow,4,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.translate(0,-h);ctx.scale(.45+.55*p,.45+.55*p);pixelRect(-7,-5,14,15,'#16262b');pixelRect(-21,-13,14,20,'#234b4a');pixelRect(7,-13,14,20,'#234b4a');pixelRect(-4,-1,3,3,P.red2);pixelRect(2,-1,3,3,P.red2);
+ }else if(ent.type==='goblin'){
+  const r=5+18*p;ctx.globalAlpha=(1-p)*.7;ctx.fillStyle='#397d65';for(let i=0;i<9;i++){const a=i*2.4;ctx.beginPath();ctx.arc(Math.cos(a)*r*.7,Math.sin(a)*r*.45,r*.16,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=p;ctx.scale(p,p);pixelRect(-14,-5,28,15,'#397d65');pixelRect(-10,-11,20,7,'#57b48b');pixelRect(-6,-1,4,3,P.ink);pixelRect(2,-1,4,3,P.ink);
+ }else{
+  const r=8+20*p;ctx.globalAlpha=(1-p)*.75;ctx.fillStyle='#8a6743';for(let i=0;i<10;i++){const a=i*2.1;ctx.beginPath();ctx.arc(Math.cos(a)*r*.75,Math.sin(a)*r*.5,2+i%3,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=p;ctx.translate(0,8*(1-p));ctx.scale(.7+.3*p,.7+.3*p);pixelRect(-10,-6,20,14,P.cream);pixelRect(-8,-17,16,12,'#e3ddc8');pixelRect(-4,-13,3,4,P.ink);pixelRect(2,-13,3,4,P.ink);pixelRect(-10,12,7,5,'#8f8c7f');pixelRect(3,12,7,5,'#8f8c7f');
  }
  ctx.restore();
- pixelRect(x-e.r,y-e.r-11,e.r*2,4,'#0a1719');pixelRect(x-e.r,y-e.r-11,e.r*2*Math.max(0,e.hp/e.max),4,P.red);
- if(e.type==='boss')text('GUARDIAN',x,y-e.r-18,7,P.cream,'center');
+ if(p<1){text(ent.type==='bat'?'DROP IN':ent.type==='goblin'?'MAGIC':'EARTH',x,y-28,6,ent.type==='goblin'?P.green:ent.type==='skeleton'?'#a57b4c':P.cream,'center')}
 }
+function drawProjectile(q){ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.a);ctx.shadowBlur=8;ctx.shadowColor=q.type==='arrow'?P.gold:P.red2;pixelRect(-6,-2,12,4,q.type==='arrow'?P.cream:P.red2);if(q.type==='spiral'){pixelRect(-2,-4,4,8,P.gold2)}ctx.restore()}
+
 function drawLoot(l){
  const y=l.y+Math.sin(l.bob)*3,x=l.x;ctx.save();ctx.translate(x,y);ctx.shadowBlur=14;ctx.shadowColor=l.type==='Gold'?P.gold:P.teal;
  if(l.type==='Gold'){
@@ -304,9 +353,11 @@ function draw(){
  if(!atShop)drawExit();
  drawDeathMarks();
  loot.forEach(drawLoot);
+ projectiles.forEach(drawProjectile);
+ entrances.forEach(drawEntrance);
  enemies.forEach((e,i)=>drawEnemy(e,i));drawPlayer();
  slashes.forEach(drawSlash);
- particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);let col=p.type==='coin'?P.gold2:(p.type==='heal'?P.teal2:(p.type==='hit'?P.cream:P.gold));pixelRect(p.x,p.y,4,4,col);ctx.globalAlpha=1});
+ particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);let col=p.type==='coin'?P.gold2:(p.type==='heal'?P.teal2:(p.type==='hit'?P.cream:(p.type==='spawn'?(p.spawnType==='goblin'?P.green:p.spawnType==='skeleton'?'#a57b4c':P.cream):P.gold)));pixelRect(p.x,p.y,4,4,col);ctx.globalAlpha=1});
  if(roomCleared&&!atShop){panel(W/2-125,H-65,250,34);text(isBossRoom()?'BOSS DEFEATED  •  WALK TO EXIT »':'ROOM CLEARED  •  WALK TO EXIT »',W/2,H-43,10,P.teal2,'center')}
  if(atShop)drawShop();
  if(gameOver){ctx.fillStyle='#02090ad9';ctx.fillRect(0,0,W,H);text('GAME OVER',W/2,H/2-15,30,P.cream,'center');text('TAP FIRE TO RESTART',W/2,H/2+18,11,P.teal2,'center')}
