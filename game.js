@@ -1,7 +1,8 @@
 const c=document.getElementById('game'),ctx=c.getContext('2d');
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12;
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
-const player={x:0,y:0,r:14,hp:100,maxHp:100,speed:215,fire:0,damage:25,flash:0};
+const SPRITE_SCALE=0.82;
+const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:215,fire:0,damage:25,flash:0};
 let enemies=[],loot=[],slashes=[],deathMarks=[],particles=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
 let shopMessage='';
 let nextSwingSide=1, swingCooldown=0, facing=0;
@@ -31,7 +32,7 @@ function resetRoom(){
  const count=isBoss?1:Math.min(5+room*2,18);
  const top=82,bottom=Math.max(top+120,H-78),left=42,right=Math.max(left+210,W-42);
  if(isBoss){
-  enemies.push({x:W-105,y:H/2,r:34,type:'boss',hp:650+area*100,max:650+area*100,speed:35+area*2,hit:0,boss:true});
+  enemies.push({x:W-105,y:H/2,r:34*SPRITE_SCALE,type:'boss',hp:650+area*100,max:650+area*100,speed:35+area*2,hit:0,boss:true});
   msg('BOSS ROOM — DEFEAT THE GUARDIAN');
  }else{
   for(let i=0;i<count;i++){
@@ -39,7 +40,7 @@ function resetRoom(){
    do{x=left+Math.random()*(right-left);y=top+Math.random()*(bottom-top);tries++}while(Math.hypot(x-player.x,y-player.y)<150&&tries<30);
    const type=i%4===0?'bat':(i%3===0?'slime':'skeleton');
    const base=type==='bat'?34:type==='slime'?46:54;
-   enemies.push({x,y,r:type==='bat'?14:15+Math.random()*3,type,hp:base+room*7,max:base+room*7,speed:(type==='bat'?65:45)+room*2,hit:0});
+   enemies.push({x,y,r:(type==='bat'?14:15+Math.random()*3)*SPRITE_SCALE,type,hp:base+room*7,max:base+room*7,speed:(type==='bat'?65:45)+room*2,hit:0});
   }
   msg(`AREA ${area} • ${areaName} — ROOM ${room} • CLEAR THE ROOM`);
  }
@@ -233,7 +234,7 @@ function drawSlash(s){
  ctx.restore();
 }
 function drawPlayer(){
- const x=player.x,y=player.y;ctx.save();ctx.translate(x,y);ctx.shadowBlur=player.flash?22:13;ctx.shadowColor=P.teal;
+ const x=player.x,y=player.y;ctx.save();ctx.translate(x,y);ctx.scale(SPRITE_SCALE,SPRITE_SCALE);ctx.shadowBlur=player.flash?22:13;ctx.shadowColor=P.teal;
  // hood/body silhouette
  pixelRect(-10,5,20,14,'#071517');pixelRect(-14,0,28,13,'#174642');pixelRect(-11,-12,22,15,'#0c3031');pixelRect(-7,-9,14,9,P.cream);
  // hood shadow + eyes
@@ -243,7 +244,7 @@ function drawPlayer(){
  ctx.save();ctx.rotate(facing);pixelRect(8,-2,5,5,'#6f4f32');pixelRect(12,-3,20,4,P.cream);pixelRect(30,-5,5,8,P.cream);pixelRect(11,-5,3,9,P.gold2);ctx.restore();ctx.restore();
 }
 function drawEnemy(e,i){
- const x=e.x,y=e.y;ctx.save();ctx.translate(x,y);ctx.shadowBlur=9;ctx.shadowColor=e.type==='bat'?P.red:P.teal;
+ const x=e.x,y=e.y;ctx.save();ctx.translate(x,y);ctx.scale(SPRITE_SCALE,SPRITE_SCALE);ctx.shadowBlur=9;ctx.shadowColor=e.type==='bat'?P.red:P.teal;
  if(e.type==='boss'){
   // Giant castle guardian: chunky goblin silhouette, deliberately much larger than normal enemies.
   pixelRect(-25,5,50,30,'#244b3d');pixelRect(-31,-4,62,25,'#397d55');pixelRect(-24,-28,48,28,'#4c9a63');

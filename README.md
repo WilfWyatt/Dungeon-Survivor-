@@ -18,3 +18,5 @@ A mobile-first HTML/JavaScript roguelite prototype.
 Upload all files to a GitHub repository, then:
 Settings -> Pages -> Deploy from a branch -> main -> /(root) -> Save.
 Open the generated Pages URL in Chrome on Android and use Chrome's menu -> Add to Home screen / Install app.
+
+V7.1: character sprite scale reduced to 82% to make the dungeon feel slightly larger, with matching collision radii.
