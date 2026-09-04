@@ -11,11 +11,11 @@ body{display:flex;justify-content:center}
 .value{font-size:15px;font-weight:800}.gold{color:#ffd86a}
 .healthLine,.xpLine{display:flex;align-items:center;gap:5px}.healthTrack,.xpTrack{height:8px;background:#122629;border:1px solid #29494a;flex:1;min-width:0}
 .healthTrack div{height:100%;background:#c95159}.xpTrack div{height:100%;background:#52d8c0}
-.healthLine span,.xpLine span{font-size:7px;color:#d8d4bd;white-space:nowrap}.roomStat{text-align:center}.roomStat .value{color:#d8d4bd}.subvalue{display:block;font-size:7px;color:#83f0d7;margin-top:2px}
+.healthLine span,.xpLine span{font-size:7px;color:#d8d4bd;white-space:nowrap}.roomStat{text-align:center}.roomStat .value{color:#d8d4bd;font-size:15px}.roomStat .subvalue{white-space:nowrap;font-size:6px}.subvalue{display:block;font-size:7px;color:#83f0d7;margin-top:2px}
 .gameFrame{position:relative;width:min(360px,100%);aspect-ratio:3 / 4;background:#02090a;border:3px solid #376566;box-shadow:0 0 0 2px #0a1c20,0 8px 20px #0008;overflow:hidden;flex-shrink:0}
 .gameFrame canvas{display:block;width:100%;height:100%;min-width:0;min-height:0;max-width:100%;max-height:100%;image-rendering:pixelated;background:#061316}
 .gameFrame::after{content:'';position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 28px #0008}
-#message{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:9px;color:#83f0d7;letter-spacing:.4px;text-align:center;white-space:nowrap;pointer-events:none;text-shadow:0 2px 3px #000;z-index:5;min-height:11px}
+#message{position:absolute;bottom:8px;top:auto;left:50%;transform:translateX(-50%);font-size:9px;color:#83f0d7;letter-spacing:.4px;text-align:center;white-space:nowrap;pointer-events:none;text-shadow:0 2px 3px #000;z-index:5;min-height:11px}
 #pickupNotice{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-weight:800;font-size:11px;color:#d8d4bd;background:#061619ed;border:2px solid #376566;padding:7px 10px;box-shadow:0 4px 18px #0008;opacity:0;transition:opacity .15s;pointer-events:none;white-space:nowrap;z-index:10;max-width:calc(100% - 18px);overflow:hidden;text-overflow:ellipsis}.show{opacity:1!important}
 #controls{width:100%;height:128px;position:relative;display:flex;justify-content:space-between;align-items:center;padding:0 12px;flex-shrink:0}
 #controls #stick{position:relative;left:auto;bottom:auto;width:106px;height:106px;border-radius:50%;background:#0b252855;border:2px solid #5ca79d88;box-shadow:inset 0 0 0 1px #102f32}
