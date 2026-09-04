@@ -1,7 +1,8 @@
 const c=document.getElementById('game'),ctx=c.getContext('2d');
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12;
 const player={x:0,y:0,r:14,hp:100,maxHp:100,speed:215,fire:0,damage:25,flash:0};
-let enemies=[],loot=[],bullets=[],particles=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
+let enemies=[],loot=[],slashes=[],deathMarks=[],particles=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
+let nextSwingSide=1, swingCooldown=0, facing=0;
 const P={ink:'#061316',deep:'#0a1c20',wall:'#172d31',wall2:'#234247',stone:'#29494a',moss:'#3f6d43',vine:'#2f603c',teal:'#52d8c0',teal2:'#83f0d7',cream:'#d8d4bd',gold:'#e5b94d',gold2:'#ffd86a',red:'#c95159',red2:'#ed6a70',blue:'#5fa9c7',green:'#4dbb88'};
 
 function fitGameFrame(){const frame=document.getElementById('gameFrame'),top=document.getElementById('topUI'),controls=document.getElementById('controls');if(!frame||!top||!controls)return;const gaps=10;const safe=16;const maxH=Math.max(320,Math.min(480,innerHeight-top.offsetHeight-controls.offsetHeight-gaps-safe));const maxW=Math.max(240,Math.min(360,innerWidth-24));const h=Math.min(maxH,maxW/0.75);frame.style.width=Math.round(h*0.75)+'px';frame.style.height=Math.round(h)+'px';c.style.width=frame.clientWidth+'px';c.style.height=frame.clientHeight+'px'}
@@ -23,7 +24,7 @@ function updateHud(){
 
 function resetRoom(){
  player.x=Math.max(120,W/2);player.y=Math.max(110,H/2);player.hp=clamp(player.hp,0,player.maxHp);player.flash=0;
- enemies=[];loot=[];bullets=[];particles=[];roomCleared=false;
+ enemies=[];loot=[];slashes=[];deathMarks=[];particles=[];roomCleared=false;
  const count=Math.min(5+room*2,18);
  const top=82,bottom=Math.max(top+120,H-78),left=42,right=Math.max(left+210,W-42);
  for(let i=0;i<count;i++){
@@ -33,10 +34,10 @@ function resetRoom(){
   const base=type==='bat'?34:type==='slime'?46:54;
   enemies.push({x,y,r:type==='bat'?14:15+Math.random()*3,type,hp:base+room*7,max:base+room*7,speed:(type==='bat'?65:45)+room*2,hit:0});
  }
- msg('Clear the room!');updateHud();
+ msg('DOOR LOCKED — CLEAR THE ROOM');updateHud();
 }
 
-function spawnLoot(x,y){
+function spawnLoot(x,y,enemyType){
  // Almost everything is gold. Healing is deliberately rare.
  const roll=Math.random();
  let type='Gold',amount=1+Math.floor(Math.random()*5);
@@ -62,23 +63,27 @@ function awardXP(amount){
  updateHud();
 }
 
-function shoot(){
- if(player.fire>0||gameOver||roomCleared||enemies.length===0)return;
- player.fire=.18;
- const target=enemies.reduce((p,e)=>!p||dist(player,e)<dist(player,p)?e:p,null);if(!target)return;
- const a=Math.atan2(target.y-player.y,target.x-player.x);
- bullets.push({x:player.x+Math.cos(a)*18,y:player.y+Math.sin(a)*18,vx:Math.cos(a)*670,vy:Math.sin(a)*670,r:3.5,damage:player.damage});
- burst(player.x+Math.cos(a)*18,player.y+Math.sin(a)*18,'shot',2);
+function findNearestEnemy(){
+ return enemies.reduce((p,e)=>!p||dist(player,e)<dist(player,p)?e:p,null);
+}
+function performSwing(){
+ if(gameOver||roomCleared||enemies.length===0||swingCooldown>0)return;
+ const target=findNearestEnemy();
+ if(target) facing=Math.atan2(target.y-player.y,target.x-player.x);
+ const side=nextSwingSide;
+ nextSwingSide*=-1;
+ swingCooldown=.30;
+ slashes.push({age:0,duration:.18,side,angle:facing,hit:new Set(),damage:player.damage});
 }
 
 function update(dt){
  if(gameOver)return;
- player.fire-=dt;player.flash=Math.max(0,player.flash-dt);
+ player.fire=Math.max(0,player.fire-dt);player.flash=Math.max(0,player.flash-dt);swingCooldown=Math.max(0,swingCooldown-dt);
  let mx=(keys.d?1:0)-(keys.a?1:0),my=(keys.s?1:0)-(keys.w?1:0);
  if(joy.active){mx=joy.x;my=joy.y}
  const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l}
  player.x=clamp(player.x+mx*player.speed*dt,30,W-30);player.y=clamp(player.y+my*player.speed*dt,70,H-70);
- if(fireHeld)shoot();
+ if(fireHeld)performSwing();
 
  enemies.forEach(e=>{
   e.hit=Math.max(0,e.hit-dt);
@@ -86,14 +91,23 @@ function update(dt){
   if(dist(e,player)<e.r+player.r){player.hp-=22*dt;player.flash=.08;if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to restart')}}
  });
 
- bullets.forEach(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt});
- for(let i=bullets.length-1;i>=0;i--){
-  const b=bullets[i];let hit=false;
-  for(let j=enemies.length-1;j>=0;j--){const e=enemies[j];
-   if(Math.hypot(b.x-e.x,b.y-e.y)<b.r+e.r){e.hp-=b.damage;e.hit=.12;hit=true;burst(b.x,b.y,'hit',5);
-    if(e.hp<=0){spawnLoot(e.x,e.y);enemies.splice(j,1);kills++;awardXP(e.type==='bat'?3:e.type==='slime'?4:5);burst(e.x,e.y,'death',12);updateHud()}break}
+ for(let i=slashes.length-1;i>=0;i--){
+  const s=slashes[i];
+  s.age+=dt;
+  const progress=s.age/s.duration;
+  const centre=s.angle+s.side*.72;
+  const reach=58;
+  for(const e of [...enemies]){
+   if(s.hit.has(e))continue;
+   const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);
+   let da=Math.atan2(dy,dx)-centre;
+   da=Math.atan2(Math.sin(da),Math.cos(da));
+   if(d<reach+e.r && Math.abs(da)<.82){
+    e.hp-=s.damage;s.hit.add(e);e.hit=.12;burst(e.x,e.y,'hit',4);
+    if(e.hp<=0){deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});spawnLoot(e.x,e.y,e.type);enemies.splice(enemies.indexOf(e),1);kills++;awardXP(e.type==='bat'?3:e.type==='slime'?4:5);burst(e.x,e.y,'death',12);}
+   }
   }
-  if(hit||b.x<0||b.x>W||b.y<50||b.y>H)bullets.splice(i,1);
+  if(progress>=1)slashes.splice(i,1);
  }
 
  loot.forEach(l=>{l.bob+=dt*3;l.spin+=dt*2});
@@ -148,23 +162,36 @@ function drawDungeon(){
  // banners and skull shrine
  drawBanner(W/2-95,5);drawBanner(W/2+95,5);drawSkullShrine(W/2,24);
  drawTorch(55,42);drawTorch(W-82,42);drawTorch(55,H-95);drawTorch(W-82,H-95);
- // scattered bones / blood for the gritty reference feel
- drawBone(W*.34,H*.42,0.55);drawBone(W*.39,H*.58,-.35);drawBone(W*.67,H*.40,.25);drawBlood(W*.73,H*.56);drawBlood(W*.60,H*.67);
+ // Enemy-specific death marks are drawn after kills so the floor tells the story.
 }
 function drawBanner(x,y){ctx.save();ctx.translate(x,y);pixelRect(-18,0,36,6,'#6d5630');pixelRect(-14,5,28,39,'#163e3b');pixelRect(-10,9,20,26,'#245650');pixelRect(-3,15,6,8,P.teal);pixelRect(-6,18,12,3,P.teal);ctx.fillStyle='#c7a65a';ctx.beginPath();ctx.moveTo(-14,44);ctx.lineTo(0,55);ctx.lineTo(14,44);ctx.closePath();ctx.fill();ctx.restore()}
 function drawSkullShrine(x,y){ctx.save();ctx.shadowBlur=10;ctx.shadowColor='#142f31';pixelRect(x-30,y-2,60,30,'#10262a');pixelRect(x-24,y-15,48,15,P.wall2);text('☠',x,y+18,31,'#7c9181','center');ctx.restore()}
 function drawBone(x,y,r){ctx.save();ctx.translate(x,y);ctx.rotate(r);pixelRect(-18,-2,36,4,'#9c9a85');pixelRect(-17,-6,5,5,P.cream);pixelRect(12,1,5,5,P.cream);ctx.restore()}
-function drawBlood(x,y){ctx.fillStyle='#6d3034';for(let i=0;i<9;i++){const a=i*1.7;pixelRect(x+Math.cos(a)*18*Math.random(),y+Math.sin(a)*10*Math.random(),2+Math.random()*5,2+Math.random()*3,ctx.fillStyle)}}
+function drawBlood(x,y,col){ctx.fillStyle=col;for(let i=0;i<8;i++){const a=i*1.7;const rr=6+((i*13)%17);pixelRect(x+Math.cos(a)*rr,y+Math.sin(a)*rr*.55,2+(i%3),2+(i%2),ctx.fillStyle)}}
+function drawBonePile(x,y){drawBone(x-5,y-2,-.65);drawBone(x+6,y+3,.7)}
+function drawDeathMarks(){for(const m of deathMarks){if(m.type==='skeleton')drawBonePile(m.x,m.y);else if(m.type==='bat')drawBlood(m.x,m.y,'#7a3035');else drawBlood(m.x,m.y,'#3b7b45')}}
 function drawTorch(x,y){ctx.save();ctx.shadowBlur=24;ctx.shadowColor=P.teal;pixelRect(x-8,y,16,28,'#5b655d');pixelRect(x-5,y+5,10,19,'#2b4543');ctx.fillStyle=P.teal2;ctx.beginPath();ctx.moveTo(x,y-20);ctx.lineTo(x+9,y-5);ctx.lineTo(x,y+4);ctx.lineTo(x-9,y-5);ctx.closePath();ctx.fill();ctx.fillStyle=P.teal;ctx.beginPath();ctx.moveTo(x,y-14);ctx.lineTo(x+4,y-5);ctx.lineTo(x,y);ctx.lineTo(x-4,y-5);ctx.closePath();ctx.fill();ctx.restore()}
 
+function drawSlash(s){
+ const p=Math.min(1,s.age/s.duration);
+ const centre=s.angle+s.side*.72;
+ const start=centre-s.side*.78, end=centre+s.side*.22;
+ ctx.save();ctx.translate(player.x,player.y);ctx.rotate(0);
+ ctx.strokeStyle=P.cream;ctx.lineWidth=7;ctx.lineCap='round';ctx.shadowBlur=12;ctx.shadowColor=P.teal2;
+ ctx.globalAlpha=Math.sin(Math.min(1,p)*Math.PI)*.92;
+ ctx.beginPath();ctx.arc(0,0,47,start,end,s.side<0);ctx.stroke();
+ ctx.strokeStyle=P.teal2;ctx.lineWidth=2;ctx.globalAlpha*=.8;ctx.beginPath();ctx.arc(0,0,51,start,end,s.side<0);ctx.stroke();
+ ctx.restore();
+}
 function drawPlayer(){
  const x=player.x,y=player.y;ctx.save();ctx.translate(x,y);ctx.shadowBlur=player.flash?22:13;ctx.shadowColor=P.teal;
  // hood/body silhouette
  pixelRect(-10,5,20,14,'#071517');pixelRect(-14,0,28,13,'#174642');pixelRect(-11,-12,22,15,'#0c3031');pixelRect(-7,-9,14,9,P.cream);
  // hood shadow + eyes
  pixelRect(-5,-8,10,7,'#071719');pixelRect(-4,-5,3,2,P.teal2);pixelRect(2,-5,3,2,P.teal2);
- // cloak highlights, boots, rifle
- pixelRect(-12,11,7,9,'#0c2829');pixelRect(5,11,7,9,'#0c2829');pixelRect(-15,6,5,7,'#25645a');pixelRect(8,-1,20,4,'#82907c');pixelRect(24,-2,6,6,P.gold2);pixelRect(2,5,6,2,'#2f7770');ctx.restore();
+ // cloak highlights, boots, sword
+ pixelRect(-12,11,7,9,'#0c2829');pixelRect(5,11,7,9,'#0c2829');pixelRect(-15,6,5,7,'#25645a');
+ ctx.save();ctx.rotate(facing);pixelRect(8,-2,5,5,'#6f4f32');pixelRect(12,-3,20,4,P.cream);pixelRect(30,-5,5,8,P.cream);pixelRect(11,-5,3,9,P.gold2);ctx.restore();ctx.restore();
 }
 function drawEnemy(e,i){
  const x=e.x,y=e.y;ctx.save();ctx.translate(x,y);ctx.shadowBlur=9;ctx.shadowColor=e.type==='bat'?P.red:P.teal;
@@ -191,18 +218,30 @@ function drawLoot(l){
 }
 
 function drawExit(){
- const x=W-38,y=H/2;ctx.save();ctx.shadowBlur=28;ctx.shadowColor=P.teal;
- pixelRect(x-24,y-55,48,110,'#061416');pixelRect(x-19,y-49,38,98,'#143536');pixelRect(x-15,y-43,30,86,'#0c2528');
- ctx.strokeStyle=P.teal2;ctx.lineWidth=3;ctx.strokeRect(x-20,y-51,40,102);text('»',x,y+13,47,P.teal2,'center');text('EXIT',x,y+68,9,P.cream,'center');
+ const x=W-12,y=H/2;ctx.save();
+ // Door is recessed into the right wall rather than standing in the room.
+ pixelRect(x-24,y-54,24,108,'#081619');
+ pixelRect(x-20,y-48,20,96,'#173336');
+ pixelRect(x-17,y-44,17,88,'#0d2528');
+ ctx.strokeStyle=P.teal2;ctx.lineWidth=3;ctx.strokeRect(x-21,y-50,21,100);
+ text('»',x-9,y+12,38,P.teal2,'center');
+ if(!roomCleared){
+  // Heavy padlock remains until every enemy is dead.
+  pixelRect(x-14,y-9,18,20,'#6d5a34');pixelRect(x-11,y-13,12,10,'#b9a56b');
+  ctx.strokeStyle='#172124';ctx.lineWidth=3;ctx.strokeRect(x-9,y-10,8,10);pixelRect(x-7,y-3,4,5,'#172124');
+ } else {
+  text('EXIT',x-9,y+65,8,P.cream,'center');
+ }
  ctx.restore();
 }
 
 function draw(){
  ctx.clearRect(0,0,W,H);drawDungeon();
- if(roomCleared)drawExit();
+ drawExit();
+ drawDeathMarks();
  loot.forEach(drawLoot);
- bullets.forEach(b=>{pixelRect(b.x-3,b.y-2,7,4,P.gold2);pixelRect(b.x-1,b.y-4,3,8,'#fff2ad')});
  enemies.forEach((e,i)=>drawEnemy(e,i));drawPlayer();
+ slashes.forEach(drawSlash);
  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);let col=p.type==='coin'?P.gold2:(p.type==='heal'?P.teal2:(p.type==='hit'?P.cream:P.gold));pixelRect(p.x,p.y,4,4,col);ctx.globalAlpha=1});
  if(roomCleared){panel(W/2-125,H-65,250,34);text('ROOM CLEARED  •  WALK TO EXIT »',W/2,H-43,10,P.teal2,'center')}
  if(gameOver){ctx.fillStyle='#02090ad9';ctx.fillRect(0,0,W,H);text('GAME OVER',W/2,H/2-15,30,P.cream,'center');text('TAP FIRE TO RESTART',W/2,H/2+18,11,P.teal2,'center')}
@@ -212,11 +251,11 @@ function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw
 resetRoom();requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space')fireHeld=true;if(gameOver&&e.code==='Space')restart()});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function restart(){gameOver=false;room=1;kills=0;gold=0;xp=0;level=1;xpNeed=12;player.hp=100;player.maxHp=100;player.damage=25;resetRoom()}
+function restart(){gameOver=false;room=1;kills=0;gold=0;xp=0;level=1;xpNeed=12;player.hp=100;player.maxHp=100;player.damage=25;nextSwingSide=1;swingCooldown=0;resetRoom()}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
 function joyMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,m=Math.min(45,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*m/45;joy.y=Math.sin(a)*m/45;nub.style.transform=`translate(${joy.x*45}px,${joy.y*45}px)`}
 stick.addEventListener('pointerdown',e=>{joy.active=true;stick.setPointerCapture(e.pointerId);joyMove(e)});stick.addEventListener('pointermove',e=>{if(joy.active)joyMove(e)});stick.addEventListener('pointerup',()=>{joy.active=false;joy.x=joy.y=0;nub.style.transform='translate(0,0)'});stick.addEventListener('pointercancel',()=>{joy.active=false;joy.x=joy.y=0;nub.style.transform='translate(0,0)'});
-const f=document.getElementById('fire');f.addEventListener('pointerdown',()=>{if(gameOver)restart();fireHeld=true});f.addEventListener('pointerup',()=>fireHeld=false);f.addEventListener('pointercancel',()=>fireHeld=false);
+const f=document.getElementById('fire');f.addEventListener('pointerdown',()=>{if(gameOver)restart();performSwing();fireHeld=true});f.addEventListener('pointerup',()=>fireHeld=false);f.addEventListener('pointercancel',()=>fireHeld=false);
 if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('portrait').catch(()=>{});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
