@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.1.7**
+**Current Version: 0.1.8**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -62,6 +62,17 @@ Planned areas include:
 - Stronger atmospheric colour and depth.
 
 ## Change Log
+
+### 0.1.8 — Movement, Combat Feel & Castle Room Variation
+
+- Rebalanced movement speed hierarchy to approximately Bat 207 > Player 185 > Goblin 146 > Skeleton 106 >>> Guardian 50, with room/area scaling retained.
+- Reduced player movement speed to make enemy spacing and positioning more meaningful.
+- Kept Bats as the fastest enemy, with low durability and nuisance pressure.
+- Increased Goblin and Skeleton movement speeds relative to the previous build while preserving their distinct ranged/melee roles.
+- Kept the Guardian deliberately lumbering and slow.
+- Fixed the Game Over screen inheriting the combat screen-shake when the lethal hit happened during the hit-feedback window.
+- Added deterministic Castle room variation: different pillar arrangements, wall alcoves, rubble/debris clusters, moss density, torch/banner dressing, skull-shrine appearances and floor-detail patterns.
+- Kept room variations decorative and non-blocking so they do not create unfair collision or pathing problems.
 
 ### 0.1.7 — Progression, Scoring & Front-End Presentation
 

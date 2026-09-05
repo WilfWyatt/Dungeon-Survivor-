@@ -1,5 +1,5 @@
 const c=document.getElementById('game'),ctx=c.getContext('2d');
-let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false;
+let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
@@ -7,7 +7,7 @@ const WEAPONS={
  longSword:{name:'Long Sword',rarity:'Common',damage:32,cooldown:.40,reach:66,swingDuration:.22},
  claymore:{name:'Claymore',rarity:'Common',damage:45,cooldown:.56,reach:76,swingDuration:.28}
 };
-const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:215,fire:0,damage:25,flash:0,hitTimer:0,hitCooldown:0,knockX:0,knockY:0,weapon:'shortSword'};
+const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:185,fire:0,damage:25,flash:0,hitTimer:0,hitCooldown:0,knockX:0,knockY:0,weapon:'shortSword'};
 function playerWeapon(){return WEAPONS[player.weapon]||WEAPONS.shortSword}
 let enemies=[],loot=[],slashes=[],deathMarks=[],particles=[],projectiles=[],entrances=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
 let spawnQueue=[],spawnTimer=0,totalSpawned=0,totalQuota=0,activeCap=0,activeGoblinCap=0,bossPatternTimer=0,bossPatternStep=0,bossPatternMode='burst';
@@ -19,7 +19,7 @@ try{highScores=JSON.parse(localStorage.getItem('dungeonSurvivorHighScores')||'[]
 function addScore(amount){score=Math.max(0,score+amount)}
 function saveHighScore(){if(scoreSaved)return;scoreSaved=true;highScores.push({score,room,level,gold:totalGoldCollected,kills,area});highScores.sort((a,b)=>b.score-a.score);highScores=highScores.slice(0,5);try{localStorage.setItem('dungeonSurvivorHighScores',JSON.stringify(highScores))}catch(e){}}
 function scoreRank(){const i=highScores.findIndex(r=>r.score===score&&r.level===level&&r.kills===kills&&r.gold===totalGoldCollected);return i>=0?i+1:0}
-function finishGameOver(){if(gameOver)return;gameOver=true;saveHighScore();msg('You died — tap FIRE to return to title')}
+function finishGameOver(){if(gameOver)return;gameOver=true;player.hitTimer=0;player.hitCooldown=0;saveHighScore();msg('You died — tap FIRE to return to title')}
 function enemyScale(){return (1+(area-1)*.18)*(1+(level-1)*.075)}
 function enemyDamageScale(){return 1+(area-1)*.12+(level-1)*.045}
 function scaledPotionHeal(){return Math.min(player.maxHp,18+(area-1)*3+Math.floor((level-1)*1.5))}
@@ -59,14 +59,14 @@ function chooseEnemyType(weights){
  const r=Math.random();let acc=0;for(const [type,w] of weights){acc+=w;if(r<=acc)return type}return weights[weights.length-1][0];
 }
 function resetRoom(){
- player.x=58;player.y=H/2;player.hp=clamp(player.hp,0,player.maxHp);player.flash=0;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;
+ player.x=58;player.y=H/2;player.hp=clamp(player.hp,0,player.maxHp);roomVariation=(room*37+area*101)%997;player.flash=0;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;
  enemies=[];loot=[];slashes=[];deathMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=false;atShop=false;areaComplete=false;areaClearTimer=0;areaClearShown=false;bossWarningTimer=0;setBossWarning('');
  spawnQueue=[];spawnTimer=.35;totalSpawned=0;bossPatternTimer=1.1;bossPatternStep=0;bossPatternMode='burst';
  const isBoss=room===bossRoom;
  if(isBoss){
   totalQuota=1;activeCap=1;
   const hp=Math.round((650+area*100)*enemyScale());
-  enemies.push({x:W-105,y:H/2,r:34*SPRITE_SCALE,type:'boss',hp,max:hp,active:true,speed:35+area*2,hit:0,boss:true,attackTimer:1.1,attackAge:0,swingHit:false,weapon:'shortSword',warning:'',warningTimer:0,patternActive:false});
+  enemies.push({x:W-105,y:H/2,r:34*SPRITE_SCALE,type:'boss',hp,max:hp,active:true,speed:48+area*2,hit:0,boss:true,attackTimer:1.1,attackAge:0,swingHit:false,weapon:'shortSword',warning:'',warningTimer:0,patternActive:false});
   msg('BOSS ROOM — DEFEAT THE GUARDIAN');
  }else{
   const plan=ROOM_PLAN[room]||ROOM_PLAN[6];activeCap=plan.cap;activeGoblinCap=GOBLIN_CAPS[room]||6;totalQuota=plan.total;
@@ -106,10 +106,10 @@ function trySpawnEnemy(delay=0){
 }
 function activateEntrance(ent){
  const base=ent.type==='bat'?34:ent.type==='goblin'?48:58;
- const speed=ent.type==='bat'?78:ent.type==='goblin'?42:34;
+ const speed=ent.type==='bat'?205:ent.type==='goblin'?145:105;
  const r=ent.type==='bat'?11:15;
  const hp=Math.round((base+room*7)*enemyScale());
- enemies.push({x:ent.x,y:ent.y,r:r*SPRITE_SCALE,type:ent.type,hp,max:hp,speed:speed+room*2,hit:0,attackCooldown:.8,windup:0,attackAge:0,swingHit:false,swingAngle:0,swingSide:1,reposition:0,vulnerable:0,active:true,facingDir:'left'});
+ enemies.push({x:ent.x,y:ent.y,r:r*SPRITE_SCALE,type:ent.type,hp,max:hp,speed:speed+(ent.type==='bat'?2:ent.type==='goblin'?1:1),hit:0,attackCooldown:.8,windup:0,attackAge:0,swingHit:false,swingAngle:0,swingSide:1,reposition:0,vulnerable:0,active:true,facingDir:'left'});
 }
 
 function isBossRoom(){return room===bossRoom}
@@ -327,38 +327,73 @@ function panel(x,y,w,h){pixelRect(x,y,w,h,'#061619e8');ctx.strokeStyle='#376566'
 function drawDungeon(){
  ctx.fillStyle=P.ink;ctx.fillRect(0,0,W,H);
  const hudH=0, tile=40;
- // full fixed 360x480 game viewport; HTML owns the HUD above it
+ // Full fixed 360x480 game viewport; roomVariation is fixed for the current room.
  pixelRect(0,0,W,H,P.deep);
- // floor tiles with individual cracks/highlights
+ const floorCols=[P.wall,P.wall2,'#29484a','#203c40','#29474a','#1d373b','#2b4b4b'];
+ const variantShift=roomVariation%floorCols.length;
  for(let y=0;y<H-54;y+=tile){for(let x=14;x<W-14;x+=tile){
-  const gx=(x/tile|0),gy=(y/tile|0),n=(gx*31+gy*17+room*13)%7;
-  pixelRect(x,y,tile-2,tile-2,[P.wall,P.wall2,'#29484a','#203c40','#29474a','#1d373b','#2b4b4b'][n]);
-  pixelRect(x+3,y+3,tile-8,2,'#365457');
-  if(n===2||n===5){pixelRect(x+8,y+15,12,2,'#142b2f');pixelRect(x+19,y+17,8,2,'#142b2f')}
-  if(n===4){pixelRect(x+29,y+7,3,10,'#31504e');pixelRect(x+27,y+17,6,2,'#31504e')}
+  const gx=(x/tile|0),gy=(y/tile|0),n=(gx*31+gy*17+room*13+variantShift)%floorCols.length;
+  pixelRect(x,y,tile-2,tile-2,floorCols[n]);
+  pixelRect(x+3,y+3,tile-8,2,n%2?'#365457':'#304f51');
+  if((n+roomVariation)%5===0){pixelRect(x+8,y+15,12,2,'#142b2f');pixelRect(x+19,y+17,8,2,'#142b2f')}
+  if((n+roomVariation)%6===2){pixelRect(x+29,y+7,3,10,'#31504e');pixelRect(x+27,y+17,6,2,'#31504e')}
  }}
- // heavy perimeter masonry, inspired by the reference
+ // Heavy perimeter masonry.
  pixelRect(0,0,W,13,'#09181b');pixelRect(0,H-55,W,55,'#08171a');
  for(let x=8;x<W;x+=58){pixelRect(x,3,48,7,P.stone);pixelRect(x,H-48,48,8,P.stone)}
  pixelRect(0,0,12,H-55,P.wall);pixelRect(W-12,0,12,H-55,P.wall);
- // moss creeping along walls
+ // Each Castle room gets a deterministic decorative personality.
+ drawRoomVariation();
+ // Existing moss and architectural dressing, with density varied per room.
+ const topVines=6+(roomVariation%4), bottomVines=7+((roomVariation>>2)%4);
  ctx.strokeStyle=P.vine;ctx.lineWidth=5;ctx.lineCap='round';
- for(let i=0;i<8;i++){let x=24+i*(W-48)/7;ctx.beginPath();ctx.moveTo(x,hudH+7);ctx.quadraticCurveTo(x-16,105+i%3*28,x+7,132+i%4*25);ctx.quadraticCurveTo(x+25,155+i%3*35,x+2,190+i%2*40);ctx.stroke()}
- for(let i=0;i<10;i++){let x=20+i*(W-40)/9;ctx.beginPath();ctx.moveTo(x,H-49);ctx.quadraticCurveTo(x+16,H-88,x-5,H-118);ctx.stroke()}
- // banners and skull shrine
- drawBanner(W/2-95,5);drawBanner(W/2+95,5);drawSkullShrine(W/2,24);
- drawTorch(55,42);drawTorch(W-82,42);drawTorch(55,H-95);drawTorch(W-82,H-95);
+ for(let i=0;i<topVines;i++){let x=24+i*(W-48)/Math.max(1,topVines-1);ctx.beginPath();ctx.moveTo(x,hudH+7);ctx.quadraticCurveTo(x-16,105+i%3*28,x+7,132+i%4*25);ctx.quadraticCurveTo(x+25,155+i%3*35,x+2,190+i%2*40);ctx.stroke()}
+ for(let i=0;i<bottomVines;i++){let x=20+i*(W-40)/Math.max(1,bottomVines-1);ctx.beginPath();ctx.moveTo(x,H-49);ctx.quadraticCurveTo(x+16,H-88,x-5,H-118);ctx.stroke()}
+ if(roomVariation%3!==1){drawBanner(W/2-95,5);}
+ if(roomVariation%4!==2){drawBanner(W/2+95,5);}
+ if(roomVariation%5===0||roomVariation%5===3)drawSkullShrine(W/2,24);
+ const torches=[[55,42],[W-82,42],[55,H-95],[W-82,H-95]];
+ const torchMode=roomVariation%5;
+ torches.forEach((t,i)=>{if(((i+torchMode)%5)!==0)drawTorch(t[0],t[1])});
  // Extra stone seams, chips and scattered debris keep the floor from reading as a perfect grid.
- for(let i=0;i<28;i++){
-  const seed=(i*47+room*29)%997; const x=18+(seed*17)%324, y=68+(seed*31)%345;
+ const detailCount=22+(roomVariation%11);
+ for(let i=0;i<detailCount;i++){
+  const seed=(i*47+room*29+roomVariation*7)%997; const x=18+(seed*17)%324, y=68+(seed*31)%345;
   const len=5+(seed%12); ctx.strokeStyle=seed%3===0?'#172f33':'#315053'; ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+len,y+((seed%5)-2));ctx.stroke();
   if(seed%7===0)pixelRect(x+2,y+3,3,2,P.moss);
  }
- // Enter from the left; this door is decorative only.
  drawEntranceDoor();
- // Enemy-specific death marks are drawn after kills so the floor tells the story.
 }
+function drawRoomVariation(){
+ const v=roomVariation;
+ // Pillars: chunky but purely decorative, positioned away from the entrance/exit lanes.
+ const pillarSets=[
+  [[108,118],[252,362]],
+  [[104,352],[256,118]],
+  [[108,122],[108,358],[252,122],[252,358]],
+  [[150,118],[250,300]],
+  [[105,300],[255,180]],
+  []
+ ];
+ const pillars=pillarSets[v%pillarSets.length];
+ for(const p of pillars)drawPillar(p[0],p[1]);
+ // Wall alcoves/niches create a different silhouette without changing collision.
+ const alcoveSide=v%4;
+ if(alcoveSide!==3)drawAlcove(alcoveSide===0?'left':'right',118+(v%3)*76);
+ if(v%5===1)drawAlcove('left',318);
+ // Small debris clusters vary the floor dressing.
+ const rubbleCount=2+(v%4);
+ for(let i=0;i<rubbleCount;i++){
+  const x=82+((v*43+i*71)%196),y=120+((v*29+i*83)%250);
+  if(Math.abs(x-58)<34&&Math.abs(y-H/2)<72)continue;
+  if(Math.abs(x-(W-22))<34&&Math.abs(y-H/2)<72)continue;
+  drawRubble(x,y,(v+i)%3);
+ }
+}
+function drawPillar(x,y){ctx.save();ctx.shadowBlur=8;ctx.shadowColor='#0a1719';pixelRect(x-13,y-13,26,34,'#122a2d');pixelRect(x-10,y-9,20,29,P.stone);pixelRect(x-14,y-15,28,7,P.wall2);pixelRect(x-14,y+19,28,7,P.wall2);pixelRect(x-5,y-5,4,18,'#3a5b59');pixelRect(x+4,y-3,3,15,'#1d393c');ctx.restore()}
+function drawAlcove(side,y){const x=side==='left'?12:W-12,dir=side==='left'?1:-1;ctx.save();pixelRect(x,y-34,dir*24,68,'#081619');pixelRect(x+dir*3,y-29,dir*18,58,'#0d2528');pixelRect(x+dir*7,y-24,dir*11,48,'#102c30');pixelRect(x+dir*2,y-38,dir*22,6,P.wall2);pixelRect(x+dir*2,y+32,dir*22,6,P.wall2);ctx.restore()}
+function drawRubble(x,y,type){ctx.save();ctx.translate(x,y);ctx.rotate((type-1)*.18);pixelRect(-7,0,8,6,'#52615a');pixelRect(2,-4,7,7,P.stone);pixelRect(-2,-8,5,4,'#314b4b');if(type===2)pixelRect(8,2,4,3,P.moss);ctx.restore()}
 function drawBanner(x,y){ctx.save();ctx.translate(x,y);pixelRect(-18,0,36,6,'#6d5630');pixelRect(-14,5,28,39,'#163e3b');pixelRect(-10,9,20,26,'#245650');pixelRect(-3,15,6,8,P.teal);pixelRect(-6,18,12,3,P.teal);ctx.fillStyle='#c7a65a';ctx.beginPath();ctx.moveTo(-14,44);ctx.lineTo(0,55);ctx.lineTo(14,44);ctx.closePath();ctx.fill();ctx.restore()}
 function drawSkullShrine(x,y){ctx.save();ctx.shadowBlur=10;ctx.shadowColor='#142f31';pixelRect(x-30,y-2,60,30,'#10262a');pixelRect(x-24,y-15,48,15,P.wall2);text('☠',x,y+18,31,'#7c9181','center');ctx.restore()}
 function drawBone(x,y,r){ctx.save();ctx.translate(x,y);ctx.rotate(r);pixelRect(-18,-2,36,4,'#9c9a85');pixelRect(-17,-6,5,5,P.cream);pixelRect(12,1,5,5,P.cream);ctx.restore()}
@@ -507,7 +542,7 @@ function drawShop(){
 
 function draw(){
  ctx.clearRect(0,0,W,H);
- const shake=player.hitTimer>0?(player.hitTimer/.24)*2.2:0; if(shake){ctx.save();ctx.translate((Math.random()*2-1)*shake,(Math.random()*2-1)*shake)}
+ const shake=!gameOver&&player.hitTimer>0?(player.hitTimer/.24)*2.2:0; if(shake){ctx.save();ctx.translate((Math.random()*2-1)*shake,(Math.random()*2-1)*shake)}
  drawDungeon();
  if(!atShop)drawExit();
  drawDeathMarks();
