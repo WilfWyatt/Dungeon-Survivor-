@@ -1,7 +1,9 @@
 const c=document.getElementById('game'),ctx=c.getContext('2d');
 // Great Hall REDO environment asset
 const greatHallBg=new Image();
-greatHallBg.src='assets/environment/great-hall-bg.png';
+let greatHallBgFailed=false;
+greatHallBg.onerror=()=>{greatHallBgFailed=true;};
+greatHallBg.src='assets/environment/great-hall-bg.png?v=020redo2';
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
 const VERSION='0.2.0';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
@@ -390,6 +392,7 @@ function text(t,x,y,size,fill,align='left'){ctx.fillStyle=fill;ctx.font=`700 ${s
 function panel(x,y,w,h){pixelRect(x,y,w,h,'#061619e8');ctx.strokeStyle='#376566';ctx.lineWidth=2;ctx.strokeRect(x,y,w,h)}
 
 function drawDungeon(){
+ if(greatHallBgFailed){ctx.fillStyle=P.deep;ctx.fillRect(0,0,W,H);ctx.fillStyle=P.teal2;ctx.font='10px monospace';ctx.textAlign='center';ctx.fillText('GREAT HALL ASSET MISSING',W/2,H/2);return}
  // 0.2.0 REDO: the Great Hall is now an authored pixel-art environment asset.
  // Gameplay entities/effects remain live and are drawn over the room artwork.
  ctx.fillStyle=P.ink;ctx.fillRect(0,0,W,H);
