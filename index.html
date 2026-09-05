@@ -28,6 +28,29 @@
       <div id="splashScreen" aria-label="Dungeon Survivor splash screen"></div>
       <div id="startScreen" aria-label="Dungeon Survivor start menu">
         <button id="playButton" type="button" aria-label="Play">PLAY</button>
+        <div id="menuActions">
+          <button id="scoreboardButton" type="button">LOCAL SCOREBOARD</button>
+          <button id="exitAppButton" type="button">EXIT APP</button>
+        </div>
+        <div id="versionLabel">v0.1.9</div>
+      </div>
+      <div id="scoreboardScreen" aria-label="Local scoreboard">
+        <div class="menuPanel scoreboardPanel">
+          <div class="menuTitle">DUNGEON RECORDS</div>
+          <div id="scoreList"></div>
+          <button id="scoreboardBack" type="button" class="menuButton">BACK TO START</button>
+        </div>
+      </div>
+      <div id="weaponScreen" aria-label="Weapon discovery screen">
+        <div class="menuPanel weaponPanel">
+          <div id="weaponTitle" class="menuTitle">WEAPON FOUND</div>
+          <div id="weaponSub" class="menuSub"></div>
+          <div id="weaponCard"></div>
+          <div class="weaponButtons">
+            <button id="equipWeapon" type="button" class="menuButton primary">EQUIP</button>
+            <button id="keepWeapon" type="button" class="menuButton">KEEP CURRENT</button>
+          </div>
+        </div>
       </div>
       <div id="bossWarning" aria-live="polite"></div>
       <div id="message"></div>

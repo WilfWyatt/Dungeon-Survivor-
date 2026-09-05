@@ -1,14 +1,30 @@
 const c=document.getElementById('game'),ctx=c.getContext('2d');
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
+const VERSION='0.1.9';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
- shortSword:{name:'Short Sword',rarity:'Common',damage:25,cooldown:.30,reach:58,swingDuration:.18},
- longSword:{name:'Long Sword',rarity:'Common',damage:32,cooldown:.40,reach:66,swingDuration:.22},
- claymore:{name:'Claymore',rarity:'Common',damage:45,cooldown:.56,reach:76,swingDuration:.28}
+ shortSword:{id:'shortSword',name:'Short Sword',baseDamage:25,cooldown:.30,reach:58,swingDuration:.18,knockback:1.00,icon:'🗡'},
+ longSword:{id:'longSword',name:'Long Sword',baseDamage:32,cooldown:.40,reach:66,swingDuration:.22,knockback:1.08,icon:'⚔'},
+ claymore:{id:'claymore',name:'Claymore',baseDamage:45,cooldown:.56,reach:76,swingDuration:.28,knockback:1.20,icon:'🔨'}
 };
-const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:185,fire:0,damage:25,flash:0,hitTimer:0,hitCooldown:0,knockX:0,knockY:0,weapon:'shortSword'};
-function playerWeapon(){return WEAPONS[player.weapon]||WEAPONS.shortSword}
+const RARITIES=[
+ {name:'Common',weight:58,mult:1.00,cooldown:1.00,reach:1.00,knockback:1.00,label:'COMMON'},
+ {name:'Uncommon',weight:25,mult:1.08,cooldown:.96,reach:1.04,knockback:1.08,label:'UNCOMMON'},
+ {name:'Rare',weight:11,mult:1.18,cooldown:.92,reach:1.08,knockback:1.16,label:'RARE'},
+ {name:'Epic',weight:5,mult:1.30,cooldown:.88,reach:1.12,knockback:1.25,label:'EPIC'},
+ {name:'Legendary',weight:1,mult:1.45,cooldown:.84,reach:1.16,knockback:1.35,label:'LEGENDARY'}
+];
+const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:185,fire:0,damage:25,damageBonus:0,flash:0,hitTimer:0,hitCooldown:0,knockX:0,knockY:0,weapon:null};
+let weaponFinds=[],pendingWeaponIndex=0,weaponPromptOpen=false,weaponBurning=false;
+function rarityData(name){return RARITIES.find(r=>r.name===name)||RARITIES[0]}
+function weaponInstance(id,rarityName='Common'){const base=WEAPONS[id]||WEAPONS.shortSword,r=rarityData(rarityName);return {id:base.id,name:base.name,rarity:r.name,baseDamage:base.baseDamage,damage:Math.round(base.baseDamage*r.mult),cooldown:base.cooldown*r.cooldown,reach:Math.round(base.reach*r.reach),swingDuration:base.swingDuration,knockback:base.knockback*r.knockback,icon:base.icon}}
+function playerWeapon(){return player.weapon||weaponInstance('shortSword','Common')}
+function currentWeaponStats(){const w=playerWeapon();return {damage:w.damage+(player.damageBonus||0),cooldown:w.cooldown,reach:w.reach,knockback:w.knockback}}
+function weightedRarity(){let total=RARITIES.reduce((a,r)=>a+r.weight,0),roll=Math.random()*total;for(const r of RARITIES){roll-=r.weight;if(roll<0)return r.name}return 'Common'}
+function randomWeaponDrop(){const ids=['shortSword','longSword','claymore'];return weaponInstance(ids[Math.floor(Math.random()*ids.length)],weightedRarity())}
+function rarityClass(r){return String(r||'Common').toLowerCase()}
+function weaponStatLines(w){return {damage:w.damage,reach:w.reach,cooldown:w.cooldown,knockback:w.knockback}}
 let enemies=[],loot=[],slashes=[],deathMarks=[],particles=[],projectiles=[],entrances=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
 let spawnQueue=[],spawnTimer=0,totalSpawned=0,totalQuota=0,activeCap=0,activeGoblinCap=0,bossPatternTimer=0,bossPatternStep=0,bossPatternMode='burst';
 const ROOM_PLAN={1:{cap:5,total:10,weights:[['bat',.80],['goblin',.10],['skeleton',.10]]},2:{cap:6,total:12,weights:[['bat',.70],['goblin',.15],['skeleton',.15]]},3:{cap:7,total:14,weights:[['bat',.60],['goblin',.20],['skeleton',.20]]},4:{cap:8,total:17,weights:[['bat',.50],['goblin',.25],['skeleton',.25]]},5:{cap:10,total:20,weights:[['bat',.40],['goblin',.30],['skeleton',.30]]},6:{cap:12,total:22,weights:[['bat',1/3],['goblin',1/3],['skeleton',1/3]]}};
@@ -106,7 +122,7 @@ function trySpawnEnemy(delay=0){
 }
 function activateEntrance(ent){
  const base=ent.type==='bat'?34:ent.type==='goblin'?48:58;
- const speed=ent.type==='bat'?205:ent.type==='goblin'?145:105;
+ const speed=ent.type==='bat'?205:ent.type==='goblin'?135:105;
  const r=ent.type==='bat'?11:15;
  const hp=Math.round((base+room*7)*enemyScale());
  enemies.push({x:ent.x,y:ent.y,r:r*SPRITE_SCALE,type:ent.type,hp,max:hp,speed:speed+(ent.type==='bat'?2:ent.type==='goblin'?1:1),hit:0,attackCooldown:.8,windup:0,attackAge:0,swingHit:false,swingAngle:0,swingSide:1,reposition:0,vulnerable:0,active:true,facingDir:'left'});
@@ -123,7 +139,7 @@ function buyUpgrade(type){
  if(type==='damage'){
   const cost=100;
   if(gold<cost){showPickup('Not enough gold for +5 DAMAGE');return}
-  gold-=cost;player.damage+=5;showPickup('+5 DAMAGE purchased');
+  gold-=cost;player.damageBonus+=5;player.damage=currentWeaponStats().damage;showPickup('+5 DAMAGE purchased');
  }else if(type==='health'){
   const cost=75;
   if(gold<cost){showPickup('Not enough gold for +10 MAX HP');return}
@@ -140,16 +156,18 @@ function continueFromShop(){
 }
 
 function spawnLoot(x,y,enemyType){
- // Almost everything is gold. Healing is deliberately rare.
+ // Gold remains common, healing is rare, and weapons are occasional physical finds.
  const roll=Math.random();
- let type='Gold',amount=scaledGoldAmount(enemyType);
- if(roll<0.035) type='Heart';
- else if(roll<0.105) type='Potion';
+ let type='Gold',amount=scaledGoldAmount(enemyType),weapon=null;
+ if(roll<0.075){type='Weapon';weapon=randomWeaponDrop()}
+ else if(roll<0.110) type='Heart';
+ else if(roll<0.185) type='Potion';
  const kick=Math.random()*Math.PI*2;const kickSpeed=type==='Gold'?35+Math.random()*35:0;
- loot.push({x,y,r:11,type,amount,bob:Math.random()*6.28,spin:Math.random()*6.28,vx:Math.cos(kick)*kickSpeed,vy:Math.sin(kick)*kickSpeed});
+ loot.push({x,y,r:type==='Weapon'?13:11,type,amount,weapon,bob:Math.random()*6.28,spin:Math.random()*6.28,vx:Math.cos(kick)*kickSpeed,vy:Math.sin(kick)*kickSpeed});
  if(type==='Gold') showPickup(`🪙 ${amount} gold dropped — nearby gold is attracted to you`);
  else if(type==='Heart') showPickup('♥ RARE HEART — full heal!');
- else showPickup('✚ RARE POTION — small heal');
+ else if(type==='Potion') showPickup('✚ RARE POTION — small heal');
+ else showPickup(`⚔ ${weapon.name} — ${weapon.rarity} weapon found!`);
 }
 
 function awardXP(amount){
@@ -160,7 +178,7 @@ function awardXP(amount){
   xpNeed=12+(level-1)*6;
   player.maxHp+=5; player.hp=clamp(player.hp+5,0,player.maxHp);
   const bonus=10+Math.floor(Math.random()*11); gold+=bonus; bonusTotal+=bonus;
-  player.damage+=2;
+  player.damageBonus+=2;player.damage=currentWeaponStats().damage;
  }
  if(levelled){showPickup(`★ LEVEL ${level}!  +5 MAX HP  +${bonusTotal} GOLD  +2 DAMAGE`);msg(`LEVEL UP!  You feel stronger.`);}
  updateHud();
@@ -177,7 +195,7 @@ function performSwing(){
  nextSwingSide*=-1;
  const w=playerWeapon();
  swingCooldown=w.cooldown;
- slashes.push({age:0,duration:w.swingDuration,side,angle:facing,reach:w.reach,hit:new Set(),damage:player.damage,weapon:player.weapon});
+ slashes.push({age:0,duration:w.swingDuration,side,angle:facing,reach:w.reach,hit:new Set(),damage:currentWeaponStats().damage,weapon:w});
 }
 
 function damagePlayer(amount,sourceX,sourceY,knockbackScale=1,hitType='normal'){
@@ -196,7 +214,7 @@ function damagePlayer(amount,sourceX,sourceY,knockbackScale=1,hitType='normal'){
 function update(dt){
  if(!started)return;
  if(gameOver)return;
- if(atShop){updateHud();return;}
+ if(atShop||weaponPromptOpen){updateHud();return;}
  if(areaClearTimer>0)areaClearTimer=Math.max(0,areaClearTimer-dt);
  player.fire=Math.max(0,player.fire-dt);player.flash=Math.max(0,player.flash-dt);player.hitTimer=Math.max(0,player.hitTimer-dt);player.hitCooldown=Math.max(0,player.hitCooldown-dt);swingCooldown=Math.max(0,swingCooldown-dt);
  player.x+=player.knockX*dt;player.y+=player.knockY*dt;const knockDrag=Math.pow(.025,dt);player.knockX*=knockDrag;player.knockY*=knockDrag;
@@ -253,7 +271,9 @@ function update(dt){
    }
   }else if(e.type==='bat'){
    const a=Math.atan2(player.y-e.y,player.x-e.x);e.facingDir=dirFromAngle(a);const weave=Math.sin(performance.now()/260+e.x*.035)*.38;
-   e.x+=(Math.cos(a)+Math.cos(a+Math.PI/2)*weave)*e.speed*dt*moveScale;e.y+=(Math.sin(a)+Math.sin(a+Math.PI/2)*weave)*e.speed*dt*moveScale;
+   // Bats rush in from range, then slow and circle/harass instead of constantly colliding with the player.
+   if(d>82){e.x+=(Math.cos(a)+Math.cos(a+Math.PI/2)*weave)*e.speed*dt*moveScale;e.y+=(Math.sin(a)+Math.sin(a+Math.PI/2)*weave)*e.speed*dt*moveScale;}
+   else {const orbitSign=Math.sin(performance.now()/420+e.x*.02)>0?1:-1;const radial=d>58?.35:d<45?-.55:0;const closeSpeed=e.speed*.34;e.x+=(Math.cos(a)*radial+Math.cos(a+orbitSign*Math.PI/2)*.92)*closeSpeed*dt*moveScale;e.y+=(Math.sin(a)*radial+Math.sin(a+orbitSign*Math.PI/2)*.92)*closeSpeed*dt*moveScale;}
   }else if(e.type==='boss'){
    const a=Math.atan2(player.y-e.y,player.x-e.x);
    e.facingDir=dirFromAngle(a);
@@ -308,11 +328,11 @@ function update(dt){
    if(d>0.1&&d<magnet){const pull=70+((magnet-d)/magnet)*210;l.x+=dx/d*pull*dt;l.y+=dy/d*pull*dt}
   }
  });
- for(let i=loot.length-1;i>=0;i--){const l=loot[i];const pickupRadius=l.type==='Gold'?player.r+5:player.r+l.r+9;if(dist(player,l)<pickupRadius){if(l.type==='Gold'){gold+=l.amount;totalGoldCollected+=l.amount;showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;player.hp=clamp(player.hp+scaledPotionHeal(),0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}burst(l.x,l.y,l.type==='Gold'?'coin':'heal',8);loot.splice(i,1);updateHud()}}
+ for(let i=loot.length-1;i>=0;i--){const l=loot[i];const pickupRadius=l.type==='Gold'?player.r+5:player.r+l.r+9;if(dist(player,l)<pickupRadius){if(l.type==='Gold'){gold+=l.amount;totalGoldCollected+=l.amount;showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;player.hp=clamp(player.hp+scaledPotionHeal(),0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}if(l.type==='Weapon'){weaponFinds.push(l.weapon);showPickup(`⚔ ${l.weapon.name} — ${l.weapon.rarity}  •  take it to the exit`)}burst(l.x,l.y,l.type==='Gold'?'coin':l.type==='Weapon'?'weapon':'heal',8);loot.splice(i,1);updateHud()}}
  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0);
  if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){roomCleared=true;roomsCleared++;msg('ROOM CLEARED — reach the EXIT »');showPickup('ROOM CLEARED — walk to the glowing exit');burst(W/2,H/2,'clear',18)}
  if(isBossRoom()&&enemies.length===0&&!roomCleared){roomCleared=true;msg(`AREA ${area} COMPLETE — reach the EXIT »`);showPickup('Guardian defeated — walk to the exit')}
- if(roomCleared&&!atShop){const ex={x:W-22,y:H/2};if(Math.abs(player.x-ex.x)<30&&Math.abs(player.y-ex.y)<66){if(isBossRoom())beginAreaShop();else{room++;resetRoom();showPickup(`Entering room ${room}`)}}}
+ if(roomCleared&&!atShop&&!weaponPromptOpen){const ex={x:W-22,y:H/2};if(Math.abs(player.x-ex.x)<30&&Math.abs(player.y-ex.y)<66){if(isBossRoom())beginAreaShop();else if(weaponFinds.length){pendingWeaponIndex=0;weaponPromptOpen=true;openWeaponPrompt();}else{room++;resetRoom();showPickup(`Entering room ${room}`)}}}
  updateHud();
 }
 function shootProjectile(x,y,a,speed,damage,type){projectiles.push({x,y,a,speed,damage,r:type==='arrow'?4:7,life:type==='arrow'?2.6:3.2,type,age:0})}
@@ -402,10 +422,11 @@ function drawBonePile(x,y){drawBone(x-5,y-2,-.65);drawBone(x+6,y+3,.7)}
 function drawDeathMarks(){for(const m of deathMarks){if(m.type==='skeleton')drawBonePile(m.x,m.y);else if(m.type==='bat'||m.type==='boss')drawBlood(m.x,m.y,'#7a3035');else drawBlood(m.x,m.y,'#3b7b45')}}
 function drawTorch(x,y){ctx.save();ctx.shadowBlur=24;ctx.shadowColor=P.teal;pixelRect(x-8,y,16,28,'#5b655d');pixelRect(x-5,y+5,10,19,'#2b4543');ctx.fillStyle=P.teal2;ctx.beginPath();ctx.moveTo(x,y-20);ctx.lineTo(x+9,y-5);ctx.lineTo(x,y+4);ctx.lineTo(x-9,y-5);ctx.closePath();ctx.fill();ctx.fillStyle=P.teal;ctx.beginPath();ctx.moveTo(x,y-14);ctx.lineTo(x+4,y-5);ctx.lineTo(x,y);ctx.lineTo(x-4,y-5);ctx.closePath();ctx.fill();ctx.restore()}
 
-function drawSwordAt(x,y,angle,weaponKey,alpha=1,scale=1){
- const w=WEAPONS[weaponKey]||WEAPONS.shortSword;
- const len=weaponKey==='claymore'?31:weaponKey==='longSword'?27:23;
- const thick=weaponKey==='claymore'?5:weaponKey==='longSword'?4:3;
+function drawSwordAt(x,y,weaponKeyOrInstance,angle,alpha=1,scale=1){
+ const w=weaponKeyOrInstance?.id?weaponKeyOrInstance:(WEAPONS[weaponKeyOrInstance]||WEAPONS.shortSword);
+ const key=w.id||'shortSword';
+ const len=key==='claymore'?31:key==='longSword'?27:23;
+ const thick=key==='claymore'?5:key==='longSword'?4:3;
  ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.globalAlpha=alpha;ctx.shadowBlur=10;ctx.shadowColor=P.teal2;
  pixelRect(7,-2,5,4,'#6f4f32');
  pixelRect(11,-thick/2,len*scale,thick,P.cream);
@@ -419,7 +440,7 @@ function drawSlash(s){
  const centre=s.angle+s.side*(Math.PI*.40-eased*Math.PI*.80);
  const trail=Math.sin(p*Math.PI);
  ctx.save();ctx.globalAlpha=.18*trail;ctx.strokeStyle=P.teal2;ctx.lineWidth=5;ctx.beginPath();ctx.arc(player.x,player.y,(s.reach||58)-2, s.angle-s.side*Math.PI*.40, s.angle+s.side*Math.PI*.40, s.side<0);ctx.stroke();ctx.restore();
- drawSwordAt(player.x,player.y,centre,s.weapon||player.weapon,0.98,1);
+ drawSwordAt(player.x,player.y,s.weapon||playerWeapon(),centre,0.98,1);
 }
 function drawPlayer(){
  const bob=(Math.hypot(joy.x,joy.y)>.12||keys.w||keys.a||keys.s||keys.d)?Math.sin(walkTime)*1.2:0; const x=player.x,y=player.y+bob;ctx.save();ctx.translate(x,y);ctx.scale(SPRITE_SCALE,SPRITE_SCALE);
@@ -442,7 +463,7 @@ function drawPlayer(){
   pixelRect(-10,5,20,14,'#071517');pixelRect(-14,0,28,13,'#174642');pixelRect(-11,-12,22,15,'#0c3031');pixelRect(-7,-9,14,9,P.cream);
   pixelRect(-5,-8,10,7,'#071719');pixelRect(-4,-5,3,2,P.teal2);pixelRect(2,-5,3,2,P.teal2);pixelRect(-12,11,7,9,'#0c2829');pixelRect(5,11,7,9,'#0c2829');pixelRect(-15,6,5,7,'#25645a');
  }
- const swinging=slashes.length>0;if(!swinging)drawSwordAt(0,0,facing,player.weapon,1,1);
+ const swinging=slashes.length>0;if(!swinging)drawSwordAt(0,0,playerWeapon(),facing,1,1);
  ctx.restore();
 }
 function drawEnemy(e,i){
@@ -454,7 +475,7 @@ function drawEnemy(e,i){
   if(d==='up'){pixelRect(-10,1,20,17,'#9f9b89');pixelRect(-8,-16,16,14,'#c7c1ad');pixelRect(-11,-8,22,5,'#b5b09e');pixelRect(-10,12,7,5,'#77766d');pixelRect(3,12,7,5,'#77766d');}
   else if(d==='left'||d==='right'){const flip=d==='left'?-1:1;ctx.scale(flip,1);pixelRect(-8,-5,17,15,P.cream);pixelRect(-7,-17,15,12,'#e3ddc8');pixelRect(1,-13,4,4,P.ink);pixelRect(-11,6,8,4,'#b9b5a3');pixelRect(5,7,8,4,'#b9b5a3');pixelRect(-9,12,7,5,'#8f8c7f');pixelRect(4,12,7,5,'#8f8c7f');}
   else{pixelRect(-10,-6,20,14,P.cream);pixelRect(-8,-17,16,12,'#e3ddc8');pixelRect(-4,-13,3,4,P.ink);pixelRect(2,-13,3,4,P.ink);pixelRect(-14,6,8,4,'#b9b5a3');pixelRect(6,6,8,4,'#b9b5a3');pixelRect(-10,12,7,5,'#8f8c7f');pixelRect(3,12,7,5,'#8f8c7f');pixelRect(-2,-1,4,3,'#8d887a');}
-  let swordAngle=-.65;if(e.windup>0)swordAngle=e.swingAngle-Math.PI*.72;else if(e.attackAge>0){const p=1-e.attackAge/.20;swordAngle=e.swingAngle-e.swingSide*.95+e.swingSide*p*1.9;}drawSwordAt(0,0,swordAngle,e.weapon||'shortSword',1,1);
+  let swordAngle=-.65;if(e.windup>0)swordAngle=e.swingAngle-Math.PI*.72;else if(e.attackAge>0){const p=1-e.attackAge/.20;swordAngle=e.swingAngle-e.swingSide*.95+e.swingSide*p*1.9;}drawSwordAt(0,0,e.weapon||'shortSword',swordAngle,1,1);
  }else if(e.type==='bat'){
   const flap=Math.sin(performance.now()/90+i)*3;let sx=1;if(d==='left')sx=-1;ctx.scale(sx,1);pixelRect(-7,-5,14,15,'#16262b');pixelRect(-21,-13-flap,14,20+flap,'#234b4a');pixelRect(7,-13+flap,14,20-flap,'#234b4a');pixelRect(-16,-8,7,11,'#1a3839');pixelRect(9,-8,7,11,'#1a3839');pixelRect(-4,-1,3,3,P.red2);pixelRect(2,-1,3,3,P.red2);
  }else{
@@ -499,8 +520,12 @@ function drawLoot(l){
   pixelRect(-13,2,10,8,P.gold);pixelRect(1,-3,11,9,P.gold2);pixelRect(-4,-9,10,9,'#f0c85c');pixelRect(-10,4,5,3,'#8f6b25');pixelRect(4,-1,5,3,'#9d7426');
  }else if(l.type==='Heart'){
   ctx.fillStyle=P.red2;ctx.beginPath();ctx.moveTo(0,11);ctx.lineTo(-13,-1);ctx.quadraticCurveTo(-15,-12,-7,-13);ctx.quadraticCurveTo(0,-13,0,-6);ctx.quadraticCurveTo(0,-13,7,-13);ctx.quadraticCurveTo(15,-12,13,-1);ctx.closePath();ctx.fill();pixelRect(-7,-7,4,3,'#ffb0a5');
- }else{
+ }else if(l.type==='Potion'){
   pixelRect(-5,-13,10,5,P.cream);pixelRect(-9,-7,18,17,'#25876e');pixelRect(-6,-4,12,11,'#55c997');pixelRect(-3,1,6,6,'#8ee7b9');pixelRect(-7,-15,14,3,'#bcae87');
+ }else{
+  const r=rarityData(l.weapon?.rarity);ctx.shadowColor=r.name==='Legendary'?P.gold2:r.name==='Epic'?P.red2:r.name==='Rare'?P.teal2:P.teal;
+  pixelRect(-3,-14,6,9,P.gold2);pixelRect(-6,-6,12,4,P.cream);pixelRect(-3,-2,6,17,'#6f4f32');pixelRect(-8,13,16,4,P.gold);
+  text(l.weapon?.rarity?.slice(0,1)||'C',0,25,7,r.name==='Legendary'?P.gold2:r.name==='Epic'?P.red2:r.name==='Rare'?P.teal2:P.cream,'center');
  }
  if(l.type==='Gold'&&Math.sin(l.bob*2.1)>.55){ctx.fillStyle=P.cream;ctx.globalAlpha=.7;pixelRect(-2,-13,4,2,P.cream);pixelRect(-1,-15,2,6,P.cream);pixelRect(-4,-12,8,2,P.cream);ctx.globalAlpha=1}
  ctx.restore();
@@ -540,6 +565,19 @@ function drawShop(){
  text('TAP AN UPGRADE • TAP CONTINUE WHEN READY',W/2,390,7,'#78918a','center');
 }
 
+function formatSpeed(cooldown){return `${(1/cooldown).toFixed(1)}/s`}
+function compareArrow(a,b,lowerBetter=false){const d=a-b;const good=lowerBetter?-d:d;if(Math.abs(d)<.005)return '—';return good>0?'▲':'▼'}
+function weaponCardHTML(w){const cur=playerWeapon();const cs=currentWeaponStats();const ws=weaponStatLines(w);const damageDiff=ws.damage+player.damageBonus-cs.damage;const reachDiff=ws.reach-cs.reach;const speedDiff=(1/ws.cooldown)-(1/cs.cooldown);const knockDiff=ws.knockback-cs.knockback;return `<div class="weaponCompare"><div class="weaponCol current"><div class="smallTitle">CURRENT</div><div class="weaponName">${cur.icon} ${cur.name}</div><div class="rarity ${rarityClass(cur.rarity)}">${cur.rarity}</div><div class="weaponStat">DAMAGE <b>${cs.damage}</b></div><div class="weaponStat">REACH <b>${cs.reach}</b></div><div class="weaponStat">SPEED <b>${formatSpeed(cs.cooldown)}</b></div><div class="weaponStat">KNOCKBACK <b>${cs.knockback.toFixed(2)}×</b></div></div><div class="compareMid"><div>${compareArrow(damageDiff,0)} </div><div>${compareArrow(reachDiff,0)} </div><div>${compareArrow(speedDiff,0)} </div><div>${compareArrow(knockDiff,0)} </div></div><div class="weaponCol found"><div class="smallTitle">FOUND</div><div class="weaponName">${w.icon} ${w.name}</div><div class="rarity ${rarityClass(w.rarity)}">${w.rarity}</div><div class="weaponStat">DAMAGE <b>${w.damage+player.damageBonus}</b></div><div class="weaponStat">REACH <b>${w.reach}</b></div><div class="weaponStat">SPEED <b>${formatSpeed(w.cooldown)}</b></div><div class="weaponStat">KNOCKBACK <b>${w.knockback.toFixed(2)}×</b></div></div></div>`}
+function openWeaponPrompt(){const overlay=document.getElementById('weaponScreen');if(!overlay)return;overlay.classList.remove('burning');const w=weaponFinds[pendingWeaponIndex];if(!w){finishWeaponFinds();return;}document.getElementById('weaponTitle').textContent='WEAPON FOUND';document.getElementById('weaponSub').textContent=`You found this on your adventure — ${pendingWeaponIndex+1} of ${weaponFinds.length}`;document.getElementById('weaponCard').innerHTML=weaponCardHTML(w);document.getElementById('equipWeapon').textContent=`EQUIP ${w.name.toUpperCase()}`;document.getElementById('keepWeapon').textContent='KEEP CURRENT';overlay.classList.add('show');}
+function finishWeaponFinds(){weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;const overlay=document.getElementById('weaponScreen');if(overlay)overlay.classList.remove('show');room++;resetRoom();showPickup(`Entering room ${room}`);}
+function advanceWeaponFind(){pendingWeaponIndex++;if(pendingWeaponIndex>=weaponFinds.length)finishWeaponFinds();else openWeaponPrompt()}
+function discardCurrentFind(){weaponBurning=true;const w=weaponFinds[pendingWeaponIndex];const overlay=document.getElementById('weaponScreen');if(overlay){overlay.classList.add('burning');document.getElementById('weaponTitle').textContent='THROWN INTO THE FIRE';}showPickup(`🔥 ${w.name} thrown into the fire`);setTimeout(()=>{weaponBurning=false;advanceWeaponFind()},240)}
+function equipFoundWeapon(){const w=weaponFinds[pendingWeaponIndex];player.weapon=w;player.damage=currentWeaponStats().damage;swingCooldown=0;weaponBurning=true;const overlay=document.getElementById('weaponScreen');if(overlay){overlay.classList.add('burning');document.getElementById('weaponTitle').textContent='OLD WEAPON BURNED';}showPickup(`⚔ ${w.name} equipped — old weapon to the fire`);setTimeout(()=>{weaponBurning=false;advanceWeaponFind()},240)}
+function handleWeaponDecision(equip){if(!weaponPromptOpen||weaponBurning)return;if(equip)equipFoundWeapon();else discardCurrentFind();}
+function renderScoreboard(){const list=document.getElementById('scoreList');if(!list)return;const rows=highScores.length?highScores.map((r,i)=>`<div class="scoreRow"><span>#${i+1}</span><b>${r.score}</b><span>R${r.room} • LV${r.level}</span><span>${r.kills}K</span></div>`).join(''):`<div class="emptyScores">NO RUNS RECORDED YET</div>`;list.innerHTML=rows;}
+function openScoreboard(){if(started)return;renderScoreboard();document.getElementById('scoreboardScreen').classList.add('show');startScreen.classList.add('menuHidden');}
+function closeScoreboard(){document.getElementById('scoreboardScreen').classList.remove('show');startScreen.classList.remove('menuHidden');}
+function exitApp(){try{window.close()}catch(e){};setTimeout(()=>{try{history.back()}catch(e){}},80);setTimeout(()=>{if(document.visibilityState==='visible')msg('EXIT — close the app from Android to leave the game')},180);}
 function draw(){
  ctx.clearRect(0,0,W,H);
  const shake=!gameOver&&player.hitTimer>0?(player.hitTimer/.24)*2.2:0; if(shake){ctx.save();ctx.translate((Math.random()*2-1)*shake,(Math.random()*2-1)*shake)}
@@ -551,7 +589,7 @@ function draw(){
  entrances.forEach(drawEntrance);
  enemies.forEach((e,i)=>drawEnemy(e,i));drawPlayer();
  slashes.forEach(drawSlash);
- particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);let col=p.type==='coin'?P.gold2:(p.type==='heal'?P.teal2:(p.type==='hit'?P.cream:(p.type==='spawn'?(p.spawnType==='goblin'?P.green:p.spawnType==='skeleton'?'#a57b4c':P.cream):P.gold)));pixelRect(p.x,p.y,4,4,col);ctx.globalAlpha=1});
+ particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);let col=p.type==='coin'?P.gold2:(p.type==='heal'?P.teal2:(p.type==='weapon'?P.gold2:(p.type==='hit'?P.cream:(p.type==='spawn'?(p.spawnType==='goblin'?P.green:p.spawnType==='skeleton'?'#a57b4c':P.cream):P.gold))));pixelRect(p.x,p.y,4,4,col);ctx.globalAlpha=1});
  if(roomCleared&&!atShop){const pulse=.8+.2*Math.sin(performance.now()/140);ctx.globalAlpha=pulse;panel(W/2-125,H-65,250,34);text(isBossRoom()?'BOSS DEFEATED  •  WALK TO EXIT »':'ROOM CLEARED  •  WALK TO EXIT »',W/2,H-43,10,P.teal2,'center');ctx.globalAlpha=1}
  if(areaClearShown&&areaClearTimer>0&&!atShop){const a=areaClearTimer<.35?areaClearTimer/.35:1;ctx.globalAlpha=a;ctx.fillStyle='#02090ae0';ctx.fillRect(26,150,W-52,146);panel(34,158,W-68,130);text('AREA CLEARED',W/2,187,20,P.teal2,'center');text('GUARDIAN DEFEATED',W/2,209,9,P.cream,'center');text(`SCORE  ${score}   •   +${bossGoldReward()} GOLD`,W/2,232,9,P.gold2,'center');text('REACH THE EXIT FOR THE SHOP',W/2,255,8,P.cream,'center');ctx.globalAlpha=1;}
  if(atShop)drawShop();
@@ -561,24 +599,36 @@ function draw(){
 }
 function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();requestAnimationFrame(loop)}
 
+player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;
 resetRoom();
 const startScreen=document.getElementById('startScreen');
 const splashScreen=document.getElementById('splashScreen');
 const playButton=document.getElementById('playButton');
+const scoreboardButton=document.getElementById('scoreboardButton');
+const scoreboardBack=document.getElementById('scoreboardBack');
+const exitAppButton=document.getElementById('exitAppButton');
+const weaponScreen=document.getElementById('weaponScreen');
+const equipWeapon=document.getElementById('equipWeapon');
+const keepWeapon=document.getElementById('keepWeapon');
 startScreen.style.display='none';
 // Keep the menu underneath the splash during its fade so there is never a frame of the dungeon showing between them.
 setTimeout(()=>{startScreen.style.display='flex';splashScreen.classList.add('done');setTimeout(()=>{splashScreen.style.display='none';msg('PRESS PLAY TO ENTER THE DUNGEON')},220)},1800);
-playButton.addEventListener('pointerdown',e=>{e.preventDefault();if(started)return;startNewRun();msg('AREA 1 • CASTLE — ROOM 1 • CLEAR THE ROOM')});
+playButton.addEventListener('pointerdown',e=>{e.preventDefault();if(started)return;closeScoreboard();startNewRun();msg('AREA 1 • CASTLE — ROOM 1 • CLEAR THE ROOM')});
+scoreboardButton.addEventListener('pointerdown',e=>{e.preventDefault();openScoreboard()});
+scoreboardBack.addEventListener('pointerdown',e=>{e.preventDefault();closeScoreboard()});
+exitAppButton.addEventListener('pointerdown',e=>{e.preventDefault();exitApp()});
+equipWeapon.addEventListener('pointerdown',e=>{e.preventDefault();handleWeaponDecision(true)});
+keepWeapon.addEventListener('pointerdown',e=>{e.preventDefault();handleWeaponDecision(false)});
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'){if(gameOver)returnToTitle();else fireHeld=true}});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){started=true;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damage=WEAPONS.shortSword.damage;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;player.weapon='shortSword';nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
-function returnToTitle(){gameOver=false;started=false;atShop=false;areaComplete=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
+function startNewRun(){started=true;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function returnToTitle(){gameOver=false;started=false;atShop=false;areaComplete=false;weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
 function joyMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,m=Math.min(45,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*m/45;joy.y=Math.sin(a)*m/45;nub.style.transform=`translate(${joy.x*45}px,${joy.y*45}px)`}
 stick.addEventListener('pointerdown',e=>{joy.active=true;stick.setPointerCapture(e.pointerId);joyMove(e)});stick.addEventListener('pointermove',e=>{if(joy.active)joyMove(e)});stick.addEventListener('pointerup',()=>{joy.active=false;joy.x=joy.y=0;nub.style.transform='translate(0,0)'});stick.addEventListener('pointercancel',()=>{joy.active=false;joy.x=joy.y=0;nub.style.transform='translate(0,0)'});
 const f=document.getElementById('fire');f.addEventListener('pointerdown',()=>{if(gameOver){returnToTitle();return}if(atShop)return;performSwing();fireHeld=true});f.addEventListener('pointerup',()=>fireHeld=false);f.addEventListener('pointercancel',()=>fireHeld=false);
-c.addEventListener('pointerdown',e=>{if(!atShop)return;const r=c.getBoundingClientRect();const x=(e.clientX-r.left)*(W/r.width),y=(e.clientY-r.top)*(H/r.height);if(x>=48&&x<=312&&y>=172&&y<=230)buyUpgrade('damage');else if(x>=48&&x<=312&&y>=242&&y<=300)buyUpgrade('health');else if(x>=48&&x<=312&&y>=318&&y<=368)continueFromShop()});
+c.addEventListener('pointerdown',e=>{if(!atShop||weaponPromptOpen)return;const r=c.getBoundingClientRect();const x=(e.clientX-r.left)*(W/r.width),y=(e.clientY-r.top)*(H/r.height);if(x>=48&&x<=312&&y>=172&&y<=230)buyUpgrade('damage');else if(x>=48&&x<=312&&y>=242&&y<=300)buyUpgrade('health');else if(x>=48&&x<=312&&y>=318&&y<=368)continueFromShop()});
 if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('portrait').catch(()=>{});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});

@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.1.8**
+**Current Version: 0.1.9**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -63,12 +63,28 @@ Planned areas include:
 
 ## Change Log
 
+### 0.1.9 — Weapons, Decisions & Start Menu
+
+- Added physical weapon drops that must be collected by walking over them.
+- Added Short Sword, Long Sword and Claymore as distinct weapon classes with different speed, reach, damage and knockback profiles.
+- Added Common, Uncommon, Rare, Epic and Legendary weapon rarities, with rarity affecting multiple weapon stats.
+- Kept the Short Sword as the guaranteed starting weapon for every fresh run.
+- Collected weapons are held as finds until the current room is cleared and the player reaches the exit.
+- Added a weapon discovery/equip screen at the room exit with a current-versus-found stat comparison.
+- Weapon decisions are final: an unequipped found weapon is thrown into the fire and removed from the run.
+- Multiple weapons found in one room are presented one at a time, with each decision resolving before the next.
+- Slowed Goblins slightly while preserving their ranged spacing role.
+- Changed Bats so they rush from range but slow down and kite around the player at close range.
+- Added a Local Scoreboard button to the start menu using the device's existing top-five high-score data.
+- Added a return-to-start control from the scoreboard.
+- Added a discreet version number to the start screen and an Exit App control with browser/PWA-safe fallback behaviour.
+
 ### 0.1.8 — Movement, Combat Feel & Castle Room Variation
 
 - Rebalanced movement speed hierarchy to approximately Bat 207 > Player 185 > Goblin 146 > Skeleton 106 >>> Guardian 50, with room/area scaling retained.
 - Reduced player movement speed to make enemy spacing and positioning more meaningful.
 - Kept Bats as the fastest enemy, with low durability and nuisance pressure.
-- Increased Goblin and Skeleton movement speeds relative to the previous build while preserving their distinct ranged/melee roles.
+- Tuned the enemy speed hierarchy so Goblins sit below the player and Skeletons remain slower, deliberate melee threats.
 - Kept the Guardian deliberately lumbering and slow.
 - Fixed the Game Over screen inheriting the combat screen-shake when the lethal hit happened during the hit-feedback window.
 - Added deterministic Castle room variation: different pillar arrangements, wall alcoves, rubble/debris clusters, moss density, torch/banner dressing, skull-shrine appearances and floor-detail patterns.
