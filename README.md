@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.1.6**
+**Current Version: 0.1.7**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -16,6 +16,8 @@ The game is built as a lightweight HTML, CSS and JavaScript project with a portr
 - Fight using a close-range sword with alternating swings.
 - Collect physical loot by walking over it.
 - Gain XP and level up during a run.
+- Enemy strength, loot value and healing scale with area and player level.
+- Earn score for kills and lose score when taking damage.
 - Spend gold on permanent upgrades after defeating an area boss.
 - Learn enemy attack patterns and react to telegraphed attacks.
 - Reach the Guardian and survive its projectile patterns.
@@ -37,6 +39,8 @@ The game is built as a lightweight HTML, CSS and JavaScript project with a portr
 - Melee combat with visible sword swings, hit effects, stagger and knockback.
 - Locked room exits and a Guardian boss encounter.
 - Permanent upgrade shop between areas.
+- Branded splash/start presentation and installable app icons.
+- Local high-score table and end-of-run score summary.
 
 ## Milestones
 
@@ -58,6 +62,21 @@ Planned areas include:
 - Stronger atmospheric colour and depth.
 
 ## Change Log
+
+### 0.1.7 — Progression, Scoring & Front-End Presentation
+
+- Added area/level-based enemy scaling for HP and damage while keeping progression controlled.
+- Added stronger area progression naming: Castle, Lower Castle, Crypt, Catacombs and Abyss as later areas are reached.
+- Increased gold rewards as area and player level rise, with modest enemy-type bonuses and a Guardian completion reward.
+- Increased potion healing gradually with area and player level.
+- Added scoring: Bat +50, Goblin +75, Skeleton +100 and Guardian +1,000.
+- Added score penalties: normal enemy hit -5; Fireball and Fire Blast hit -100. Score cannot fall below zero.
+- Added a local top-five high-score table stored on the device and displayed on Game Over.
+- Added a short Area Cleared presentation after defeating the Guardian before reaching the exit/shop.
+- Replaced the generated splash/menu approximation with the selected torchlit dungeon artwork as the actual splash and Play menu visuals.
+- Removed the transition gap between splash and start menu by crossfading the menu underneath the splash.
+- Replaced the PWA app icon with the exact selected hero-in-the-doorway artwork.
+- Updated the service-worker cache and packaged visual assets for the new front-end presentation.
 
 ### 0.1.6 — Combat Feedback & Presentation
 

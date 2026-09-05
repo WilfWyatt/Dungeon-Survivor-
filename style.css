@@ -25,19 +25,9 @@ body{display:flex;justify-content:center}
 #controls #controlHint{font-size:8px;color:#476f6e;letter-spacing:1px;align-self:flex-end;margin-bottom:13px}
 @media(max-height:700px){#app{gap:5px}.brand{height:34px}.brand span,.brand strong{font-size:14px}.stats{gap:4px}.stat{height:39px;padding:4px}.gameFrame{max-width:360px;min-width:0}#controls{height:100px}#controls #stick{width:82px;height:82px}#controls #nub{width:40px;height:40px;left:19px;top:19px}#controls #fire{width:72px;height:72px;font-size:28px}#controls #fire span{bottom:9px;font-size:7px}}
 
-#startScreen{position:absolute;inset:0;z-index:30;background:radial-gradient(circle at 50% 42%,#12363a 0,#061316 48%,#02090a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center}
-#startScreen::before,#startScreen::after{content:'';position:absolute;inset:18px;border:1px solid #29494a;pointer-events:none;opacity:.7}
-#startScreen::after{inset:26px;border-color:#173336;opacity:.55}
-.titleDungeon,.titleSurvivor{font-weight:900;letter-spacing:2px;text-shadow:0 4px 0 #02090a,0 0 18px #52d8c066;position:relative;z-index:1}.titleDungeon{font-size:25px;color:#d8d4bd}.titleSurvivor{font-size:31px;color:#83f0d7;margin-top:-3px}.titleRule{width:150px;height:2px;background:#376566;margin:15px 0 24px;box-shadow:0 0 12px #52d8c066;position:relative;z-index:1}
-#playButton{position:relative;z-index:2;width:150px;height:48px;border:2px solid #83f0d7;background:#0b292b;color:#d8d4bd;font:900 16px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:2px;box-shadow:0 0 0 2px #061316,0 0 20px #52d8c044;touch-action:manipulation}#playButton:active{transform:translateY(2px);background:#123e40}
-.titleHint{position:relative;z-index:1;margin-top:15px;color:#527c78;font-size:7px;letter-spacing:1.2px}
-#bossWarning{position:absolute;top:7px;left:50%;transform:translateX(-50%) scale(.96);z-index:20;min-width:188px;padding:8px 14px 9px;text-align:center;color:#ffe9bd;background:#25120ddd;border:2px solid #e5b94d;box-shadow:0 0 0 2px #061316,0 0 18px #e5b94d88,0 4px 12px #000b;font:900 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:1px;opacity:0;pointer-events:none;transition:opacity .1s,transform .1s}#bossWarning.show{opacity:1;transform:translateX(-50%) scale(1)}#bossWarning.fireblast{border-color:#ed6a70;background:#351015ee;color:#ffe3cf;box-shadow:0 0 0 2px #061316,0 0 22px #ed6a70aa,0 4px 12px #000b}
-
-#splashScreen{position:absolute;inset:0;z-index:40;background:#061316 url('./splash-art.svg') center/cover no-repeat;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:opacity .35s ease;overflow:hidden}
-#splashScreen::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#02090a44 0%,#02090a22 40%,#02090a77 100%);pointer-events:none}#splashScreen.done{opacity:0}
-.splashTitle{position:relative;z-index:1;margin-top:78px;display:flex;flex-direction:column;font-weight:900;letter-spacing:1.5px;text-shadow:0 4px 0 #02090a,0 0 18px #000}.splashTitle span{font-size:29px;color:#d8d4bd}.splashTitle strong{font-size:36px;color:#c95159;margin-top:-3px}.splashRule{position:relative;z-index:1;width:160px;height:2px;background:#a98a55;margin:17px 0 12px;box-shadow:0 0 10px #e5b94d66}.splashTag{position:relative;z-index:1;font-size:8px;letter-spacing:2.5px;color:#e5d4ad;text-shadow:0 2px 3px #000}
-#startScreen{background:#061316 url('./splash-art.svg') center/cover no-repeat}
-#startScreen::before{background:linear-gradient(180deg,#02090a55,#02090a9a);inset:0;border:0;opacity:1}#startScreen::after{inset:18px;border-color:#9b7848;opacity:.5}
-#startScreen .titleDungeon,#startScreen .titleSurvivor{position:relative;text-shadow:0 4px 0 #02090a,0 0 18px #000}.titleDungeon{font-size:28px}.titleSurvivor{font-size:34px;color:#c95159}.titleRule{background:#a98a55;box-shadow:0 0 10px #e5b94d66}.titleHint{color:#c0ad85}
-#playButton{background:#8f2428;border-color:#d8d4bd;color:#fff2d0;box-shadow:0 0 0 2px #061316,0 0 18px #8f303655,0 4px 0 #3b1113;}
-#playButton:active{background:#b33338}
+#splashScreen,#startScreen{position:fixed;inset:0;z-index:100;background-color:#02090a;background-position:center;background-repeat:no-repeat;background-size:100% 100%;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:manipulation}
+#splashScreen{background-image:url('./splash-screen.png');opacity:1;transition:opacity .22s ease}
+#splashScreen.done{opacity:0;pointer-events:none}
+#startScreen{display:none;background-image:url('./menu-screen.png')}
+#playButton{position:absolute;left:25.5%;top:43.2%;width:49%;height:9%;padding:0;border:0;background:transparent;color:transparent;font-size:0;line-height:0;box-shadow:none;outline:none;cursor:pointer;touch-action:manipulation}
+#playButton:active{transform:translateY(2px)}

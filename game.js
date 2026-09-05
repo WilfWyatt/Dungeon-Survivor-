@@ -1,5 +1,5 @@
 const c=document.getElementById('game'),ctx=c.getContext('2d');
-let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0;
+let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false;
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
@@ -13,6 +13,18 @@ let enemies=[],loot=[],slashes=[],deathMarks=[],particles=[],projectiles=[],entr
 let spawnQueue=[],spawnTimer=0,totalSpawned=0,totalQuota=0,activeCap=0,activeGoblinCap=0,bossPatternTimer=0,bossPatternStep=0,bossPatternMode='burst';
 const ROOM_PLAN={1:{cap:5,total:10,weights:[['bat',.80],['goblin',.10],['skeleton',.10]]},2:{cap:6,total:12,weights:[['bat',.70],['goblin',.15],['skeleton',.15]]},3:{cap:7,total:14,weights:[['bat',.60],['goblin',.20],['skeleton',.20]]},4:{cap:8,total:17,weights:[['bat',.50],['goblin',.25],['skeleton',.25]]},5:{cap:10,total:20,weights:[['bat',.40],['goblin',.30],['skeleton',.30]]},6:{cap:12,total:22,weights:[['bat',1/3],['goblin',1/3],['skeleton',1/3]]}};
 let shopMessage='',bossWarningType='',bossWarningTimer=0;
+const SCORE_VALUES={bat:50,goblin:75,skeleton:100,boss:1000};
+let highScores=[];
+try{highScores=JSON.parse(localStorage.getItem('dungeonSurvivorHighScores')||'[]');if(!Array.isArray(highScores))highScores=[]}catch(e){highScores=[]}
+function addScore(amount){score=Math.max(0,score+amount)}
+function saveHighScore(){if(scoreSaved)return;scoreSaved=true;highScores.push({score,room,level,gold:totalGoldCollected,kills,area});highScores.sort((a,b)=>b.score-a.score);highScores=highScores.slice(0,5);try{localStorage.setItem('dungeonSurvivorHighScores',JSON.stringify(highScores))}catch(e){}}
+function scoreRank(){const i=highScores.findIndex(r=>r.score===score&&r.level===level&&r.kills===kills&&r.gold===totalGoldCollected);return i>=0?i+1:0}
+function finishGameOver(){if(gameOver)return;gameOver=true;saveHighScore();msg('You died — tap FIRE to return to title')}
+function enemyScale(){return (1+(area-1)*.18)*(1+(level-1)*.075)}
+function enemyDamageScale(){return 1+(area-1)*.12+(level-1)*.045}
+function scaledPotionHeal(){return Math.min(player.maxHp,18+(area-1)*3+Math.floor((level-1)*1.5))}
+function scaledGoldAmount(enemyType){const typeBonus=enemyType==='skeleton'?2:enemyType==='goblin'?1:0;const base=1+Math.floor(Math.random()*5);return Math.min(14,base+Math.max(0,area-1)+Math.floor((level-1)/3)+typeBonus)}
+function bossGoldReward(){return 30+area*12+level*3}
 let nextSwingSide=1, swingCooldown=0, facing=0, facingDir='right';
 const GOBLIN_CAPS={1:2,2:3,3:4,4:5,5:6,6:6};
 const P={ink:'#061316',deep:'#0a1c20',wall:'#172d31',wall2:'#234247',stone:'#29494a',moss:'#3f6d43',vine:'#2f603c',teal:'#52d8c0',teal2:'#83f0d7',cream:'#d8d4bd',gold:'#e5b94d',gold2:'#ffd86a',red:'#c95159',red2:'#ed6a70',blue:'#5fa9c7',green:'#4dbb88'};
@@ -48,12 +60,12 @@ function chooseEnemyType(weights){
 }
 function resetRoom(){
  player.x=58;player.y=H/2;player.hp=clamp(player.hp,0,player.maxHp);player.flash=0;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;
- enemies=[];loot=[];slashes=[];deathMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=false;atShop=false;areaComplete=false;bossWarningTimer=0;setBossWarning('');
+ enemies=[];loot=[];slashes=[];deathMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=false;atShop=false;areaComplete=false;areaClearTimer=0;areaClearShown=false;bossWarningTimer=0;setBossWarning('');
  spawnQueue=[];spawnTimer=.35;totalSpawned=0;bossPatternTimer=1.1;bossPatternStep=0;bossPatternMode='burst';
  const isBoss=room===bossRoom;
  if(isBoss){
   totalQuota=1;activeCap=1;
-  const hp=650+area*100;
+  const hp=Math.round((650+area*100)*enemyScale());
   enemies.push({x:W-105,y:H/2,r:34*SPRITE_SCALE,type:'boss',hp,max:hp,active:true,speed:35+area*2,hit:0,boss:true,attackTimer:1.1,attackAge:0,swingHit:false,weapon:'shortSword',warning:'',warningTimer:0,patternActive:false});
   msg('BOSS ROOM — DEFEAT THE GUARDIAN');
  }else{
@@ -96,7 +108,7 @@ function activateEntrance(ent){
  const base=ent.type==='bat'?34:ent.type==='goblin'?48:58;
  const speed=ent.type==='bat'?78:ent.type==='goblin'?42:34;
  const r=ent.type==='bat'?11:15;
- const hp=base+room*7;
+ const hp=Math.round((base+room*7)*enemyScale());
  enemies.push({x:ent.x,y:ent.y,r:r*SPRITE_SCALE,type:ent.type,hp,max:hp,speed:speed+room*2,hit:0,attackCooldown:.8,windup:0,attackAge:0,swingHit:false,swingAngle:0,swingSide:1,reposition:0,vulnerable:0,active:true,facingDir:'left'});
 }
 
@@ -121,7 +133,7 @@ function buyUpgrade(type){
 }
 function continueFromShop(){
  if(!atShop)return;
- atShop=false;areaComplete=false;area++;areaName=area===2?'TBD':`AREA ${area}`;room=1;
+ atShop=false;areaComplete=false;area++;areaName={2:'LOWER CASTLE',3:'CRYPT',4:'CATACOMBS',5:'ABYSS'}[area]||`AREA ${area}`;room=1;
  showPickup(`Entering Area ${area}`);
  msg(`AREA ${area} — ${areaName}`);
  resetRoom();
@@ -130,7 +142,7 @@ function continueFromShop(){
 function spawnLoot(x,y,enemyType){
  // Almost everything is gold. Healing is deliberately rare.
  const roll=Math.random();
- let type='Gold',amount=1+Math.floor(Math.random()*5);
+ let type='Gold',amount=scaledGoldAmount(enemyType);
  if(roll<0.035) type='Heart';
  else if(roll<0.105) type='Potion';
  const kick=Math.random()*Math.PI*2;const kickSpeed=type==='Gold'?35+Math.random()*35:0;
@@ -168,14 +180,16 @@ function performSwing(){
  slashes.push({age:0,duration:w.swingDuration,side,angle:facing,reach:w.reach,hit:new Set(),damage:player.damage,weapon:player.weapon});
 }
 
-function damagePlayer(amount,sourceX,sourceY,knockbackScale=1){
+function damagePlayer(amount,sourceX,sourceY,knockbackScale=1,hitType='normal'){
  if(gameOver||player.hitCooldown>0)return false;
  const dx=player.x-sourceX,dy=player.y-sourceY,d=Math.hypot(dx,dy)||1;
  const strength=(18+amount*0.95)*knockbackScale;
  player.knockX=dx/d*strength;player.knockY=dy/d*strength;
  player.hp-=amount;player.flash=.16;player.hitTimer=.24;player.hitCooldown=.28;
+ addScore(-(hitType==='fire'?100:5));
  burst(player.x,player.y,'hit',7);
- if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to return to title');}
+ if(player.hp<=0){player.hp=0;finishGameOver();}
+ updateHud();
  return true;
 }
 
@@ -183,6 +197,7 @@ function update(dt){
  if(!started)return;
  if(gameOver)return;
  if(atShop){updateHud();return;}
+ if(areaClearTimer>0)areaClearTimer=Math.max(0,areaClearTimer-dt);
  player.fire=Math.max(0,player.fire-dt);player.flash=Math.max(0,player.flash-dt);player.hitTimer=Math.max(0,player.hitTimer-dt);player.hitCooldown=Math.max(0,player.hitCooldown-dt);swingCooldown=Math.max(0,swingCooldown-dt);
  player.x+=player.knockX*dt;player.y+=player.knockY*dt;const knockDrag=Math.pow(.025,dt);player.knockX*=knockDrag;player.knockY*=knockDrag;
  let mx=(keys.d?1:0)-(keys.a?1:0),my=(keys.s?1:0)-(keys.w?1:0);
@@ -221,7 +236,7 @@ function update(dt){
    e.y+=((Math.sin(a)*move)+Math.sin(a+Math.PI/2)*strafe)*e.speed*dt*moveScale;
    e.attackCooldown-=dt;
    if(d<260&&e.attackCooldown<=0&&e.windup<=0){e.windup=.52;e.attackCooldown=1.45;}
-   if(e.windup>0){e.windup-=dt;if(e.windup<=0){shootProjectile(e.x,e.y,a,115,10,'arrow');e.reposition=.42}}
+   if(e.windup>0){e.windup-=dt;if(e.windup<=0){shootProjectile(e.x,e.y,a,115,Math.round(10*enemyDamageScale()),'arrow');e.reposition=.42}}
    if(e.reposition>0){e.reposition-=dt;const back=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(back)*e.speed*dt*1.8*moveScale;e.y+=Math.sin(back)*e.speed*dt*1.8*moveScale}
   }else if(e.type==='skeleton'){
    const a=Math.atan2(player.y-e.y,player.x-e.x);
@@ -232,7 +247,7 @@ function update(dt){
    if(e.windup>0){e.windup-=dt;if(e.windup<=0){e.attackAge=.20;e.swingHit=false;e.swingAngle=a}}
    if(e.attackAge>0){
     e.attackAge=Math.max(0,e.attackAge-dt);
-    if(!e.swingHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+18){damagePlayer(14,e.x,e.y,1.0);e.swingHit=true}
+    if(!e.swingHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+18){damagePlayer(Math.round(14*enemyDamageScale()),e.x,e.y,1.0,'normal');e.swingHit=true}
     if(e.attackAge<=0){e.attackCooldown=1.2;e.vulnerable=.35;}
    e.vulnerable=Math.max(0,(e.vulnerable||0)-dt);
    }
@@ -261,7 +276,7 @@ function update(dt){
    }
    if(e.patternActive&&bossPatternMode==='burst'&&bossPatternTimer<1.0){
     const n=5,gap=.16,idx=Math.floor(bossPatternTimer/gap);
-    if(idx<n&&Math.abs(bossPatternTimer-idx*gap)<dt*1.2){const base=Math.atan2(player.y-e.y,player.x-e.x);shootProjectile(e.x,e.y,base+(idx-2)*.11,122,14,'fireball');}
+    if(idx<n&&Math.abs(bossPatternTimer-idx*gap)<dt*1.2){const base=Math.atan2(player.y-e.y,player.x-e.x);shootProjectile(e.x,e.y,base+(idx-2)*.11,122,Math.round(14*enemyDamageScale()),'fireball');}
     bossPatternTimer+=dt;
     if(bossPatternTimer>=1.0){e.patternActive=false;e.attackTimer=3.2;}
    }else if(e.patternActive&&bossPatternMode==='spiral'&&bossPatternTimer<3.6){
@@ -272,15 +287,15 @@ function update(dt){
    }
   }
   e.x=clamp(e.x,32,W-32);e.y=clamp(e.y,72,H-72);
-  if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){damagePlayer(e.type==='boss'?30:22,e.x,e.y,e.type==='boss'?1.2:.55)}
-  if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to return to title')}
+  if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){damagePlayer(e.type==='boss'?Math.round(30*enemyDamageScale()):Math.round(22*enemyDamageScale()),e.x,e.y,e.type==='boss'?1.2:.55,'normal')}
+  if(player.hp<=0){player.hp=0;finishGameOver()}
  }
 
- for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.age+=dt;q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){if(damagePlayer(q.damage,q.x,q.y,q.type==='fireball'?1.0:.85))projectiles.splice(i,1);else projectiles.splice(i,1)}}
+ for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.age+=dt;q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){if(damagePlayer(q.damage,q.x,q.y,q.type==='fireball'?1.0:.85,q.type==='fireball'||q.type==='fireblast'?'fire':'normal'))projectiles.splice(i,1);else projectiles.splice(i,1)}}
 
  for(let i=slashes.length-1;i>=0;i--){
   const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const reach=s.reach||playerWeapon().reach;const centre=s.angle+s.side*(Math.PI*.40-(Math.min(1,progress)*Math.PI*.80));
-  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){e.hp-=s.damage;s.hit.add(e);e.hit=.12;e.stagger=.12;const push=Math.max(0,1-d/(reach+e.r));const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);burst(e.x,e.y,'hit',5);if(e.hp<=0){deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type);enemies.splice(enemies.indexOf(e),1);kills++;awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5);burst(e.x,e.y,'death',e.type==='boss'?28:12);if(!isBossRoom())spawnTimer=.65;}}}
+  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){e.hp-=s.damage;s.hit.add(e);e.hit=.12;e.stagger=.12;const push=Math.max(0,1-d/(reach+e.r));const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);burst(e.x,e.y,'hit',5);if(e.hp<=0){deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type);else{const reward=bossGoldReward();gold+=reward;totalGoldCollected+=reward;showPickup(`👑 GUARDIAN BONUS  +${reward} GOLD`)}enemies.splice(enemies.indexOf(e),1);kills++;addScore(SCORE_VALUES[e.type]||0);awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5);burst(e.x,e.y,'death',e.type==='boss'?28:12);if(e.type==='boss'){areaClearTimer=1.8;areaClearShown=true;}if(!isBossRoom())spawnTimer=.65;}}}
   if(progress>=1)slashes.splice(i,1);
  }
 
@@ -293,7 +308,7 @@ function update(dt){
    if(d>0.1&&d<magnet){const pull=70+((magnet-d)/magnet)*210;l.x+=dx/d*pull*dt;l.y+=dy/d*pull*dt}
   }
  });
- for(let i=loot.length-1;i>=0;i--){const l=loot[i];const pickupRadius=l.type==='Gold'?player.r+5:player.r+l.r+9;if(dist(player,l)<pickupRadius){if(l.type==='Gold'){gold+=l.amount;totalGoldCollected+=l.amount;showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;player.hp=clamp(player.hp+18,0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}burst(l.x,l.y,l.type==='Gold'?'coin':'heal',8);loot.splice(i,1);updateHud()}}
+ for(let i=loot.length-1;i>=0;i--){const l=loot[i];const pickupRadius=l.type==='Gold'?player.r+5:player.r+l.r+9;if(dist(player,l)<pickupRadius){if(l.type==='Gold'){gold+=l.amount;totalGoldCollected+=l.amount;showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;player.hp=clamp(player.hp+scaledPotionHeal(),0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}burst(l.x,l.y,l.type==='Gold'?'coin':'heal',8);loot.splice(i,1);updateHud()}}
  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0);
  if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){roomCleared=true;roomsCleared++;msg('ROOM CLEARED — reach the EXIT »');showPickup('ROOM CLEARED — walk to the glowing exit');burst(W/2,H/2,'clear',18)}
  if(isBossRoom()&&enemies.length===0&&!roomCleared){roomCleared=true;msg(`AREA ${area} COMPLETE — reach the EXIT »`);showPickup('Guardian defeated — walk to the exit')}
@@ -503,9 +518,10 @@ function draw(){
  slashes.forEach(drawSlash);
  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);let col=p.type==='coin'?P.gold2:(p.type==='heal'?P.teal2:(p.type==='hit'?P.cream:(p.type==='spawn'?(p.spawnType==='goblin'?P.green:p.spawnType==='skeleton'?'#a57b4c':P.cream):P.gold)));pixelRect(p.x,p.y,4,4,col);ctx.globalAlpha=1});
  if(roomCleared&&!atShop){const pulse=.8+.2*Math.sin(performance.now()/140);ctx.globalAlpha=pulse;panel(W/2-125,H-65,250,34);text(isBossRoom()?'BOSS DEFEATED  •  WALK TO EXIT »':'ROOM CLEARED  •  WALK TO EXIT »',W/2,H-43,10,P.teal2,'center');ctx.globalAlpha=1}
+ if(areaClearShown&&areaClearTimer>0&&!atShop){const a=areaClearTimer<.35?areaClearTimer/.35:1;ctx.globalAlpha=a;ctx.fillStyle='#02090ae0';ctx.fillRect(26,150,W-52,146);panel(34,158,W-68,130);text('AREA CLEARED',W/2,187,20,P.teal2,'center');text('GUARDIAN DEFEATED',W/2,209,9,P.cream,'center');text(`SCORE  ${score}   •   +${bossGoldReward()} GOLD`,W/2,232,9,P.gold2,'center');text('REACH THE EXIT FOR THE SHOP',W/2,255,8,P.cream,'center');ctx.globalAlpha=1;}
  if(atShop)drawShop();
  if(player.hp>0&&player.hp/player.maxHp<=.25&&!gameOver){const p=.12+.08*(.5+.5*Math.sin(performance.now()/180));ctx.fillStyle='#8f3036';ctx.globalAlpha=p;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;}
- if(gameOver){ctx.fillStyle='#02090ae8';ctx.fillRect(0,0,W,H);text('GAME OVER',W/2,H/2-55,30,P.cream,'center');text(`REACHED  ${isBossRoom()?'GUARDIAN':`ROOM ${room}`}`,W/2,H/2-20,9,P.teal2,'center');text(`LEVEL ${level}  •  GOLD ${totalGoldCollected}`,W/2,H/2+1,9,P.gold2,'center');text(`ENEMIES DEFEATED  ${kills}`,W/2,H/2+22,9,P.cream,'center');text(`ROOMS CLEARED  ${roomsCleared}`,W/2,H/2+43,9,P.cream,'center');text('TAP FIRE TO RETURN TO TITLE',W/2,H/2+75,11,P.teal2,'center')}
+ if(gameOver){ctx.fillStyle='#02090af2';ctx.fillRect(0,0,W,H);panel(24,74,W-48,320);text('GAME OVER',W/2,106,27,P.cream,'center');text(`FINAL SCORE  ${score}`,W/2,134,16,P.gold2,'center');const rank=scoreRank();text(rank===1?'NEW HIGH SCORE!':rank?`HIGH SCORE RANK  #${rank}`:'',W/2,154,8,P.red2,'center');text(`REACHED  ${isBossRoom()?'GUARDIAN':`ROOM ${room}`}`,W/2,181,9,P.teal2,'center');text(`LEVEL ${level}  •  GOLD ${totalGoldCollected}`,W/2,202,9,P.gold2,'center');text(`ENEMIES DEFEATED  ${kills}`,W/2,223,9,P.cream,'center');text(`ROOMS CLEARED  ${roomsCleared}`,W/2,244,9,P.cream,'center');text('BEST RUNS',W/2,272,9,P.teal2,'center');for(let i=0;i<Math.min(3,highScores.length);i++){const r=highScores[i];text(`${i+1}.  ${r.score}`,W/2,291+i*16,8,P.cream,'center')}text('TAP FIRE TO RETURN TO TITLE',W/2,365,9,P.teal2,'center')}
  if(shake)ctx.restore();
 }
 function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();requestAnimationFrame(loop)}
@@ -515,12 +531,13 @@ const startScreen=document.getElementById('startScreen');
 const splashScreen=document.getElementById('splashScreen');
 const playButton=document.getElementById('playButton');
 startScreen.style.display='none';
-setTimeout(()=>{splashScreen.classList.add('done');setTimeout(()=>{splashScreen.style.display='none';startScreen.style.display='flex';msg('PRESS PLAY TO ENTER THE DUNGEON')},360)},1640);
+// Keep the menu underneath the splash during its fade so there is never a frame of the dungeon showing between them.
+setTimeout(()=>{startScreen.style.display='flex';splashScreen.classList.add('done');setTimeout(()=>{splashScreen.style.display='none';msg('PRESS PLAY TO ENTER THE DUNGEON')},220)},1800);
 playButton.addEventListener('pointerdown',e=>{e.preventDefault();if(started)return;startNewRun();msg('AREA 1 • CASTLE — ROOM 1 • CLEAR THE ROOM')});
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'){if(gameOver)returnToTitle();else fireHeld=true}});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){started=true;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damage=WEAPONS.shortSword.damage;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;player.weapon='shortSword';nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function startNewRun(){started=true;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damage=WEAPONS.shortSword.damage;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;player.weapon='shortSword';nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
 function returnToTitle(){gameOver=false;started=false;atShop=false;areaComplete=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
