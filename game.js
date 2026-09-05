@@ -115,7 +115,8 @@ function spawnLoot(x,y,enemyType){
  let type='Gold',amount=1+Math.floor(Math.random()*5);
  if(roll<0.035) type='Heart';
  else if(roll<0.105) type='Potion';
- loot.push({x,y,r:11,type,amount,bob:Math.random()*6.28,spin:Math.random()*6.28});
+ const kick=Math.random()*Math.PI*2;const kickSpeed=type==='Gold'?35+Math.random()*35:0;
+ loot.push({x,y,r:11,type,amount,bob:Math.random()*6.28,spin:Math.random()*6.28,vx:Math.cos(kick)*kickSpeed,vy:Math.sin(kick)*kickSpeed});
  if(type==='Gold') showPickup(`🪙 ${amount} gold dropped — nearby gold is attracted to you`);
  else if(type==='Heart') showPickup('♥ RARE HEART — full heal!');
  else showPickup('✚ RARE POTION — small heal');
@@ -144,8 +145,9 @@ function performSwing(){
  if(target) facing=Math.atan2(target.y-player.y,target.x-player.x);
  const side=nextSwingSide;
  nextSwingSide*=-1;
- swingCooldown=.30;
- slashes.push({age:0,duration:.18,side,angle:facing,hit:new Set(),damage:player.damage});
+ const w=playerWeapon();
+ swingCooldown=w.cooldown;
+ slashes.push({age:0,duration:w.swingDuration,side,angle:facing,reach:w.reach,hit:new Set(),damage:w.damage,weapon:player.weapon});
 }
 
 function update(dt){
@@ -169,32 +171,37 @@ function update(dt){
  for(const e of enemies){
   e.hit=Math.max(0,e.hit-dt);
   const d=dist(e,player);
+  const moveScale=e.stagger>0?.35:1;
+  e.stagger=Math.max(0,(e.stagger||0)-dt);
   if(e.type==='goblin'){
    const a=Math.atan2(player.y-e.y,player.x-e.x);
    const desired=135;
    let move=0;if(d>desired+20)move=1;else if(d<desired-25)move=-1;
    const strafe=Math.sin(performance.now()/700+e.x)*.55;
-   e.x+=((Math.cos(a)*move)+Math.cos(a+Math.PI/2)*strafe)*e.speed*dt;
-   e.y+=((Math.sin(a)*move)+Math.sin(a+Math.PI/2)*strafe)*e.speed*dt;
+   e.x+=((Math.cos(a)*move)+Math.cos(a+Math.PI/2)*strafe)*e.speed*dt*moveScale;
+   e.y+=((Math.sin(a)*move)+Math.sin(a+Math.PI/2)*strafe)*e.speed*dt*moveScale;
    e.attackCooldown-=dt;
    if(d<260&&e.attackCooldown<=0&&e.windup<=0){e.windup=.38;e.attackCooldown=1.45;}
-   if(e.windup>0){e.windup-=dt;if(e.windup<=0){shootProjectile(e.x,e.y,a,115,10,'arrow')}}
+   if(e.windup>0){e.windup-=dt;if(e.windup<=0){shootProjectile(e.x,e.y,a,115,10,'arrow');e.reposition=.42}}
+   if(e.reposition>0){e.reposition-=dt;const back=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(back)*e.speed*dt*1.8*moveScale;e.y+=Math.sin(back)*e.speed*dt*1.8*moveScale}
   }else if(e.type==='skeleton'){
    const a=Math.atan2(player.y-e.y,player.x-e.x);
-   if(d>52&&e.windup<=0&&e.attackAge<=0){e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt}
+   if(d>52&&e.windup<=0&&e.attackAge<=0){e.x+=Math.cos(a)*e.speed*dt*moveScale;e.y+=Math.sin(a)*e.speed*dt*moveScale}
    e.attackCooldown-=dt;
    if(d<78&&e.attackCooldown<=0&&e.windup<=0&&e.attackAge<=0){e.windup=.48;e.swingHit=false;e.swingAngle=a;e.swingSide=(Math.random()<.5?-1:1)}
    if(e.windup>0){e.windup-=dt;if(e.windup<=0){e.attackAge=.20;e.swingHit=false;e.swingAngle=a}}
    if(e.attackAge>0){
     e.attackAge=Math.max(0,e.attackAge-dt);
     if(!e.swingHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+18){player.hp-=14;player.flash=.12;burst(player.x,player.y,'hit',5);e.swingHit=true}
-    if(e.attackAge<=0)e.attackCooldown=1.2;
+    if(e.attackAge<=0){e.attackCooldown=1.2;e.vulnerable=.35;}
+   e.vulnerable=Math.max(0,(e.vulnerable||0)-dt);
    }
   }else if(e.type==='bat'){
-   const a=Math.atan2(player.y-e.y,player.x-e.x);e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt;
+   const a=Math.atan2(player.y-e.y,player.x-e.x);const weave=Math.sin(performance.now()/260+e.x*.035)*.38;
+   e.x+=(Math.cos(a)+Math.cos(a+Math.PI/2)*weave)*e.speed*dt*moveScale;e.y+=(Math.sin(a)+Math.sin(a+Math.PI/2)*weave)*e.speed*dt*moveScale;
   }else if(e.type==='boss'){
    const a=Math.atan2(player.y-e.y,player.x-e.x);
-   if(d>150){e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt}
+   if(d>150){e.x+=Math.cos(a)*e.speed*dt*moveScale;e.y+=Math.sin(a)*e.speed*dt*moveScale}
    e.attackTimer-=dt;
    if(e.attackTimer<=0){bossPatternMode=bossPatternStep%2===0?'burst':'spiral';bossPatternStep++;e.attackTimer=bossPatternMode==='burst'?3.2:5.4;bossPatternTimer=0;}
    if(bossPatternMode==='burst'&&bossPatternTimer<1.0){
@@ -215,14 +222,16 @@ function update(dt){
  for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){player.hp-=q.damage;player.flash=.15;burst(player.x,player.y,'hit',5);projectiles.splice(i,1);if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to restart')}}}
 
  for(let i=slashes.length-1;i>=0;i--){
-  const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const centre=s.angle+s.side*.72;const reach=s.reach;
-  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){e.hp-=s.damage;s.hit.add(e);e.hit=.12;burst(e.x,e.y,'hit',4);if(e.hp<=0){deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type);enemies.splice(enemies.indexOf(e),1);kills++;awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5);burst(e.x,e.y,'death',e.type==='boss'?28:12);if(!isBossRoom())spawnTimer=.65;}}}
+  const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const reach=s.reach||playerWeapon().reach;const centre=s.angle+s.side*(Math.PI*.40-(Math.min(1,progress)*Math.PI*.80));
+  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){e.hp-=s.damage;s.hit.add(e);e.hit=.12;e.stagger=.12;const push=Math.max(0,1-d/(reach+e.r));const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);burst(e.x,e.y,'hit',5);if(e.hp<=0){deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type);enemies.splice(enemies.indexOf(e),1);kills++;awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5);burst(e.x,e.y,'death',e.type==='boss'?28:12);if(!isBossRoom())spawnTimer=.65;}}}
   if(progress>=1)slashes.splice(i,1);
  }
 
  loot.forEach(l=>{
   l.bob+=dt*3;l.spin+=dt*2;
   if(l.type==='Gold'){
+   l.x+=l.vx*dt;l.y+=l.vy*dt;l.vx*=Math.pow(.035,dt);l.vy*=Math.pow(.035,dt);
+   l.x=clamp(l.x,28,W-28);l.y=clamp(l.y,72,H-72);
    const dx=player.x-l.x,dy=player.y-l.y,d=Math.hypot(dx,dy),magnet=32;
    if(d>0.1&&d<magnet){const pull=70+((magnet-d)/magnet)*210;l.x+=dx/d*pull*dt;l.y+=dy/d*pull*dt}
   }
@@ -291,10 +300,10 @@ function drawSwordAt(x,y,angle,weaponKey,alpha=1,scale=1){
 function drawSlash(s){
  const p=Math.min(1,s.age/s.duration);
  const eased=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
- const centre=s.angle+s.side*(.88-eased*1.76);
+ const centre=s.angle+s.side*(Math.PI*.40-eased*Math.PI*.80);
  const trail=Math.sin(p*Math.PI);
- ctx.save();ctx.globalAlpha=.16*trail;ctx.strokeStyle=P.teal2;ctx.lineWidth=5;ctx.beginPath();ctx.arc(player.x,player.y,s.reach,centre-s.side*.9,centre+s.side*.15,s.side<0);ctx.stroke();ctx.restore();
- drawSwordAt(player.x,player.y,centre,s.weapon,0.98,1);
+ ctx.save();ctx.globalAlpha=.18*trail;ctx.strokeStyle=P.teal2;ctx.lineWidth=5;ctx.beginPath();ctx.arc(player.x,player.y,(s.reach||58)-2, s.angle-s.side*Math.PI*.40, s.angle+s.side*Math.PI*.40, s.side<0);ctx.stroke();ctx.restore();
+ drawSwordAt(player.x,player.y,centre,s.weapon||player.weapon,0.98,1);
 }
 function drawPlayer(){
  const x=player.x,y=player.y;ctx.save();ctx.translate(x,y);ctx.scale(SPRITE_SCALE,SPRITE_SCALE);ctx.shadowBlur=player.flash?22:13;ctx.shadowColor=P.teal;
@@ -324,6 +333,7 @@ function drawEnemy(e,i){
   pixelRect(-14,-5,28,15,'#397d65');pixelRect(-10,-11,20,7,'#57b48b');pixelRect(-7,-7,14,4,'#6ac89b');pixelRect(-6,-1,4,3,P.ink);pixelRect(2,-1,4,3,P.ink);pixelRect(-12,7,5,3,'#275b4b');pixelRect(7,7,5,3,'#275b4b');
   ctx.save();ctx.rotate(Math.atan2(player.y-y,player.x-x));pixelRect(9,-2,3,3,'#6f4f32');pixelRect(11,-3,18,3,'#c7a87a');ctx.restore();
  }
+ if(e.hit>0){ctx.globalAlpha=.65;pixelRect(-e.r,-e.r,e.r*2,e.r*2,P.cream);ctx.globalAlpha=1}
  if(e.windup>0){ctx.strokeStyle=P.gold2;ctx.lineWidth=2;ctx.globalAlpha=Math.min(1,e.windup/.48);ctx.beginPath();ctx.arc(0,0,e.r+7,-1.7,-.4);ctx.stroke()}
  ctx.restore();
  pixelRect(x-e.r,y-e.r-11,e.r*2,4,'#0a1719');pixelRect(x-e.r,y-e.r-11,e.r*2*Math.max(0,e.hp/e.max),4,e.type==='boss'?P.gold:P.red);if(e.type==='boss')text('GUARDIAN',x,y-e.r-18,7,P.cream,'center');

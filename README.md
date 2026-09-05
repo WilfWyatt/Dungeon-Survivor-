@@ -63,6 +63,14 @@ Upload the files in this folder to the root of a GitHub repository, then enable 
 
 ## Change Log
 
+### v0.1.2
+- Fixed player sword damage collision so swings can damage and kill enemies correctly.
+- Expanded the visual sword swing to a broad 144-degree sweep while keeping the gameplay hitbox separate.
+- Added hit flash, stagger, knockback and stronger impact particles.
+- Added small enemy-behaviour refinements: bats weave, goblins reposition after firing, and skeletons have a brief recovery window after their swing.
+- Added a small deterministic selection of decorative room pillars.
+- Added a little bounce/kick to dropped gold before it settles.
+
 ### v0.1.1
 - Added close-range magnetic gold pickup.
 - Added visible animated player and skeleton sword swings.
