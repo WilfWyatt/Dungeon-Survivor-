@@ -13,6 +13,19 @@ Version 0.1.1 adds a small magnetic pickup radius for gold and establishes the f
 
 A mobile-first HTML/JavaScript roguelite dungeon survival prototype designed to run directly from GitHub Pages and install as a PWA on Android.
 
+## v0.1.3 — Directional characters & room presentation
+
+This milestone adds stronger room readability and directional character presentation while fixing the enemy movement issues found in v0.1.2.
+
+### v0.1.3 changes
+- Player starts beside a decorative left-hand entrance door.
+- Added a non-functional left entrance door to visually establish room flow: enter left, exit right.
+- Added more irregular floor seams, chips, moss flecks and scattered stone detail.
+- Added four-direction character presentation for the player and enemies, including a back-facing player view when moving upward and side-facing views when moving horizontally.
+- Skeletons now initialise their attack state correctly and can move/attack.
+- Guardian now slowly repositions/orbits during combat instead of remaining stationary when close to the player.
+- Preserved the existing room, loot, XP, sword and boss-pattern systems.
+
 ## v0.1.0 — Core gameplay loop
 
 Version 0.1.0 focuses on making the room-to-room combat loop feel like a proper game before the larger castle art pass planned for v0.2.0.
@@ -62,6 +75,14 @@ The next milestone is a dedicated graphical feel pass for the castle levels: ric
 Upload the files in this folder to the root of a GitHub repository, then enable **Settings → Pages → Deploy from a branch → main → /(root)**. Open the generated Pages URL in Chrome on Android and use Chrome's menu to install/add the app to the home screen.
 
 ## Change Log
+
+### v0.1.3
+- Added the left-side decorative entrance and left-side player starting position.
+- Added irregular floor detail and directional player/enemy presentation.
+- Fixed skeleton movement by initialising attack state.
+- Fixed Guardian movement so it continually repositions around the arena.
+- Restored player damage upgrades to sword-swing damage.
+
 
 ### v0.1.2
 - Fixed player sword damage collision so swings can damage and kill enemies correctly.
