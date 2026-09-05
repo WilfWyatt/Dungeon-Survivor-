@@ -1,5 +1,16 @@
 # Dungeon Survivor
 
+## v0.1.1 — Combat feel & gold pickup
+
+Version 0.1.1 adds a small magnetic pickup radius for gold and establishes the first weapon-class data foundation.
+
+### v0.1.1 changes
+- Gold within a tiny player-width radius is gently attracted to the player; hearts and potions still require physical pickup.
+- Player sword attacks now animate an actual sword through the swing rather than relying only on a hit arc.
+- Sword data is structured around weapon classes: Short Sword, Long Sword and Claymore, with different damage, swing speed and reach values ready for future weapon loot.
+- Weapon rarity is represented in the weapon data with five planned tiers: Common, Uncommon, Rare, Epic and Legendary.
+- Skeleton sword attacks now show a wind-up and visible swing animation, with damage occurring during the swing.
+
 A mobile-first HTML/JavaScript roguelite dungeon survival prototype designed to run directly from GitHub Pages and install as a PWA on Android.
 
 ## v0.1.0 — Core gameplay loop
@@ -51,6 +62,12 @@ The next milestone is a dedicated graphical feel pass for the castle levels: ric
 Upload the files in this folder to the root of a GitHub repository, then enable **Settings → Pages → Deploy from a branch → main → /(root)**. Open the generated Pages URL in Chrome on Android and use Chrome's menu to install/add the app to the home screen.
 
 ## Change Log
+
+### v0.1.1
+- Added close-range magnetic gold pickup.
+- Added visible animated player and skeleton sword swings.
+- Added Short Sword / Long Sword / Claymore weapon-class foundation.
+- Added Common / Uncommon / Rare / Epic / Legendary rarity data foundation.
 
 ### v0.1.0
 - Established the first dedicated core-loop milestone.

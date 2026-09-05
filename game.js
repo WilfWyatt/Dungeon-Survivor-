@@ -2,7 +2,13 @@ const c=document.getElementById('game'),ctx=c.getContext('2d');
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12;
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
-const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:215,fire:0,damage:25,flash:0};
+const WEAPONS={
+ shortSword:{name:'Short Sword',rarity:'Common',damage:25,cooldown:.30,reach:58,swingDuration:.18},
+ longSword:{name:'Long Sword',rarity:'Common',damage:32,cooldown:.40,reach:66,swingDuration:.22},
+ claymore:{name:'Claymore',rarity:'Common',damage:45,cooldown:.56,reach:76,swingDuration:.28}
+};
+const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:215,fire:0,damage:25,flash:0,weapon:'shortSword'};
+function playerWeapon(){return WEAPONS[player.weapon]||WEAPONS.shortSword}
 let enemies=[],loot=[],slashes=[],deathMarks=[],particles=[],projectiles=[],entrances=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
 let spawnQueue=[],spawnTimer=0,totalSpawned=0,totalQuota=0,activeCap=0,bossPatternTimer=0,bossPatternStep=0,bossPatternMode='burst';
 const ROOM_PLAN={1:{cap:5,total:10,weights:[['bat',.80],['goblin',.10],['skeleton',.10]]},2:{cap:6,total:12,weights:[['bat',.70],['goblin',.15],['skeleton',.15]]},3:{cap:7,total:14,weights:[['bat',.60],['goblin',.20],['skeleton',.20]]},4:{cap:8,total:17,weights:[['bat',.50],['goblin',.25],['skeleton',.25]]},5:{cap:10,total:20,weights:[['bat',.40],['goblin',.30],['skeleton',.30]]},6:{cap:12,total:22,weights:[['bat',1/3],['goblin',1/3],['skeleton',1/3]]}};
@@ -38,7 +44,7 @@ function resetRoom(){
  if(isBoss){
   totalQuota=1;activeCap=1;
   const hp=650+area*100;
-  enemies.push({x:W-105,y:H/2,r:34*SPRITE_SCALE,type:'boss',hp,max:hp,speed:35+area*2,hit:0,boss:true,attackTimer:1.1});
+  enemies.push({x:W-105,y:H/2,r:34*SPRITE_SCALE,type:'boss',hp,max:hp,speed:35+area*2,hit:0,boss:true,attackTimer:1.1,attackAge:0,swingHit:false,weapon:'shortSword'});
   msg('BOSS ROOM — DEFEAT THE GUARDIAN');
  }else{
   const plan=ROOM_PLAN[room]||ROOM_PLAN[6];activeCap=plan.cap;totalQuota=plan.total;
@@ -110,7 +116,7 @@ function spawnLoot(x,y,enemyType){
  if(roll<0.035) type='Heart';
  else if(roll<0.105) type='Potion';
  loot.push({x,y,r:11,type,amount,bob:Math.random()*6.28,spin:Math.random()*6.28});
- if(type==='Gold') showPickup(`🪙 ${amount} gold dropped — walk over it to collect`);
+ if(type==='Gold') showPickup(`🪙 ${amount} gold dropped — nearby gold is attracted to you`);
  else if(type==='Heart') showPickup('♥ RARE HEART — full heal!');
  else showPickup('✚ RARE POTION — small heal');
 }
@@ -175,10 +181,15 @@ function update(dt){
    if(e.windup>0){e.windup-=dt;if(e.windup<=0){shootProjectile(e.x,e.y,a,115,10,'arrow')}}
   }else if(e.type==='skeleton'){
    const a=Math.atan2(player.y-e.y,player.x-e.x);
-   if(d>52){e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt}
+   if(d>52&&e.windup<=0&&e.attackAge<=0){e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt}
    e.attackCooldown-=dt;
-   if(d<78&&e.attackCooldown<=0&&e.windup<=0)e.windup=.48;
-   if(e.windup>0){e.windup-=dt;if(e.windup<=0){player.hp-=14;player.flash=.12;burst(player.x,player.y,'hit',5);e.attackCooldown=1.2}}
+   if(d<78&&e.attackCooldown<=0&&e.windup<=0&&e.attackAge<=0){e.windup=.48;e.swingHit=false;e.swingAngle=a;e.swingSide=(Math.random()<.5?-1:1)}
+   if(e.windup>0){e.windup-=dt;if(e.windup<=0){e.attackAge=.20;e.swingHit=false;e.swingAngle=a}}
+   if(e.attackAge>0){
+    e.attackAge=Math.max(0,e.attackAge-dt);
+    if(!e.swingHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+18){player.hp-=14;player.flash=.12;burst(player.x,player.y,'hit',5);e.swingHit=true}
+    if(e.attackAge<=0)e.attackCooldown=1.2;
+   }
   }else if(e.type==='bat'){
    const a=Math.atan2(player.y-e.y,player.x-e.x);e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt;
   }else if(e.type==='boss'){
@@ -204,13 +215,19 @@ function update(dt){
  for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){player.hp-=q.damage;player.flash=.15;burst(player.x,player.y,'hit',5);projectiles.splice(i,1);if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to restart')}}}
 
  for(let i=slashes.length-1;i>=0;i--){
-  const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const centre=s.angle+s.side*.72;const reach=58;
+  const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const centre=s.angle+s.side*.72;const reach=s.reach;
   for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){e.hp-=s.damage;s.hit.add(e);e.hit=.12;burst(e.x,e.y,'hit',4);if(e.hp<=0){deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type);enemies.splice(enemies.indexOf(e),1);kills++;awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5);burst(e.x,e.y,'death',e.type==='boss'?28:12);if(!isBossRoom())spawnTimer=.65;}}}
   if(progress>=1)slashes.splice(i,1);
  }
 
- loot.forEach(l=>{l.bob+=dt*3;l.spin+=dt*2});
- for(let i=loot.length-1;i>=0;i--){const l=loot[i];if(dist(player,l)<player.r+l.r+9){if(l.type==='Gold'){gold+=l.amount;showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;player.hp=clamp(player.hp+18,0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}burst(l.x,l.y,l.type==='Gold'?'coin':'heal',8);loot.splice(i,1);updateHud()}}
+ loot.forEach(l=>{
+  l.bob+=dt*3;l.spin+=dt*2;
+  if(l.type==='Gold'){
+   const dx=player.x-l.x,dy=player.y-l.y,d=Math.hypot(dx,dy),magnet=32;
+   if(d>0.1&&d<magnet){const pull=70+((magnet-d)/magnet)*210;l.x+=dx/d*pull*dt;l.y+=dy/d*pull*dt}
+  }
+ });
+ for(let i=loot.length-1;i>=0;i--){const l=loot[i];const pickupRadius=l.type==='Gold'?player.r+5:player.r+l.r+9;if(dist(player,l)<pickupRadius){if(l.type==='Gold'){gold+=l.amount;showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;player.hp=clamp(player.hp+18,0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}burst(l.x,l.y,l.type==='Gold'?'coin':'heal',8);loot.splice(i,1);updateHud()}}
  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0);
  if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){roomCleared=true;msg('ROOM CLEARED — reach the EXIT »');showPickup('Room cleared — walk to the glowing exit')}
  if(isBossRoom()&&enemies.length===0&&!roomCleared){roomCleared=true;msg(`AREA ${area} COMPLETE — reach the EXIT »`);showPickup('Guardian defeated — walk to the exit')}
@@ -260,16 +277,24 @@ function drawBonePile(x,y){drawBone(x-5,y-2,-.65);drawBone(x+6,y+3,.7)}
 function drawDeathMarks(){for(const m of deathMarks){if(m.type==='skeleton')drawBonePile(m.x,m.y);else if(m.type==='bat'||m.type==='boss')drawBlood(m.x,m.y,'#7a3035');else drawBlood(m.x,m.y,'#3b7b45')}}
 function drawTorch(x,y){ctx.save();ctx.shadowBlur=24;ctx.shadowColor=P.teal;pixelRect(x-8,y,16,28,'#5b655d');pixelRect(x-5,y+5,10,19,'#2b4543');ctx.fillStyle=P.teal2;ctx.beginPath();ctx.moveTo(x,y-20);ctx.lineTo(x+9,y-5);ctx.lineTo(x,y+4);ctx.lineTo(x-9,y-5);ctx.closePath();ctx.fill();ctx.fillStyle=P.teal;ctx.beginPath();ctx.moveTo(x,y-14);ctx.lineTo(x+4,y-5);ctx.lineTo(x,y);ctx.lineTo(x-4,y-5);ctx.closePath();ctx.fill();ctx.restore()}
 
+function drawSwordAt(x,y,angle,weaponKey,alpha=1,scale=1){
+ const w=WEAPONS[weaponKey]||WEAPONS.shortSword;
+ const len=weaponKey==='claymore'?31:weaponKey==='longSword'?27:23;
+ const thick=weaponKey==='claymore'?5:weaponKey==='longSword'?4:3;
+ ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.globalAlpha=alpha;ctx.shadowBlur=10;ctx.shadowColor=P.teal2;
+ pixelRect(7,-2,5,4,'#6f4f32');
+ pixelRect(11,-thick/2,len*scale,thick,P.cream);
+ pixelRect(11+len*scale,-thick/2-1,4,thick+2,P.gold2);
+ pixelRect(11,-thick/2-1,4,thick+2,P.gold2);
+ ctx.restore();
+}
 function drawSlash(s){
  const p=Math.min(1,s.age/s.duration);
- const centre=s.angle+s.side*.72;
- const start=centre-s.side*.78, end=centre+s.side*.22;
- ctx.save();ctx.translate(player.x,player.y);ctx.rotate(0);
- ctx.strokeStyle=P.cream;ctx.lineWidth=7;ctx.lineCap='round';ctx.shadowBlur=12;ctx.shadowColor=P.teal2;
- ctx.globalAlpha=Math.sin(Math.min(1,p)*Math.PI)*.92;
- ctx.beginPath();ctx.arc(0,0,47,start,end,s.side<0);ctx.stroke();
- ctx.strokeStyle=P.teal2;ctx.lineWidth=2;ctx.globalAlpha*=.8;ctx.beginPath();ctx.arc(0,0,51,start,end,s.side<0);ctx.stroke();
- ctx.restore();
+ const eased=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+ const centre=s.angle+s.side*(.88-eased*1.76);
+ const trail=Math.sin(p*Math.PI);
+ ctx.save();ctx.globalAlpha=.16*trail;ctx.strokeStyle=P.teal2;ctx.lineWidth=5;ctx.beginPath();ctx.arc(player.x,player.y,s.reach,centre-s.side*.9,centre+s.side*.15,s.side<0);ctx.stroke();ctx.restore();
+ drawSwordAt(player.x,player.y,centre,s.weapon,0.98,1);
 }
 function drawPlayer(){
  const x=player.x,y=player.y;ctx.save();ctx.translate(x,y);ctx.scale(SPRITE_SCALE,SPRITE_SCALE);ctx.shadowBlur=player.flash?22:13;ctx.shadowColor=P.teal;
@@ -279,7 +304,9 @@ function drawPlayer(){
  pixelRect(-5,-8,10,7,'#071719');pixelRect(-4,-5,3,2,P.teal2);pixelRect(2,-5,3,2,P.teal2);
  // cloak highlights, boots, sword
  pixelRect(-12,11,7,9,'#0c2829');pixelRect(5,11,7,9,'#0c2829');pixelRect(-15,6,5,7,'#25645a');
- ctx.save();ctx.rotate(facing);pixelRect(8,-2,5,5,'#6f4f32');pixelRect(12,-3,20,4,P.cream);pixelRect(30,-5,5,8,P.cream);pixelRect(11,-5,3,9,P.gold2);ctx.restore();ctx.restore();
+ const swinging=slashes.length>0;
+ if(!swinging)drawSwordAt(0,0,facing,player.weapon,1,1);
+ ctx.restore();
 }
 function drawEnemy(e,i){
  const x=e.x,y=e.y;ctx.save();ctx.translate(x,y);ctx.scale(SPRITE_SCALE,SPRITE_SCALE);ctx.shadowBlur=9;ctx.shadowColor=e.type==='bat'?P.red:P.teal;
@@ -287,7 +314,10 @@ function drawEnemy(e,i){
   pixelRect(-25,5,50,30,'#244b3d');pixelRect(-31,-4,62,25,'#397d55');pixelRect(-24,-28,48,28,'#4c9a63');pixelRect(-17,-21,11,9,P.red2);pixelRect(6,-21,11,9,P.red2);pixelRect(-11,-13,22,8,'#17251f');pixelRect(-37,8,12,26,'#315f4a');pixelRect(25,8,12,26,'#315f4a');pixelRect(-20,32,14,9,'#122a24');pixelRect(6,32,14,9,'#122a24');pixelRect(31,-2,15,5,P.cream);pixelRect(43,-5,5,11,P.cream);
  }else if(e.type==='skeleton'){
   pixelRect(-10,-6,20,14,P.cream);pixelRect(-8,-17,16,12,'#e3ddc8');pixelRect(-4,-13,3,4,P.ink);pixelRect(2,-13,3,4,P.ink);pixelRect(-14,6,8,4,'#b9b5a3');pixelRect(6,6,8,4,'#b9b5a3');pixelRect(-10,12,7,5,'#8f8c7f');pixelRect(3,12,7,5,'#8f8c7f');pixelRect(-2,-1,4,3,'#8d887a');
-  ctx.save();ctx.rotate(-.65-(e.windup>0?.5:0));pixelRect(12,-2,4,4,'#6b5539');pixelRect(15,-15,22,4,P.cream);ctx.restore();
+  let swordAngle=-.65;
+  if(e.windup>0)swordAngle=e.swingAngle-Math.PI*.72;
+  else if(e.attackAge>0){const p=1-e.attackAge/.20;swordAngle=e.swingAngle-e.swingSide*.95+e.swingSide*p*1.9;}
+  drawSwordAt(0,0,swordAngle,e.weapon||'shortSword',1,1);
  }else if(e.type==='bat'){
   const flap=Math.sin(performance.now()/90+i)*3;pixelRect(-7,-5,14,15,'#16262b');pixelRect(-21,-13-flap,14,20+flap,'#234b4a');pixelRect(7,-13+flap,14,20-flap,'#234b4a');pixelRect(-16,-8,7,11,'#1a3839');pixelRect(9,-8,7,11,'#1a3839');pixelRect(-4,-1,3,3,P.red2);pixelRect(2,-1,3,3,P.red2);
  }else{
@@ -367,7 +397,7 @@ function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw
 resetRoom();requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space')fireHeld=true;if(gameOver&&e.code==='Space')restart()});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function restart(){gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;xp=0;level=1;xpNeed=12;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damage=25;nextSwingSide=1;swingCooldown=0;resetRoom()}
+function restart(){gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;xp=0;level=1;xpNeed=12;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damage=WEAPONS.shortSword.damage;player.weapon='shortSword';nextSwingSide=1;swingCooldown=0;resetRoom()}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
 function joyMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,m=Math.min(45,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*m/45;joy.y=Math.sin(a)*m/45;nub.style.transform=`translate(${joy.x*45}px,${joy.y*45}px)`}
