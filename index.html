@@ -6,6 +6,8 @@
   <meta name="theme-color" content="#061316">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
   <title>Dungeon Survivor</title>
 </head>
@@ -23,6 +25,11 @@
 
     <section id="gameFrame">
       <canvas id="game"></canvas>
+      <div id="splashScreen" aria-label="Dungeon Survivor splash screen">
+        <div class="splashTitle"><span>DUNGEON</span><strong>SURVIVOR</strong></div>
+        <div class="splashRule"></div>
+        <div class="splashTag">KILL. LOOT. SURVIVE.</div>
+      </div>
       <div id="startScreen">
         <div class="titleDungeon">DUNGEON</div>
         <div class="titleSurvivor">SURVIVOR</div>

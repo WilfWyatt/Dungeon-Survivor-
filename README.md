@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.1.5**
+**Current Version: 0.1.6**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -58,6 +58,17 @@ Planned areas include:
 - Stronger atmospheric colour and depth.
 
 ## Change Log
+
+### 0.1.6 — Combat Feedback & Presentation
+
+- Added Goblin Archer simultaneous active limits: R1 2, R2 3, R3 4, R4 5, R5 6, R6 6.
+- Added clearer Goblin aiming/firing feedback before arrows are released.
+- Added visible player hit feedback with a muted blood-red outline, proportional knockback and a brief hit-recovery window.
+- Added a small impact shake and subtle low-health warning when the player falls below 25% HP.
+- Added more readable enemy attack presentation while preserving the existing Skeleton wind-up/recovery and Bat behaviour.
+- Added a 2-second branded splash screen using the torchlit barred-dungeon visual direction before the Play menu.
+- Added a hero-in-the-doorway app icon and PWA icon metadata.
+- Updated the title menu presentation to match the torchlit dungeon visual direction.
 
 ### 0.1.5 — Guardian Fix & Run Flow
 
