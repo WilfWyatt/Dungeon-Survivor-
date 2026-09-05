@@ -1,4 +1,4 @@
-# DUNGEON SURVIVOR
+## 0.2.1 — The Living Dungeon\n- Great Hall now renders from a reusable 24px modular environment atlas instead of a single background image.\n- Deterministic room layouts for Great Hall, Pillared Hall, Ruined Chamber, Chapel, Guard Room and Cross Hall.\n- Independent modular props for pillars, chests, torches, banners, altar and rubble.\n- Independent torch glow layers; the room itself is no longer a baked scene image.\n\n# DUNGEON SURVIVOR
 
 **Current Version: 0.2.0**
 

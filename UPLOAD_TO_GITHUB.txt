@@ -1,7 +1,18 @@
-DUNGEON SURVIVOR v0.2.0 REDO — DEPLOYMENT
+DUNGEON SURVIVOR v0.2.1 — THE LIVING DUNGEON
 
-Upload the CONTENTS of this folder to the ROOT of the existing GitHub Pages repository.
-Do not upload the ZIP itself. Do not put these files inside another folder.
-The critical Great Hall artwork is embedded in game.js for reliable first deployment; the PNG is also retained at assets/environment/great-hall-bg.png.
+Upload the TOP-LEVEL files in this folder to the root of the existing GitHub repository.
+Do not worry about an assets folder: the modular environment atlas and prop sheet are embedded in game.js for reliable GitHub Pages deployment.
 
-After committing, open the GitHub Pages URL in Chrome first. Only after that is working should the installed home-screen app be tested.
+Replace/update:
+README.md
+game.js
+index.html
+manifest.json
+style.css
+sw.js
+icon-192.png
+icon-512.png
+menu-screen.png
+splash-screen.png
+
+Existing extra files in the repository may be left alone.
