@@ -1,108 +1,89 @@
-# Dungeon Survivor
+# DUNGEON SURVIVOR
 
-## v0.1.1 — Combat feel & gold pickup
+**Current Version: 0.1.4**
 
-Version 0.1.1 adds a small magnetic pickup radius for gold and establishes the first weapon-class data foundation.
+Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
-### v0.1.1 changes
-- Gold within a tiny player-width radius is gently attracted to the player; hearts and potions still require physical pickup.
-- Player sword attacks now animate an actual sword through the swing rather than relying only on a hit arc.
-- Sword data is structured around weapon classes: Short Sword, Long Sword and Claymore, with different damage, swing speed and reach values ready for future weapon loot.
-- Weapon rarity is represented in the weapon data with five planned tiers: Common, Uncommon, Rare, Epic and Legendary.
-- Skeleton sword attacks now show a wind-up and visible swing animation, with damage occurring during the swing.
+## What is the game?
 
-A mobile-first HTML/JavaScript roguelite dungeon survival prototype designed to run directly from GitHub Pages and install as a PWA on Android.
+Fight your way through dangerous dungeon rooms, survive waves of enemies, collect dropped loot, gain XP and grow stronger. Clear each room to unlock the exit, progress through the castle and eventually face the Guardian.
 
-## v0.1.4 — Guardian combat readability
+The game is built as a lightweight HTML, CSS and JavaScript project with a portrait mobile layout, virtual controls and a deliberately chunky pixel-art presentation.
 
-This milestone improves the Guardian encounter with a safer melee distance, clearer attack warnings and more fiery projectile visuals.
+## Gameplay
 
-### v0.1.4 changes
-- Added a solid minimum combat distance around the Guardian: the player can still get close enough for sword hits, but cannot overlap/sit inside the boss.
-- Added a top-of-game warning box during Guardian attack wind-ups.
-- Guardian aimed bursts are announced as **FIREBALL ATTACK**.
-- Guardian spiral patterns are announced as **FIRE BLAST ATTACK**.
-- Reworked Guardian projectiles into layered, glowing flame/ember shapes with animated trails.
-- Preserved the existing boss movement and attack patterns.
-
-
-## v0.1.3 — Directional characters & room presentation
-
-This milestone adds stronger room readability and directional character presentation while fixing the enemy movement issues found in v0.1.2.
-
-### v0.1.3 changes
-- Player starts beside a decorative left-hand entrance door.
-- Added a non-functional left entrance door to visually establish room flow: enter left, exit right.
-- Added more irregular floor seams, chips, moss flecks and scattered stone detail.
-- Added four-direction character presentation for the player and enemies, including a back-facing player view when moving upward and side-facing views when moving horizontally.
-- Skeletons now initialise their attack state correctly and can move/attack.
-- Guardian now slowly repositions/orbits during combat instead of remaining stationary when close to the player.
-- Preserved the existing room, loot, XP, sword and boss-pattern systems.
-
-## v0.1.0 — Core gameplay loop
-
-Version 0.1.0 focuses on making the room-to-room combat loop feel like a proper game before the larger castle art pass planned for v0.2.0.
-
-### Current features
-- Portrait mobile layout with virtual joystick and sword SWING control.
-- Tap SWING for a single alternating left/right sword attack; hold to repeat.
-- Melee sword arc with real collision.
-- Area 1: six normal castle rooms followed by a Guardian boss room.
-- Progressive enemy spawning rather than dumping the whole room at once.
-- Room spawn caps/quotas:
-  - Room 1: 5 active / 10 total
-  - Room 2: 6 active / 12 total
-  - Room 3: 7 active / 14 total
-  - Room 4: 8 active / 17 total
-  - Room 5: 10 active / 20 total
-  - Room 6: 12 active / 22 total
-  - Room 7: Guardian boss
-- New enemies enter from the furthest sensible room edge from the player.
-- Short delay between incoming enemies.
-- Enemy entrance animations:
-  - Bats drop in with a floor shadow.
-  - Goblins arrive in a green magical poof.
-  - Skeletons emerge through a brown dusty ground effect.
-- Enemies are not active/hittable until their entrance animation finishes.
-- Enemy behaviours:
-  - Bats swarm directly towards the player.
-  - Goblins keep their distance and fire readable arrow projectiles after a short wind-up.
-  - Skeletons close in and perform a telegraphed melee sword strike.
-  - Guardian alternates between short aimed projectile bursts and a 360-degree spiral pattern with learnable gaps.
-- Enemy-specific death marks: green ichor, bones, or blood.
-- Gold, rare hearts and potions physically drop onto the floor and must be collected by walking over them.
-- XP and level-ups grant max health, gold and damage.
-- Cleared rooms unlock a recessed right-wall exit door.
-- Guardian defeat leads to a permanent upgrade shop before the next area.
-- PWA/GitHub Pages-ready structure.
+- Explore room-to-room dungeon encounters.
+- Fight using a close-range sword with alternating swings.
+- Collect physical loot by walking over it.
+- Gain XP and level up during a run.
+- Spend gold on permanent upgrades after defeating an area boss.
+- Learn enemy attack patterns and react to telegraphed attacks.
+- Reach the Guardian and survive its projectile patterns.
 
 ## Controls
+
 - **Move:** virtual joystick.
-- **Swing:** tap for one slash; hold to repeat alternating left/right.
-- Desktop testing also supports WASD + Space.
+- **Swing:** tap for one slash; hold to repeat alternating left/right swings.
+- **Desktop testing:** WASD + Space.
 
-## Planned v0.2.0
-The next milestone is a dedicated graphical feel pass for the castle levels: richer stonework, floor variation, moss/vines, architectural details, lighting, props and environmental atmosphere, while keeping the small character scale that gives the rooms breathing space.
+## General Features
 
-## GitHub Pages
-Upload the files in this folder to the root of a GitHub repository, then enable **Settings → Pages → Deploy from a branch → main → /(root)**. Open the generated Pages URL in Chrome on Android and use Chrome's menu to install/add the app to the home screen.
+- Portrait mobile layout.
+- PWA/GitHub Pages-ready structure.
+- Progressive enemy spawning and varied enemy behaviours.
+- Directional player and enemy presentation.
+- Physical gold, hearts and potions.
+- XP, levels, health and damage progression.
+- Melee combat with visible sword swings, hit effects, stagger and knockback.
+- Locked room exits and a Guardian boss encounter.
+- Permanent upgrade shop between areas.
+
+## Milestones
+
+### 0.2.0 — Castle Graphics Overhaul
+
+The major visual milestone for the castle levels. The aim is to turn the dungeon into a richer, more atmospheric pixel-art environment rather than a simple combat arena.
+
+Planned areas include:
+
+- Individual, irregular stone floor slabs.
+- Cracks, chips and worn stonework.
+- Moss and creeping vines.
+- More textured and varied walls.
+- Animated torch flames and glow.
+- Environmental lighting and shadows.
+- Pillars, alcoves and architectural details.
+- Blood, bones, debris and other environmental storytelling.
+- More room-specific layouts and visual variations.
+- Stronger atmospheric colour and depth.
 
 ## Change Log
 
-### v0.1.4
-- Added Guardian minimum-distance collision/blocking.
-- Added Guardian attack warning banner.
-- Reworked Guardian projectiles into fiery flame/ember visuals.
+### 0.1.4 — Combat & Presentation Polish
 
-### v0.1.3
+- Added a dedicated title/start screen so a new run no longer launches directly into gameplay.
+- Added a more prominent Guardian attack-warning display beneath the Health/XP HUD area.
+- Added separate **FIREBALL ATTACK** and **FIRE BLAST ATTACK** warnings during Guardian wind-ups.
+- Added a short warning pulse and stronger visual treatment to make boss attacks stand out from the normal HUD.
+- Reworked Guardian projectiles into layered, flame-like fireballs/blasts with animated pulsing and glow.
+- Added a collision blocker around the Guardian so the player can get close enough to land sword hits without walking inside the boss.
+- Added stronger sword-hit feedback with impact particles, knockback and a brief stagger effect retained from the previous combat polish.
+- Added subtle player walking/idle movement polish.
+- Added occasional sparkle feedback to dropped gold.
+- Added a more prominent room-clear presentation.
+- Added a small run summary to the Game Over screen.
+- Restructured the README so general documentation, milestones and version history are kept separate.
+
+### 0.1.3 — Directional Characters & Room Presentation
+
 - Added the left-side decorative entrance and left-side player starting position.
 - Added irregular floor detail and directional player/enemy presentation.
 - Fixed skeleton movement by initialising attack state.
 - Fixed Guardian movement so it continually repositions around the arena.
 - Restored player damage upgrades to sword-swing damage.
 
+### 0.1.2 — Sword Combat & Enemy Polish
 
-### v0.1.2
 - Fixed player sword damage collision so swings can damage and kill enemies correctly.
 - Expanded the visual sword swing to a broad 144-degree sweep while keeping the gameplay hitbox separate.
 - Added hit flash, stagger, knockback and stronger impact particles.
@@ -110,20 +91,27 @@ Upload the files in this folder to the root of a GitHub repository, then enable 
 - Added a small deterministic selection of decorative room pillars.
 - Added a little bounce/kick to dropped gold before it settles.
 
-### v0.1.1
+### 0.1.1 — Combat Feel & Gold Pickup
+
 - Added close-range magnetic gold pickup.
 - Added visible animated player and skeleton sword swings.
 - Added Short Sword / Long Sword / Claymore weapon-class foundation.
 - Added Common / Uncommon / Rare / Epic / Legendary rarity data foundation.
 
-### v0.1.0
+### 0.1.0 — Core Gameplay Loop
+
 - Established the first dedicated core-loop milestone.
 - Added progressive room spawning with active caps and total quotas.
 - Added furthest-edge spawn selection and enemy entrance animations.
 - Added goblin ranged combat, skeleton telegraphed melee attacks and Guardian projectile patterns.
 - Added spawn/death combat feedback and preserved physical loot collection.
-- Kept the v0.0.x visual baseline intact so v0.2.0 can concentrate on the castle art overhaul.
+- Added the Area 1 castle room sequence, Guardian encounter and upgrade shop.
 
-### v0.0.x
+### 0.0.x — Early Prototype
+
 - Prototype room combat, sword system, locked exit, XP, loot and Area 1 boss/shop progression.
 - Reduced character sprite scale to make the dungeon environment feel larger.
+
+## GitHub Pages
+
+Upload the project files to the root of a GitHub repository, then enable **Settings → Pages → Deploy from a branch → main → /(root)**. Open the generated Pages URL in Chrome on Android and use Chrome's menu to install/add the app to the home screen.

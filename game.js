@@ -1,5 +1,5 @@
 const c=document.getElementById('game'),ctx=c.getContext('2d');
-let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12;
+let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0;
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
@@ -10,9 +10,9 @@ const WEAPONS={
 const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:215,fire:0,damage:25,flash:0,weapon:'shortSword'};
 function playerWeapon(){return WEAPONS[player.weapon]||WEAPONS.shortSword}
 let enemies=[],loot=[],slashes=[],deathMarks=[],particles=[],projectiles=[],entrances=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
-let spawnQueue=[],spawnTimer=0,totalSpawned=0,totalQuota=0,activeCap=0,bossPatternTimer=0,bossPatternStep=0,bossPatternMode='burst',bossWarning=0,bossWarningName='';
+let spawnQueue=[],spawnTimer=0,totalSpawned=0,totalQuota=0,activeCap=0,bossPatternTimer=0,bossPatternStep=0,bossPatternMode='burst';
 const ROOM_PLAN={1:{cap:5,total:10,weights:[['bat',.80],['goblin',.10],['skeleton',.10]]},2:{cap:6,total:12,weights:[['bat',.70],['goblin',.15],['skeleton',.15]]},3:{cap:7,total:14,weights:[['bat',.60],['goblin',.20],['skeleton',.20]]},4:{cap:8,total:17,weights:[['bat',.50],['goblin',.25],['skeleton',.25]]},5:{cap:10,total:20,weights:[['bat',.40],['goblin',.30],['skeleton',.30]]},6:{cap:12,total:22,weights:[['bat',1/3],['goblin',1/3],['skeleton',1/3]]}};
-let shopMessage='';
+let shopMessage='',bossWarningType='',bossWarningTimer=0;
 let nextSwingSide=1, swingCooldown=0, facing=0, facingDir='right';
 const P={ink:'#061316',deep:'#0a1c20',wall:'#172d31',wall2:'#234247',stone:'#29494a',moss:'#3f6d43',vine:'#2f603c',teal:'#52d8c0',teal2:'#83f0d7',cream:'#d8d4bd',gold:'#e5b94d',gold2:'#ffd86a',red:'#c95159',red2:'#ed6a70',blue:'#5fa9c7',green:'#4dbb88'};
 
@@ -24,6 +24,14 @@ function dirFromAngle(a){const x=Math.cos(a),y=Math.sin(a);if(Math.abs(x)>Math.a
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function msg(t){document.getElementById('message').textContent=t}
 function showPickup(t){const n=document.getElementById('pickupNotice');n.textContent=t;n.classList.add('show');clearTimeout(showPickup.t);showPickup.t=setTimeout(()=>n.classList.remove('show'),1800)}
+function setBossWarning(type=''){
+ bossWarningType=type;
+ const el=document.getElementById('bossWarning');
+ if(!el)return;
+ el.textContent=type==='blast'?'FIRE BLAST ATTACK':type==='fireball'?'FIREBALL ATTACK':'';
+ el.classList.toggle('show',!!type);
+ el.classList.toggle('fireblast',type==='blast');
+}
 function updateHud(){
  document.getElementById('room').textContent=isBossRoom()?`BOSS`:`${room}`;
  document.getElementById('areaText').textContent=`AREA ${area} • ${areaName}`;
@@ -39,13 +47,13 @@ function chooseEnemyType(weights){
 }
 function resetRoom(){
  player.x=58;player.y=H/2;player.hp=clamp(player.hp,0,player.maxHp);player.flash=0;
- enemies=[];loot=[];slashes=[];deathMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=false;atShop=false;areaComplete=false;
- spawnQueue=[];spawnTimer=.35;totalSpawned=0;bossPatternTimer=1.1;bossPatternStep=0;bossPatternMode='burst';bossWarning=0;bossWarningName='';updateBossWarning();
+ enemies=[];loot=[];slashes=[];deathMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=false;atShop=false;areaComplete=false;bossWarningTimer=0;setBossWarning('');
+ spawnQueue=[];spawnTimer=.35;totalSpawned=0;bossPatternTimer=1.1;bossPatternStep=0;bossPatternMode='burst';
  const isBoss=room===bossRoom;
  if(isBoss){
   totalQuota=1;activeCap=1;
   const hp=650+area*100;
-  enemies.push({x:W-105,y:H/2,r:34*SPRITE_SCALE,type:'boss',hp,max:hp,speed:35+area*2,hit:0,boss:true,attackTimer:1.1,attackAge:0,swingHit:false,weapon:'shortSword'});
+  enemies.push({x:W-105,y:H/2,r:34*SPRITE_SCALE,type:'boss',hp,max:hp,speed:35+area*2,hit:0,boss:true,attackTimer:1.1,attackAge:0,swingHit:false,weapon:'shortSword',warning:'',warningTimer:0,patternActive:false});
   msg('BOSS ROOM — DEFEAT THE GUARDIAN');
  }else{
   const plan=ROOM_PLAN[room]||ROOM_PLAN[6];activeCap=plan.cap;totalQuota=plan.total;
@@ -152,14 +160,20 @@ function performSwing(){
 }
 
 function update(dt){
+ if(!started)return;
  if(gameOver)return;
  if(atShop){updateHud();return;}
  player.fire=Math.max(0,player.fire-dt);player.flash=Math.max(0,player.flash-dt);swingCooldown=Math.max(0,swingCooldown-dt);
  let mx=(keys.d?1:0)-(keys.a?1:0),my=(keys.s?1:0)-(keys.w?1:0);
+ const movingInput=joy.active||Math.hypot(mx,my)>.12;
+ if(movingInput)walkTime+=dt*10;
  if(joy.active){mx=joy.x;my=joy.y}
  const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l}
  if(l>.12){facing=Math.atan2(my,mx);facingDir=dirFromAngle(facing)}
  player.x=clamp(player.x+mx*player.speed*dt,30,W-30);player.y=clamp(player.y+my*player.speed*dt,70,H-70);
+ // Keep the player outside the Guardian's body, while leaving enough overlap-free distance for sword reach to connect.
+ const guardian=enemies.find(e=>e.type==='boss');
+ if(guardian){const minD=guardian.r+player.r+6;const dx=player.x-guardian.x,dy=player.y-guardian.y,d=Math.hypot(dx,dy);if(d>0&&d<minD){player.x=guardian.x+dx/d*minD;player.y=guardian.y+dy/d*minD;}}
  if(fireHeld)performSwing();
 
  spawnTimer=Math.max(0,spawnTimer-dt);
@@ -213,23 +227,26 @@ function update(dt){
    const tangent=0.72;
    e.x+=(Math.cos(a)*radial+Math.cos(a+orbitSign*Math.PI/2)*tangent)*e.speed*dt*moveScale;
    e.y+=(Math.sin(a)*radial+Math.sin(a+orbitSign*Math.PI/2)*tangent)*e.speed*dt*moveScale;
-   e.attackTimer-=dt;
-   if(e.attackTimer<=0 && bossWarning<=0){
-    bossPatternMode=bossPatternStep%2===0?'burst':'spiral';bossPatternStep++;
-    e.attackTimer=bossPatternMode==='burst'?3.2:5.4;bossPatternTimer=0;
-    bossWarning=.72;bossWarningName=bossPatternMode==='burst'?'FIREBALL ATTACK':'FIRE BLAST ATTACK';updateBossWarning();
+   if(e.warningTimer>0){
+    e.warningTimer=Math.max(0,e.warningTimer-dt);bossWarningTimer=e.warningTimer;
+    if(e.warningTimer<=0){setBossWarning('');e.patternActive=true;bossPatternTimer=0;}
+   }else if(!e.patternActive){
+    e.attackTimer-=dt;
+    if(e.attackTimer<=0){
+     bossPatternMode=bossPatternStep%2===0?'burst':'spiral';bossPatternStep++;
+     e.warning=bossPatternMode==='burst'?'fireball':'blast';e.warningTimer=.82;bossWarningTimer=e.warningTimer;setBossWarning(e.warning);
+    }
    }
-   if(bossWarning>0){
-    bossWarning=Math.max(0,bossWarning-dt);
-    if(bossWarning<=0){bossWarningName='';updateBossWarning()}
-   }else if(bossPatternMode==='burst'&&bossPatternTimer<1.0){
-    const n=5, gap=.16, idx=Math.floor(bossPatternTimer/gap);
-    if(idx< n && Math.abs(bossPatternTimer-idx*gap)<dt*1.2){const base=Math.atan2(player.y-e.y,player.x-e.x);shootProjectile(e.x,e.y,base+(idx-2)*.11,105,14,'boss')}
+   if(e.patternActive&&bossPatternMode==='burst'&&bossPatternTimer<1.0){
+    const n=5,gap=.16,idx=Math.floor(bossPatternTimer/gap);
+    if(idx<n&&Math.abs(bossPatternTimer-idx*gap)<dt*1.2){const base=Math.atan2(player.y-e.y,player.x-e.x);shootProjectile(e.x,e.y,base+(idx-2)*.11,105,14,'fireball');}
     bossPatternTimer+=dt;
-   }else if(bossPatternMode==='spiral'&&bossPatternTimer<3.6){
-    const idx=Math.floor(bossPatternTimer/.14);const prev=Math.floor((bossPatternTimer-dt)/.14);
-    if(idx!==prev){const a=idx*.48;shootProjectile(e.x,e.y,a,88,12,'spiral');shootProjectile(e.x,e.y,a+Math.PI,88,12,'spiral')}
+    if(bossPatternTimer>=1.0){e.patternActive=false;e.attackTimer=3.2;}
+   }else if(e.patternActive&&bossPatternMode==='spiral'&&bossPatternTimer<3.6){
+    const idx=Math.floor(bossPatternTimer/.14),prev=Math.floor((bossPatternTimer-dt)/.14);
+    if(idx!==prev){const pa=idx*.48;shootProjectile(e.x,e.y,pa,88,12,'fireblast');shootProjectile(e.x,e.y,pa+Math.PI,88,12,'fireblast');}
     bossPatternTimer+=dt;
+    if(bossPatternTimer>=3.6){e.patternActive=false;e.attackTimer=5.4;}
    }
   }
   e.x=clamp(e.x,32,W-32);e.y=clamp(e.y,72,H-72);
@@ -237,19 +254,7 @@ function update(dt){
   if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to restart')}
  }
 
- // The Guardian is a solid combat space: you can get close enough for sword hits,
- // but cannot overlap his body or take hidden contact damage by standing inside him.
- const guardian=enemies.find(e=>e.type==='boss');
- if(guardian){
-  const dx=player.x-guardian.x,dy=player.y-guardian.y,d=Math.hypot(dx,dy),minDist=guardian.r+player.r+14;
-  if(d<minDist){
-   const a=d>.001?Math.atan2(dy,dx):Math.PI;
-   player.x=clamp(guardian.x+Math.cos(a)*minDist,30,W-30);
-   player.y=clamp(guardian.y+Math.sin(a)*minDist,70,H-70);
-  }
- }
-
- for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){player.hp-=q.damage;player.flash=.15;burst(player.x,player.y,'hit',5);projectiles.splice(i,1);if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to restart')}}}
+ for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.age+=dt;q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){player.hp-=q.damage;player.flash=.15;burst(player.x,player.y,'hit',5);projectiles.splice(i,1);if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to restart')}}}
 
  for(let i=slashes.length-1;i>=0;i--){
   const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const reach=s.reach||playerWeapon().reach;const centre=s.angle+s.side*(Math.PI*.40-(Math.min(1,progress)*Math.PI*.80));
@@ -266,14 +271,14 @@ function update(dt){
    if(d>0.1&&d<magnet){const pull=70+((magnet-d)/magnet)*210;l.x+=dx/d*pull*dt;l.y+=dy/d*pull*dt}
   }
  });
- for(let i=loot.length-1;i>=0;i--){const l=loot[i];const pickupRadius=l.type==='Gold'?player.r+5:player.r+l.r+9;if(dist(player,l)<pickupRadius){if(l.type==='Gold'){gold+=l.amount;showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;player.hp=clamp(player.hp+18,0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}burst(l.x,l.y,l.type==='Gold'?'coin':'heal',8);loot.splice(i,1);updateHud()}}
+ for(let i=loot.length-1;i>=0;i--){const l=loot[i];const pickupRadius=l.type==='Gold'?player.r+5:player.r+l.r+9;if(dist(player,l)<pickupRadius){if(l.type==='Gold'){gold+=l.amount;totalGoldCollected+=l.amount;showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;player.hp=clamp(player.hp+18,0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}burst(l.x,l.y,l.type==='Gold'?'coin':'heal',8);loot.splice(i,1);updateHud()}}
  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0);
- if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){roomCleared=true;msg('ROOM CLEARED — reach the EXIT »');showPickup('Room cleared — walk to the glowing exit')}
+ if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){roomCleared=true;roomsCleared++;msg('ROOM CLEARED — reach the EXIT »');showPickup('ROOM CLEARED — walk to the glowing exit');burst(W/2,H/2,'clear',18)}
  if(isBossRoom()&&enemies.length===0&&!roomCleared){roomCleared=true;msg(`AREA ${area} COMPLETE — reach the EXIT »`);showPickup('Guardian defeated — walk to the exit')}
  if(roomCleared&&!atShop){const ex={x:W-22,y:H/2};if(Math.abs(player.x-ex.x)<30&&Math.abs(player.y-ex.y)<66){if(isBossRoom())beginAreaShop();else{room++;resetRoom();showPickup(`Entering room ${room}`)}}}
  updateHud();
 }
-function shootProjectile(x,y,a,speed,damage,type){projectiles.push({x,y,a,speed,damage,r:type==='arrow'?4:6,life:type==='arrow'?2.6:3.2,type,seed:Math.random()*Math.PI*2})}
+function shootProjectile(x,y,a,speed,damage,type){projectiles.push({x,y,a,speed,damage,r:type==='arrow'?4:7,life:type==='arrow'?2.6:3.2,type,age:0})}
 
 function burst(x,y,type='death',n=8,spawnType=''){
  for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=25+Math.random()*110;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:type==='shot'?.12:.45,type,spawnType})}
@@ -345,7 +350,7 @@ function drawSlash(s){
  drawSwordAt(player.x,player.y,centre,s.weapon||player.weapon,0.98,1);
 }
 function drawPlayer(){
- const x=player.x,y=player.y;ctx.save();ctx.translate(x,y);ctx.scale(SPRITE_SCALE,SPRITE_SCALE);ctx.shadowBlur=player.flash?22:13;ctx.shadowColor=P.teal;
+ const bob=(Math.hypot(joy.x,joy.y)>.12||keys.w||keys.a||keys.s||keys.d)?Math.sin(walkTime)*1.2:0; const x=player.x,y=player.y+bob;ctx.save();ctx.translate(x,y);ctx.scale(SPRITE_SCALE,SPRITE_SCALE);ctx.shadowBlur=player.flash?22:13;ctx.shadowColor=P.teal;
  const d=facingDir;
  if(d==='up'){
   pixelRect(-12,4,24,16,'#071517');pixelRect(-15,0,30,12,'#174642');pixelRect(-12,-13,24,16,'#0b292b');pixelRect(-9,-15,18,7,'#0c3031');
@@ -397,27 +402,13 @@ function drawEntrance(ent){
 }
 function drawProjectile(q){
  ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.a);
- if(q.type==='arrow'){
-  ctx.shadowBlur=8;ctx.shadowColor=P.gold;pixelRect(-6,-2,12,4,P.cream);pixelRect(5,-1,4,2,P.gold2);
- }else{
-  const pulse=.8+.2*Math.sin(performance.now()/70+q.seed);
-  // Layered ember/flame shapes make the Guardian's shots read as fire rather than red bars.
-  ctx.shadowBlur=13;ctx.shadowColor='#ff6a35';
-  pixelRect(-7,-3,14,6,'#a9362f');
-  pixelRect(-5,-5,10,10,'#e35a32');
-  pixelRect(-3,-4,7,8,'#ff9b3d');
-  pixelRect(-1,-3,4,6,'#ffe08a');
-  pixelRect(-10,-2,4,4,'#7a2528');
-  pixelRect(-13,-1,4,2,'#e35a32');
-  ctx.globalAlpha=.45*pulse;pixelRect(-17,-1,5,3,'#ff6a35');ctx.globalAlpha=1;
-  if(q.type==='spiral'){pixelRect(-3,-7,6,4,'#ff7a36');pixelRect(-2,3,5,5,'#b92f2f')}
- }
+ if(q.type==='arrow'){ctx.shadowBlur=8;ctx.shadowColor=P.gold;pixelRect(-7,-2,14,4,P.cream);pixelRect(5,-1,5,2,P.gold2);ctx.restore();return}
+ const blast=q.type==='fireblast';const pulse=.85+.18*Math.sin(q.age*18);ctx.shadowBlur=blast?18:13;ctx.shadowColor=blast?P.red2:P.gold2;ctx.globalAlpha=.95;
+ // Layered, pointed flame rather than a flat projectile rectangle.
+ ctx.fillStyle=blast?'#ed6a70':'#e5b94d';ctx.beginPath();ctx.moveTo(-7,0);ctx.lineTo(-1,-6*pulse);ctx.lineTo(2,-2);ctx.lineTo(7,-7*pulse);ctx.lineTo(5,1);ctx.lineTo(9,4);ctx.lineTo(1,5);ctx.lineTo(-3,9);ctx.lineTo(-3,3);ctx.closePath();ctx.fill();
+ ctx.fillStyle=blast?'#ffd1a8':'#ffe08a';ctx.beginPath();ctx.moveTo(-4,0);ctx.lineTo(0,-4);ctx.lineTo(2,-1);ctx.lineTo(5,-3);ctx.lineTo(3,2);ctx.lineTo(5,4);ctx.lineTo(0,3);ctx.closePath();ctx.fill();
+ ctx.fillStyle='#fff1c7';pixelRect(-1,-2,4,4,'#fff1c7');
  ctx.restore();
-}
-
-function updateBossWarning(){
- const n=document.getElementById('bossAttackNotice');if(!n)return;
- n.textContent=bossWarningName;n.classList.toggle('show',bossWarning>0);
 }
 
 function drawLoot(l){
@@ -429,6 +420,7 @@ function drawLoot(l){
  }else{
   pixelRect(-5,-13,10,5,P.cream);pixelRect(-9,-7,18,17,'#25876e');pixelRect(-6,-4,12,11,'#55c997');pixelRect(-3,1,6,6,'#8ee7b9');pixelRect(-7,-15,14,3,'#bcae87');
  }
+ if(l.type==='Gold'&&Math.sin(l.bob*2.1)>.55){ctx.fillStyle=P.cream;ctx.globalAlpha=.7;pixelRect(-2,-13,4,2,P.cream);pixelRect(-1,-15,2,6,P.cream);pixelRect(-4,-12,8,2,P.cream);ctx.globalAlpha=1}
  ctx.restore();
 }
 
@@ -476,16 +468,20 @@ function draw(){
  enemies.forEach((e,i)=>drawEnemy(e,i));drawPlayer();
  slashes.forEach(drawSlash);
  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);let col=p.type==='coin'?P.gold2:(p.type==='heal'?P.teal2:(p.type==='hit'?P.cream:(p.type==='spawn'?(p.spawnType==='goblin'?P.green:p.spawnType==='skeleton'?'#a57b4c':P.cream):P.gold)));pixelRect(p.x,p.y,4,4,col);ctx.globalAlpha=1});
- if(roomCleared&&!atShop){panel(W/2-125,H-65,250,34);text(isBossRoom()?'BOSS DEFEATED  •  WALK TO EXIT »':'ROOM CLEARED  •  WALK TO EXIT »',W/2,H-43,10,P.teal2,'center')}
+ if(roomCleared&&!atShop){const pulse=.8+.2*Math.sin(performance.now()/140);ctx.globalAlpha=pulse;panel(W/2-125,H-65,250,34);text(isBossRoom()?'BOSS DEFEATED  •  WALK TO EXIT »':'ROOM CLEARED  •  WALK TO EXIT »',W/2,H-43,10,P.teal2,'center');ctx.globalAlpha=1}
  if(atShop)drawShop();
- if(gameOver){ctx.fillStyle='#02090ad9';ctx.fillRect(0,0,W,H);text('GAME OVER',W/2,H/2-15,30,P.cream,'center');text('TAP FIRE TO RESTART',W/2,H/2+18,11,P.teal2,'center')}
+ if(gameOver){ctx.fillStyle='#02090ae8';ctx.fillRect(0,0,W,H);text('GAME OVER',W/2,H/2-55,30,P.cream,'center');text(`REACHED  ${isBossRoom()?'GUARDIAN':`ROOM ${room}`}`,W/2,H/2-20,9,P.teal2,'center');text(`LEVEL ${level}  •  GOLD ${totalGoldCollected}`,W/2,H/2+1,9,P.gold2,'center');text(`ENEMIES DEFEATED  ${kills}`,W/2,H/2+22,9,P.cream,'center');text(`ROOMS CLEARED  ${roomsCleared}`,W/2,H/2+43,9,P.cream,'center');text('TAP FIRE TO RESTART',W/2,H/2+75,11,P.teal2,'center')}
 }
 function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();requestAnimationFrame(loop)}
 
-resetRoom();requestAnimationFrame(loop);
+resetRoom();
+const startScreen=document.getElementById('startScreen');
+const playButton=document.getElementById('playButton');
+playButton.addEventListener('pointerdown',e=>{e.preventDefault();if(started)return;started=true;startScreen.style.display='none';resetRoom();msg('AREA 1 • CASTLE — ROOM 1 • CLEAR THE ROOM')});
+requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space')fireHeld=true;if(gameOver&&e.code==='Space')restart()});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function restart(){gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;xp=0;level=1;xpNeed=12;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damage=WEAPONS.shortSword.damage;player.weapon='shortSword';nextSwingSide=1;swingCooldown=0;bossWarning=0;bossWarningName='';updateBossWarning();resetRoom()}
+function restart(){started=true;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;xp=0;level=1;xpNeed=12;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damage=WEAPONS.shortSword.damage;player.weapon='shortSword';nextSwingSide=1;swingCooldown=0;resetRoom()}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
 function joyMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,m=Math.min(45,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*m/45;joy.y=Math.sin(a)*m/45;nub.style.transform=`translate(${joy.x*45}px,${joy.y*45}px)`}
