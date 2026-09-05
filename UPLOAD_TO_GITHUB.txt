@@ -1,7 +1,8 @@
-DUNGEON SURVIVOR v0.2.1a
+DUNGEON SURVIVOR v0.2.1b — GITHUB UPLOAD
 
 1. Extract this ZIP.
-2. Upload the top-level files over the existing GitHub Pages repository files.
-3. Do not upload anything from a nested assets folder; this build embeds the modular atlas in game.js.
+2. Upload the top-level files over the existing repository files.
+3. Do NOT upload or create an assets folder for this build.
 4. Commit the changes.
-5. Open the GitHub Pages link first to verify the new build before launching the installed home-screen PWA.
+5. Open the GitHub Pages URL first to test.
+6. If the installed home-screen app still shows an older build, close it; the new service worker is versioned for 0.2.1b.

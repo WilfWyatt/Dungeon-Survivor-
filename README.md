@@ -1,6 +1,6 @@
 ## 0.2.1 — The Living Dungeon\n- Great Hall now renders from a reusable 24px modular environment atlas instead of a single background image.\n- Deterministic room layouts for Great Hall, Pillared Hall, Ruined Chamber, Chapel, Guard Room and Cross Hall.\n- Independent modular props for pillars, chests, torches, banners, altar and rubble.\n- Independent torch glow layers; the room itself is no longer a baked scene image.\n\n# DUNGEON SURVIVOR
 
-## 0.2.1a — Living Dungeon Graphical Refinement
+## 0.2.1b — Living Dungeon Graphical Refinement
 - Expanded the modular floor atlas to 32 varied masonry tiles with broken seams, chips, cracks, moss and tonal variation.
 - Added deterministic cross-tile floor dressing and larger crack details to reduce visible repetition.
 - Expanded wall variants and room dressing for stronger architectural identity.
@@ -58,6 +58,12 @@ The game is built as a lightweight HTML, CSS and JavaScript project with a portr
 - Local high-score table and end-of-run score summary.
 
 ## Change Log
+### 0.2.1b — Broken Masonry graphical refinement
+- Reworked the Castle floor from a visibly repeating square-tile field into an irregular stone-field renderer with jittered slab boundaries.
+- Added larger-scale cracks crossing slab boundaries, chips, moss, grime and worn-stone variation.
+- Reduced the visual grid/gridline effect while retaining modular room construction and reusable architecture.
+- Kept room archetype dressing, carpet features, thresholds, props and combat lanes intact.
+
 
 ### 0.2.0 REDO — Authored Pixel-Art Great Hall
 

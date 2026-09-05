@@ -49,45 +49,93 @@ function modularProp(kind,x,y){
   const sx=map[kind];if(sx==null)return;
   ctx.drawImage(modularProps,sx,0,48,48,Math.round(x-24),Math.round(y-24),48,48);
 }
+function drawBrokenMasonry(seedBase, arch){
+  // 0.2.1b: the floor is a stone field, not a visible square tile grid.
+  const left=24, top=24, right=W-24, bottom=H-24;
+  const cols=7, rows=11;
+  const seeded=(n)=>{const v=Math.sin(seedBase+n*12.9898)*43758.5453;return v-Math.floor(v)};
+  const pts=[];
+  for(let gy=0;gy<=rows;gy++){
+    const row=[];
+    for(let gx=0;gx<=cols;gx++){
+      const edge=gx===0||gx===cols||gy===0||gy===rows;
+      const baseX=left+(right-left)*(gx/cols);
+      const baseY=top+(bottom-top)*(gy/rows);
+      const jx=edge?0:(seeded(gy*41+gx*7)-.5)*15;
+      const jy=edge?0:(seeded(gy*53+gx*11)-.5)*9;
+      row.push({x:baseX+jx,y:baseY+jy});
+    }
+    pts.push(row);
+  }
+  ctx.fillStyle='#0b1719';ctx.fillRect(left,top,right-left,bottom-top);
+  for(let gy=0;gy<rows;gy++) for(let gx=0;gx<cols;gx++){
+    const a=pts[gy][gx],b=pts[gy][gx+1],c=pts[gy+1][gx+1],d=pts[gy+1][gx];
+    const v=Math.floor(seeded(400+gy*cols+gx)*7);
+    const fills=['#23383a','#263d3d','#203537','#29403f','#243a3b','#2b4140','#1f3335'];
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.lineTo(c.x,c.y);ctx.lineTo(d.x,d.y);ctx.closePath();
+    ctx.fillStyle=fills[v];ctx.fill();
+    ctx.strokeStyle='rgba(8,17,19,.78)';ctx.lineWidth=1;ctx.stroke();
+    // A broken, offset highlight catches the top-left edge of each slab.
+    if(v!==6){ctx.strokeStyle='rgba(88,111,103,.17)';ctx.beginPath();ctx.moveTo(a.x+1,a.y+1);ctx.lineTo(b.x-2,b.y+1);ctx.stroke();}
+  }
+  // Individual chips, moss and grime are distributed across slabs, not on a grid.
+  for(let i=0;i<86;i++){
+    const x=left+7+seeded(700+i*3.1)*(right-left-14);
+    const y=top+7+seeded(900+i*4.7)*(bottom-top-14);
+    if(arch!=='GUARD ROOM' && Math.abs(x-W/2)<24 && y>80 && y<410) continue;
+    const kind=i%7;
+    if(kind<=2){
+      ctx.fillStyle=kind===0?'rgba(113,127,112,.24)':kind===1?'rgba(12,22,24,.34)':'rgba(137,119,82,.17)';
+      ctx.fillRect(Math.round(x),Math.round(y),1+(i%3),1+(i%2));
+    }else if(kind===3||kind===4){
+      ctx.fillStyle='rgba(43,83,61,.30)';
+      ctx.fillRect(Math.round(x-2),Math.round(y),3+(i%3),1);
+      ctx.fillRect(Math.round(x-1),Math.round(y+1),1+(i%2),2);
+    }
+  }
+  // Long cracks cross slab boundaries so the eye stops seeing a repeating pattern.
+  ctx.strokeStyle='rgba(12,22,23,.70)';ctx.lineWidth=1;
+  for(let i=0;i<15;i++){
+    let x=left+18+seeded(1200+i)* (right-left-36);
+    let y=top+20+seeded(1400+i)*(bottom-top-40);
+    ctx.beginPath();ctx.moveTo(x,y);
+    for(let k=0;k<3+(i%3);k++){
+      x+=5+seeded(1600+i*5+k)*9; y+=(-4+seeded(1800+i*7+k)*9);
+      ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    if(i%4===0){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-5,y+6);ctx.lineTo(x-1,y+10);ctx.stroke();}
+  }
+  // A few larger worn slabs add scale variation without blocking movement.
+  for(let i=0;i<7;i++){
+    const x=left+34+seeded(2200+i)* (right-left-68), y=top+30+seeded(2400+i)*(bottom-top-60);
+    ctx.strokeStyle='rgba(8,17,18,.42)';ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+12,y-3);ctx.lineTo(x+20,y+4);ctx.lineTo(x+14,y+12);ctx.lineTo(x+3,y+9);ctx.closePath();ctx.stroke();
+  }
+}
+
 function drawModularDungeon(){
-  if(!modularAtlas.complete||!modularAtlas.naturalWidth){pixelRect(0,0,W,H,P.deep);return;}
-  ctx.save();ctx.imageSmoothingEnabled=false;
-  // Base modular floor/wall/carpet layers.
-  for(let gy=0;gy<ROWS;gy++) for(let gx=0;gx<COLS;gx++){
-    const t=roomTiles[gy][gx]||0,x=gx*TILE,y=gy*TILE;
-    if(t<32) atlasTile((t%8)*24,Math.floor(t/8)*24,x,y);
-    else if(t<40) atlasTile((t-32)*24,96,x,y);
-    else atlasTile((t-40)*24,120,x,y);
-  }
-  // Make the masonry silhouette irregular at the edges while keeping the doorway cuts.
-  for(let gx=0;gx<COLS;gx++){
-    atlasTile((gx%8)*24,96,gx*TILE,0);
-    atlasTile(((gx+3)%8)*24,96,gx*TILE,(ROWS-1)*TILE);
-  }
-  for(let gy=1;gy<ROWS-1;gy++) if(gy<8||gy>11){
-    atlasTile((gy%8)*24,96,0,gy*TILE);
-    atlasTile(((gy+3)%8)*24,96,(COLS-1)*TILE,gy*TILE);
-  }
-  // Subtle, continuous environmental dressing breaks up the visible tile grid.
+  ctx.fillStyle=P.ink;ctx.fillRect(0,0,W,H);
+  const arch=roomArchetype();
   const seedBase=roomVariation*997+room*131+area*17;
-  const seeded=(n)=>{const v=Math.sin(seedBase+n*12.9898)*43758.5453;return v-Math.floor(v);};
-  for(let i=0;i<44;i++){
-    const gx=1+Math.floor(seeded(i*2.1)*13),gy=2+Math.floor(seeded(i*2.1+1)*16);
-    if(Math.abs(gx-7)<=1&&gy>=7&&gy<=12)continue;
-    const x=gx*TILE+3+seeded(i*3.7)*17,y=gy*TILE+4+seeded(i*4.1)*16;
-    ctx.fillStyle=i%3===0?'rgba(74,104,78,.20)':i%3===1?'rgba(20,31,33,.22)':'rgba(123,112,83,.13)';
-    ctx.fillRect(Math.round(x),Math.round(y),1+(i%3),1);
-    if(i%9===0){ctx.fillStyle='rgba(49,92,65,.30)';ctx.fillRect(Math.round(x-2),Math.round(y+1),3,2);}
+  ctx.save();ctx.imageSmoothingEnabled=false;
+  drawBrokenMasonry(seedBase,arch);
+  // Carpet is a room feature rather than a floor-wide texture.
+  if(['GREAT HALL','CHAPEL'].includes(arch)){
+    pixelRect(W/2-26,24,52,H-48,'#4b252b');
+    pixelRect(W/2-22,24,44,H-48,'#6b3035');
+    pixelRect(W/2-18,24,36,H-48,'#7b353b');
+    for(let y=46;y<H-48;y+=54){
+      ctx.fillStyle='rgba(203,166,90,.28)';ctx.fillRect(W/2-4,y,8,14);ctx.fillRect(W/2-7,y+4,14,5);
+    }
+    ctx.strokeStyle='rgba(18,25,25,.55)';ctx.lineWidth=2;ctx.strokeRect(W/2-26,24,52,H-48);
   }
-  // A handful of larger cracked slabs span tile boundaries.
-  ctx.strokeStyle='rgba(20,29,30,.58)';ctx.lineWidth=1;
-  for(let i=0;i<9;i++){
-    const gx=2+Math.floor(seeded(80+i)*11),gy=3+Math.floor(seeded(100+i)*14);
-    const x=gx*TILE+seeded(120+i)*10,y=gy*TILE+seeded(140+i)*12;
-    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+4,y+3);ctx.lineTo(x+2,y+7);ctx.lineTo(x+7,y+11);ctx.stroke();
+  if(arch==='CROSS HALL'){
+    ctx.fillStyle='rgba(16,39,41,.72)';ctx.fillRect(W/2-14,24,28,H-48);ctx.fillRect(24,215,W-48,26);
   }
+  // Keep a readable stone threshold around the exit and left entrance.
+  pixelRect(W-30,H/2-48,6,96,'#13282a');
+  pixelRect(24,H/2-48,6,96,'#13282a');
   ctx.restore();
-  // Independent architecture/props sit above the floor.
   for(const d of roomDecor) modularProp(d.kind,d.gx*TILE+12,d.gy*TILE+12);
   const now=performance.now()/1000;
   for(const d of roomDecor) if(d.kind==='torchTeal'||d.kind==='torchWarm'){
@@ -96,11 +144,10 @@ function drawModularDungeon(){
     g.addColorStop(0,teal?`rgba(82,216,192,${.18*pulse})`:`rgba(255,150,55,${.15*pulse})`);
     g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x-44,y-44,88,88);
   }
-  text(roomArchetype(),W/2,64,7,'#78918a','center');
+  text(arch,W/2,64,7,'#78918a','center');
 }
-
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
-const VERSION='0.2.1a';
+const VERSION='0.2.1b';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
