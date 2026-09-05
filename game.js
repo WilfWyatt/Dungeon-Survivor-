@@ -387,49 +387,24 @@ function text(t,x,y,size,fill,align='left'){ctx.fillStyle=fill;ctx.font=`700 ${s
 function panel(x,y,w,h){pixelRect(x,y,w,h,'#061619e8');ctx.strokeStyle='#376566';ctx.lineWidth=2;ctx.strokeRect(x,y,w,h)}
 
 function drawDungeon(){
+ // 0.2.0 REDO: the Great Hall is now an authored pixel-art environment asset.
+ // Gameplay entities/effects remain live and are drawn over the room artwork.
  ctx.fillStyle=P.ink;ctx.fillRect(0,0,W,H);
- const hudH=0, tile=40;
- // Full fixed 360x480 game viewport; roomVariation is fixed for the current room.
- pixelRect(0,0,W,H,P.deep);
- const floorCols=['#203b3e','#29494a','#233f42','#2d4d4d','#1e383b','#315152','#264448'];
- const variantShift=roomVariation%floorCols.length;
- for(let y=0;y<H-54;y+=tile){for(let x=14;x<W-14;x+=tile){
-  const gx=(x/tile|0),gy=(y/tile|0),n=(gx*31+gy*17+room*13+variantShift)%floorCols.length;
-  pixelRect(x,y,tile-2,tile-2,floorCols[n]);
-  pixelRect(x+3,y+3,tile-8,2,n%2?'#365457':'#304f51');
-  if((n+roomVariation)%5===0){pixelRect(x+8,y+15,12,2,'#142b2f');pixelRect(x+19,y+17,8,2,'#142b2f')}
-  if((n+roomVariation)%6===2){pixelRect(x+29,y+7,3,10,'#31504e');pixelRect(x+27,y+17,6,2,'#31504e')}
-  if((gx+gy+roomVariation)%7===0){pixelRect(x+5,y+27,4,3,'#425c58');pixelRect(x+12,y+31,8,2,'#152d30')}
-  if((gx*3+gy+roomVariation)%11===0){pixelRect(x+25,y+25,2,5,P.moss)}
- }}
- // Heavy perimeter masonry.
- pixelRect(0,0,W,13,'#09181b');pixelRect(0,H-55,W,55,'#08171a');
- for(let x=8;x<W;x+=58){pixelRect(x,3,48,7,P.stone);pixelRect(x,H-48,48,8,P.stone)}
- pixelRect(0,0,12,H-55,P.wall);pixelRect(W-12,0,12,H-55,P.wall);
- // Each Castle room gets a deterministic decorative personality.
- drawRoomVariation();
- drawRoomArchetypeDetail();
- drawTorchLight();
- // Existing moss and architectural dressing, with density varied per room.
- const topVines=6+(roomVariation%4), bottomVines=7+((roomVariation>>2)%4);
- ctx.strokeStyle=P.vine;ctx.lineWidth=5;ctx.lineCap='round';
- for(let i=0;i<topVines;i++){let x=24+i*(W-48)/Math.max(1,topVines-1);ctx.beginPath();ctx.moveTo(x,hudH+7);ctx.quadraticCurveTo(x-16,105+i%3*28,x+7,132+i%4*25);ctx.quadraticCurveTo(x+25,155+i%3*35,x+2,190+i%2*40);ctx.stroke()}
- for(let i=0;i<bottomVines;i++){let x=20+i*(W-40)/Math.max(1,bottomVines-1);ctx.beginPath();ctx.moveTo(x,H-49);ctx.quadraticCurveTo(x+16,H-88,x-5,H-118);ctx.stroke()}
- if(roomVariation%3!==1){drawBanner(W/2-95,5);}
- if(roomVariation%4!==2){drawBanner(W/2+95,5);}
- if(roomVariation%5===0||roomVariation%5===3)drawSkullShrine(W/2,24);
- const torches=[[55,42],[W-82,42],[55,H-95],[W-82,H-95]];
- const torchMode=roomVariation%5;
- torches.forEach((t,i)=>{if(((i+torchMode)%5)!==0)drawTorch(t[0],t[1])});
- // Extra stone seams, chips and scattered debris keep the floor from reading as a perfect grid.
- const detailCount=22+(roomVariation%11);
- for(let i=0;i<detailCount;i++){
-  const seed=(i*47+room*29+roomVariation*7)%997; const x=18+(seed*17)%324, y=68+(seed*31)%345;
-  const len=5+(seed%12); ctx.strokeStyle=seed%3===0?'#172f33':'#315053'; ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+len,y+((seed%5)-2));ctx.stroke();
-  if(seed%7===0)pixelRect(x+2,y+3,3,2,P.moss);
+ if(greatHallBg.complete&&greatHallBg.naturalWidth){
+  ctx.save();
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(greatHallBg,0,0,W,H);
+  // A restrained vignette preserves readability for live gameplay sprites.
+  const v=ctx.createRadialGradient(W/2,H/2,120,W/2,H/2,270);
+  v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.24)');
+  ctx.fillStyle=v;ctx.fillRect(0,0,W,H);
+  ctx.restore();
+ }else{
+  // Safe fallback while the image is loading/offline.
+  pixelRect(0,0,W,H,P.deep);
+  const tile=40;
+  for(let y=0;y<H-54;y+=tile)for(let x=14;x<W-14;x+=tile)pixelRect(x,y,tile-2,tile-2,'#29494a');
  }
- drawEntranceDoor();
 }
 function drawRoomArchetypeDetail(){
  const a=roomArchetype();

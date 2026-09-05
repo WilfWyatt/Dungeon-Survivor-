@@ -2,7 +2,7 @@
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061316;color:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;touch-action:none}
 body{display:flex;justify-content:center}
 #app{width:100%;max-width:384px;height:100%;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom);display:flex;flex-direction:column;align-items:center;gap:8px}
-#topUI{width:100%;display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+#topUI{display:none;width:100%;flex-direction:column;gap:7px;flex-shrink:0}
 .brand{height:40px;border:2px solid #29494a;background:#07181b;padding:5px 9px;display:flex;align-items:center;gap:7px;box-shadow:0 3px 0 #02090a}
 .brand span{font-size:17px;color:#d8d4bd}.brand strong{font-size:17px;color:#83f0d7}
 .stats{display:grid;grid-template-columns:70px 1fr 1fr 50px;gap:6px}
@@ -17,7 +17,7 @@ body{display:flex;justify-content:center}
 .gameFrame::after{content:'';position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 28px #0008}
 #message{position:absolute;bottom:8px;top:auto;left:50%;transform:translateX(-50%);font-size:9px;color:#83f0d7;letter-spacing:.4px;text-align:center;white-space:nowrap;pointer-events:none;text-shadow:0 2px 3px #000;z-index:5;min-height:11px}
 #pickupNotice{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-weight:800;font-size:11px;color:#d8d4bd;background:#061619ed;border:2px solid #376566;padding:7px 10px;box-shadow:0 4px 18px #0008;opacity:0;transition:opacity .15s;pointer-events:none;white-space:nowrap;z-index:10;max-width:calc(100% - 18px);overflow:hidden;text-overflow:ellipsis}.show{opacity:1!important}
-#controls{width:100%;height:128px;position:relative;display:flex;justify-content:space-between;align-items:center;padding:0 12px;flex-shrink:0}
+#controls{width:100%;height:118px;position:relative;display:flex;justify-content:space-between;align-items:center;padding:0 12px;flex-shrink:0}
 #controls #stick{position:relative;left:auto;bottom:auto;width:106px;height:106px;border-radius:50%;background:#0b252855;border:2px solid #5ca79d88;box-shadow:inset 0 0 0 1px #102f32}
 #controls #nub{position:absolute;width:50px;height:50px;left:26px;top:26px;border-radius:50%;background:#5ca79d40;border:2px solid #69c7b888}
 #controls #fire{position:relative;right:auto;bottom:auto;width:88px;height:88px;border-radius:50%;background:#0b252855;border:2px solid #69c7b888;display:grid;place-items:center;font-size:34px;color:#83f0d7aa;user-select:none;box-shadow:inset 0 0 0 1px #102f32}

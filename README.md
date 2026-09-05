@@ -4,6 +4,13 @@
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
+### 0.2.0 REDO graphical rebuild
+- Replaced the procedural Great Hall backdrop with an authored pixel-art environment asset targeted at the original design document.
+- The game canvas now uses the new environment as the visual foundation while keeping movement, enemies, combat, loot, rooms, scoring and progression live.
+- The old procedural room dressing is no longer layered over the authored Great Hall.
+- Added a restrained vignette so live gameplay remains readable over the richer artwork.
+- The current v0.2.0 game remains the fallback baseline; this REDO is the first integrated graphical pass.
+
 ## What is the game?
 
 Fight your way through dangerous dungeon rooms, survive waves of enemies, collect dropped loot, gain XP and grow stronger. Clear each room to unlock the exit, progress through the castle and eventually face the Guardian.
@@ -44,7 +51,7 @@ The game is built as a lightweight HTML, CSS and JavaScript project with a portr
 
 ## Change Log
 
-### 0.2.0 — Castle Overhaul, Enemy Synergy & Polish
+### 0.2.0 REDO — Authored Pixel-Art Great Hall
 
 - Overhauled the Castle presentation with irregular individual floor slabs, cracks, chips, worn stonework, moss, vines, rubble and richer wall dressing.
 - Added deterministic Castle room archetypes and decorative layouts including Great Hall, Pillared Hall, Ruined Chamber, Chapel, Guard Room and Cross Hall variants.
