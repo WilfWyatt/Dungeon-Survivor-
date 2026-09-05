@@ -8,7 +8,7 @@
 - Kept the modular architecture, gameplay collision and clear combat lanes intact.
 
 
-**Current Version: 0.2.1c**
+**Current Version: 0.2.2**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
