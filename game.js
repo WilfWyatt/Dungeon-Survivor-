@@ -1,4 +1,7 @@
 const c=document.getElementById('game'),ctx=c.getContext('2d');
+// Great Hall REDO environment asset
+const greatHallBg=new Image();
+greatHallBg.src='assets/environment/great-hall-bg.png';
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
 const VERSION='0.2.0';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
