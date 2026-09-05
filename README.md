@@ -1,6 +1,14 @@
 ## 0.2.1 — The Living Dungeon\n- Great Hall now renders from a reusable 24px modular environment atlas instead of a single background image.\n- Deterministic room layouts for Great Hall, Pillared Hall, Ruined Chamber, Chapel, Guard Room and Cross Hall.\n- Independent modular props for pillars, chests, torches, banners, altar and rubble.\n- Independent torch glow layers; the room itself is no longer a baked scene image.\n\n# DUNGEON SURVIVOR
 
-**Current Version: 0.2.0**
+## 0.2.1a — Living Dungeon Graphical Refinement
+- Expanded the modular floor atlas to 32 varied masonry tiles with broken seams, chips, cracks, moss and tonal variation.
+- Added deterministic cross-tile floor dressing and larger crack details to reduce visible repetition.
+- Expanded wall variants and room dressing for stronger architectural identity.
+- Added extra torch/rubble dressing to several Castle room archetypes.
+- Kept the modular architecture, gameplay collision and clear combat lanes intact.
+
+
+**Current Version: 0.2.1a**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
