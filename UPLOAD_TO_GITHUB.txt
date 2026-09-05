@@ -1,8 +1,0 @@
-DUNGEON SURVIVOR v0.2.1c — GITHUB UPLOAD
-
-1. Extract this ZIP.
-2. Upload the top-level files over the existing repository files.
-3. Do NOT upload or create an assets folder for this build.
-4. Commit the changes.
-5. Open the GitHub Pages URL first to test.
-6. The service worker cache is versioned for 0.2.1c.
