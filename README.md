@@ -1,14 +1,14 @@
 ## 0.2.1 — The Living Dungeon\n- Great Hall now renders from a reusable 24px modular environment atlas instead of a single background image.\n- Deterministic room layouts for Great Hall, Pillared Hall, Ruined Chamber, Chapel, Guard Room and Cross Hall.\n- Independent modular props for pillars, chests, torches, banners, altar and rubble.\n- Independent torch glow layers; the room itself is no longer a baked scene image.\n\n# DUNGEON SURVIVOR
 
-## 0.2.1b — Living Dungeon Graphical Refinement
-- Expanded the modular floor atlas to 32 varied masonry tiles with broken seams, chips, cracks, moss and tonal variation.
-- Added deterministic cross-tile floor dressing and larger crack details to reduce visible repetition.
-- Expanded wall variants and room dressing for stronger architectural identity.
+## 0.2.1c — Ancient Stone graphical refinement
+- Refined the modular floor into finer-grained individual masonry slabs, closer to the original graphical target.
+- Reduced slab size, softened seam contrast and added irregular edge wear, chips, moss, mineral flecks and fine cracks.
+- Retained the modular wall variants and room dressing for architectural identity.
 - Added extra torch/rubble dressing to several Castle room archetypes.
 - Kept the modular architecture, gameplay collision and clear combat lanes intact.
 
 
-**Current Version: 0.2.1a**
+**Current Version: 0.2.1c**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -58,6 +58,12 @@ The game is built as a lightweight HTML, CSS and JavaScript project with a portr
 - Local high-score table and end-of-run score summary.
 
 ## Change Log
+## 0.2.1c — Ancient Stone
+- Reduced the visible masonry scale so the Castle floor reads as many individual worn stones rather than a handful of giant slabs.
+- Softened the dark seam treatment to avoid a jigsaw/grid appearance.
+- Added finer chips, mineral flecks, moss, grime, short cracks and occasional larger broken-stone details.
+- Added subtle high-traffic wear while preserving clear combat lanes and the modular procedural construction.
+
 ### 0.2.1b — Broken Masonry graphical refinement
 - Reworked the Castle floor from a visibly repeating square-tile field into an irregular stone-field renderer with jittered slab boundaries.
 - Added larger-scale cracks crossing slab boundaries, chips, moss, grime and worn-stone variation.
