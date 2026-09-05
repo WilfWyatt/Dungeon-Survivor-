@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.1.9**
+**Current Version: 0.2.0**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -42,26 +42,21 @@ The game is built as a lightweight HTML, CSS and JavaScript project with a portr
 - Branded splash/start presentation and installable app icons.
 - Local high-score table and end-of-run score summary.
 
-## Milestones
-
-### 0.2.0 — Castle Graphics Overhaul
-
-The major visual milestone for the castle levels. The aim is to turn the dungeon into a richer, more atmospheric pixel-art environment rather than a simple combat arena.
-
-Planned areas include:
-
-- Individual, irregular stone floor slabs.
-- Cracks, chips and worn stonework.
-- Moss and creeping vines.
-- More textured and varied walls.
-- Animated torch flames and glow.
-- Environmental lighting and shadows.
-- Pillars, alcoves and architectural details.
-- Blood, bones, debris and other environmental storytelling.
-- More room-specific layouts and visual variations.
-- Stronger atmospheric colour and depth.
-
 ## Change Log
+
+### 0.2.0 — Castle Overhaul, Enemy Synergy & Polish
+
+- Overhauled the Castle presentation with irregular individual floor slabs, cracks, chips, worn stonework, moss, vines, rubble and richer wall dressing.
+- Added deterministic Castle room archetypes and decorative layouts including Great Hall, Pillared Hall, Ruined Chamber, Chapel, Guard Room and Cross Hall variants.
+- Added animated teal torch flames with subtle local glow and stronger environmental depth.
+- Added environmental details such as banners, shrines, altar/candles, tables, weapon racks and varied debris while keeping combat lanes clear.
+- Reworked Bats into a three-stage threat: fast approach, close-range orbit/harassment and a brief diving attack.
+- Reworked Goblins to spread towards different room-edge positions, maintain firing distance and avoid clumping together.
+- Added light encounter synergy so Skeletons press slightly harder when Goblins are nearby, reinforcing the mixed-enemy threat.
+- Added a more deliberate room-clear rhythm and clearer Castle room identity.
+- Added the requested Game Over **MAIN MENU** button; FIRE/Space no longer exits Game Over.
+- Updated Start menu secondary buttons to use the same red/metallic visual language as the Play button.
+- Kept the local scoreboard, version label and existing PWA/start-screen presentation.
 
 ### 0.1.9 — Weapons, Decisions & Start Menu
 
