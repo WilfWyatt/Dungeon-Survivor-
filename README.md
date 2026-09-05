@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.1.4**
+**Current Version: 0.1.5**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -58,6 +58,14 @@ Planned areas include:
 - Stronger atmospheric colour and depth.
 
 ## Change Log
+
+### 0.1.5 — Guardian Fix & Run Flow
+
+- Fixed the Guardian so it can correctly take sword damage and be defeated.
+- Increased Guardian Fireball projectile speed slightly while leaving Fire Blast speed unchanged.
+- Changed Game Over flow so **FIRE** returns to the title screen instead of immediately starting another run.
+- Changed **PLAY** to start a completely fresh run, resetting run statistics and player progression.
+- Kept the Guardian body blocker in place so the player can approach safely enough to land sword hits without overlapping the boss.
 
 ### 0.1.4 — Combat & Presentation Polish
 

@@ -53,7 +53,7 @@ function resetRoom(){
  if(isBoss){
   totalQuota=1;activeCap=1;
   const hp=650+area*100;
-  enemies.push({x:W-105,y:H/2,r:34*SPRITE_SCALE,type:'boss',hp,max:hp,speed:35+area*2,hit:0,boss:true,attackTimer:1.1,attackAge:0,swingHit:false,weapon:'shortSword',warning:'',warningTimer:0,patternActive:false});
+  enemies.push({x:W-105,y:H/2,r:34*SPRITE_SCALE,type:'boss',hp,max:hp,active:true,speed:35+area*2,hit:0,boss:true,attackTimer:1.1,attackAge:0,swingHit:false,weapon:'shortSword',warning:'',warningTimer:0,patternActive:false});
   msg('BOSS ROOM — DEFEAT THE GUARDIAN');
  }else{
   const plan=ROOM_PLAN[room]||ROOM_PLAN[6];activeCap=plan.cap;totalQuota=plan.total;
@@ -239,7 +239,7 @@ function update(dt){
    }
    if(e.patternActive&&bossPatternMode==='burst'&&bossPatternTimer<1.0){
     const n=5,gap=.16,idx=Math.floor(bossPatternTimer/gap);
-    if(idx<n&&Math.abs(bossPatternTimer-idx*gap)<dt*1.2){const base=Math.atan2(player.y-e.y,player.x-e.x);shootProjectile(e.x,e.y,base+(idx-2)*.11,105,14,'fireball');}
+    if(idx<n&&Math.abs(bossPatternTimer-idx*gap)<dt*1.2){const base=Math.atan2(player.y-e.y,player.x-e.x);shootProjectile(e.x,e.y,base+(idx-2)*.11,122,14,'fireball');}
     bossPatternTimer+=dt;
     if(bossPatternTimer>=1.0){e.patternActive=false;e.attackTimer=3.2;}
    }else if(e.patternActive&&bossPatternMode==='spiral'&&bossPatternTimer<3.6){
@@ -251,10 +251,10 @@ function update(dt){
   }
   e.x=clamp(e.x,32,W-32);e.y=clamp(e.y,72,H-72);
   if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){player.hp-=e.type==='boss'?30*dt:22*dt;player.flash=.08}
-  if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to restart')}
+  if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to return to title')}
  }
 
- for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.age+=dt;q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){player.hp-=q.damage;player.flash=.15;burst(player.x,player.y,'hit',5);projectiles.splice(i,1);if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to restart')}}}
+ for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.age+=dt;q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){player.hp-=q.damage;player.flash=.15;burst(player.x,player.y,'hit',5);projectiles.splice(i,1);if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to return to title')}}}
 
  for(let i=slashes.length-1;i>=0;i--){
   const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const reach=s.reach||playerWeapon().reach;const centre=s.angle+s.side*(Math.PI*.40-(Math.min(1,progress)*Math.PI*.80));
@@ -470,23 +470,24 @@ function draw(){
  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);let col=p.type==='coin'?P.gold2:(p.type==='heal'?P.teal2:(p.type==='hit'?P.cream:(p.type==='spawn'?(p.spawnType==='goblin'?P.green:p.spawnType==='skeleton'?'#a57b4c':P.cream):P.gold)));pixelRect(p.x,p.y,4,4,col);ctx.globalAlpha=1});
  if(roomCleared&&!atShop){const pulse=.8+.2*Math.sin(performance.now()/140);ctx.globalAlpha=pulse;panel(W/2-125,H-65,250,34);text(isBossRoom()?'BOSS DEFEATED  •  WALK TO EXIT »':'ROOM CLEARED  •  WALK TO EXIT »',W/2,H-43,10,P.teal2,'center');ctx.globalAlpha=1}
  if(atShop)drawShop();
- if(gameOver){ctx.fillStyle='#02090ae8';ctx.fillRect(0,0,W,H);text('GAME OVER',W/2,H/2-55,30,P.cream,'center');text(`REACHED  ${isBossRoom()?'GUARDIAN':`ROOM ${room}`}`,W/2,H/2-20,9,P.teal2,'center');text(`LEVEL ${level}  •  GOLD ${totalGoldCollected}`,W/2,H/2+1,9,P.gold2,'center');text(`ENEMIES DEFEATED  ${kills}`,W/2,H/2+22,9,P.cream,'center');text(`ROOMS CLEARED  ${roomsCleared}`,W/2,H/2+43,9,P.cream,'center');text('TAP FIRE TO RESTART',W/2,H/2+75,11,P.teal2,'center')}
+ if(gameOver){ctx.fillStyle='#02090ae8';ctx.fillRect(0,0,W,H);text('GAME OVER',W/2,H/2-55,30,P.cream,'center');text(`REACHED  ${isBossRoom()?'GUARDIAN':`ROOM ${room}`}`,W/2,H/2-20,9,P.teal2,'center');text(`LEVEL ${level}  •  GOLD ${totalGoldCollected}`,W/2,H/2+1,9,P.gold2,'center');text(`ENEMIES DEFEATED  ${kills}`,W/2,H/2+22,9,P.cream,'center');text(`ROOMS CLEARED  ${roomsCleared}`,W/2,H/2+43,9,P.cream,'center');text('TAP FIRE TO RETURN TO TITLE',W/2,H/2+75,11,P.teal2,'center')}
 }
 function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();requestAnimationFrame(loop)}
 
 resetRoom();
 const startScreen=document.getElementById('startScreen');
 const playButton=document.getElementById('playButton');
-playButton.addEventListener('pointerdown',e=>{e.preventDefault();if(started)return;started=true;startScreen.style.display='none';resetRoom();msg('AREA 1 • CASTLE — ROOM 1 • CLEAR THE ROOM')});
+playButton.addEventListener('pointerdown',e=>{e.preventDefault();if(started)return;startNewRun();msg('AREA 1 • CASTLE — ROOM 1 • CLEAR THE ROOM')});
 requestAnimationFrame(loop);
-addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space')fireHeld=true;if(gameOver&&e.code==='Space')restart()});
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'){if(gameOver)returnToTitle();else fireHeld=true}});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function restart(){started=true;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;xp=0;level=1;xpNeed=12;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damage=WEAPONS.shortSword.damage;player.weapon='shortSword';nextSwingSide=1;swingCooldown=0;resetRoom()}
+function startNewRun(){started=true;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damage=WEAPONS.shortSword.damage;player.weapon='shortSword';nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function returnToTitle(){gameOver=false;started=false;atShop=false;areaComplete=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
 function joyMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,m=Math.min(45,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*m/45;joy.y=Math.sin(a)*m/45;nub.style.transform=`translate(${joy.x*45}px,${joy.y*45}px)`}
 stick.addEventListener('pointerdown',e=>{joy.active=true;stick.setPointerCapture(e.pointerId);joyMove(e)});stick.addEventListener('pointermove',e=>{if(joy.active)joyMove(e)});stick.addEventListener('pointerup',()=>{joy.active=false;joy.x=joy.y=0;nub.style.transform='translate(0,0)'});stick.addEventListener('pointercancel',()=>{joy.active=false;joy.x=joy.y=0;nub.style.transform='translate(0,0)'});
-const f=document.getElementById('fire');f.addEventListener('pointerdown',()=>{if(gameOver){restart();return}if(atShop)return;performSwing();fireHeld=true});f.addEventListener('pointerup',()=>fireHeld=false);f.addEventListener('pointercancel',()=>fireHeld=false);
+const f=document.getElementById('fire');f.addEventListener('pointerdown',()=>{if(gameOver){returnToTitle();return}if(atShop)return;performSwing();fireHeld=true});f.addEventListener('pointerup',()=>fireHeld=false);f.addEventListener('pointercancel',()=>fireHeld=false);
 c.addEventListener('pointerdown',e=>{if(!atShop)return;const r=c.getBoundingClientRect();const x=(e.clientX-r.left)*(W/r.width),y=(e.clientY-r.top)*(H/r.height);if(x>=48&&x<=312&&y>=172&&y<=230)buyUpgrade('damage');else if(x>=48&&x<=312&&y>=242&&y<=300)buyUpgrade('health');else if(x>=48&&x<=312&&y>=318&&y<=368)continueFromShop()});
 if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('portrait').catch(()=>{});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
