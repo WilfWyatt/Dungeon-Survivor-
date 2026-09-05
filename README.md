@@ -13,6 +13,19 @@ Version 0.1.1 adds a small magnetic pickup radius for gold and establishes the f
 
 A mobile-first HTML/JavaScript roguelite dungeon survival prototype designed to run directly from GitHub Pages and install as a PWA on Android.
 
+## v0.1.4 — Guardian combat readability
+
+This milestone improves the Guardian encounter with a safer melee distance, clearer attack warnings and more fiery projectile visuals.
+
+### v0.1.4 changes
+- Added a solid minimum combat distance around the Guardian: the player can still get close enough for sword hits, but cannot overlap/sit inside the boss.
+- Added a top-of-game warning box during Guardian attack wind-ups.
+- Guardian aimed bursts are announced as **FIREBALL ATTACK**.
+- Guardian spiral patterns are announced as **FIRE BLAST ATTACK**.
+- Reworked Guardian projectiles into layered, glowing flame/ember shapes with animated trails.
+- Preserved the existing boss movement and attack patterns.
+
+
 ## v0.1.3 — Directional characters & room presentation
 
 This milestone adds stronger room readability and directional character presentation while fixing the enemy movement issues found in v0.1.2.
@@ -75,6 +88,11 @@ The next milestone is a dedicated graphical feel pass for the castle levels: ric
 Upload the files in this folder to the root of a GitHub repository, then enable **Settings → Pages → Deploy from a branch → main → /(root)**. Open the generated Pages URL in Chrome on Android and use Chrome's menu to install/add the app to the home screen.
 
 ## Change Log
+
+### v0.1.4
+- Added Guardian minimum-distance collision/blocking.
+- Added Guardian attack warning banner.
+- Reworked Guardian projectiles into fiery flame/ember visuals.
 
 ### v0.1.3
 - Added the left-side decorative entrance and left-side player starting position.

@@ -10,7 +10,7 @@ const WEAPONS={
 const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:215,fire:0,damage:25,flash:0,weapon:'shortSword'};
 function playerWeapon(){return WEAPONS[player.weapon]||WEAPONS.shortSword}
 let enemies=[],loot=[],slashes=[],deathMarks=[],particles=[],projectiles=[],entrances=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
-let spawnQueue=[],spawnTimer=0,totalSpawned=0,totalQuota=0,activeCap=0,bossPatternTimer=0,bossPatternStep=0,bossPatternMode='burst';
+let spawnQueue=[],spawnTimer=0,totalSpawned=0,totalQuota=0,activeCap=0,bossPatternTimer=0,bossPatternStep=0,bossPatternMode='burst',bossWarning=0,bossWarningName='';
 const ROOM_PLAN={1:{cap:5,total:10,weights:[['bat',.80],['goblin',.10],['skeleton',.10]]},2:{cap:6,total:12,weights:[['bat',.70],['goblin',.15],['skeleton',.15]]},3:{cap:7,total:14,weights:[['bat',.60],['goblin',.20],['skeleton',.20]]},4:{cap:8,total:17,weights:[['bat',.50],['goblin',.25],['skeleton',.25]]},5:{cap:10,total:20,weights:[['bat',.40],['goblin',.30],['skeleton',.30]]},6:{cap:12,total:22,weights:[['bat',1/3],['goblin',1/3],['skeleton',1/3]]}};
 let shopMessage='';
 let nextSwingSide=1, swingCooldown=0, facing=0, facingDir='right';
@@ -40,7 +40,7 @@ function chooseEnemyType(weights){
 function resetRoom(){
  player.x=58;player.y=H/2;player.hp=clamp(player.hp,0,player.maxHp);player.flash=0;
  enemies=[];loot=[];slashes=[];deathMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=false;atShop=false;areaComplete=false;
- spawnQueue=[];spawnTimer=.35;totalSpawned=0;bossPatternTimer=1.1;bossPatternStep=0;bossPatternMode='burst';
+ spawnQueue=[];spawnTimer=.35;totalSpawned=0;bossPatternTimer=1.1;bossPatternStep=0;bossPatternMode='burst';bossWarning=0;bossWarningName='';updateBossWarning();
  const isBoss=room===bossRoom;
  if(isBoss){
   totalQuota=1;activeCap=1;
@@ -212,10 +212,17 @@ function update(dt){
    const radial=d>desired+12?1:d<desired-18?-1:0;
    const tangent=0.72;
    e.x+=(Math.cos(a)*radial+Math.cos(a+orbitSign*Math.PI/2)*tangent)*e.speed*dt*moveScale;
-   e.y+=(Math.sin(a)*radial+Math.sin(a+orbitSign*Math.PI/2)*tangent)*e.speed*dt*moveScale
+   e.y+=(Math.sin(a)*radial+Math.sin(a+orbitSign*Math.PI/2)*tangent)*e.speed*dt*moveScale;
    e.attackTimer-=dt;
-   if(e.attackTimer<=0){bossPatternMode=bossPatternStep%2===0?'burst':'spiral';bossPatternStep++;e.attackTimer=bossPatternMode==='burst'?3.2:5.4;bossPatternTimer=0;}
-   if(bossPatternMode==='burst'&&bossPatternTimer<1.0){
+   if(e.attackTimer<=0 && bossWarning<=0){
+    bossPatternMode=bossPatternStep%2===0?'burst':'spiral';bossPatternStep++;
+    e.attackTimer=bossPatternMode==='burst'?3.2:5.4;bossPatternTimer=0;
+    bossWarning=.72;bossWarningName=bossPatternMode==='burst'?'FIREBALL ATTACK':'FIRE BLAST ATTACK';updateBossWarning();
+   }
+   if(bossWarning>0){
+    bossWarning=Math.max(0,bossWarning-dt);
+    if(bossWarning<=0){bossWarningName='';updateBossWarning()}
+   }else if(bossPatternMode==='burst'&&bossPatternTimer<1.0){
     const n=5, gap=.16, idx=Math.floor(bossPatternTimer/gap);
     if(idx< n && Math.abs(bossPatternTimer-idx*gap)<dt*1.2){const base=Math.atan2(player.y-e.y,player.x-e.x);shootProjectile(e.x,e.y,base+(idx-2)*.11,105,14,'boss')}
     bossPatternTimer+=dt;
@@ -228,6 +235,18 @@ function update(dt){
   e.x=clamp(e.x,32,W-32);e.y=clamp(e.y,72,H-72);
   if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){player.hp-=e.type==='boss'?30*dt:22*dt;player.flash=.08}
   if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to restart')}
+ }
+
+ // The Guardian is a solid combat space: you can get close enough for sword hits,
+ // but cannot overlap his body or take hidden contact damage by standing inside him.
+ const guardian=enemies.find(e=>e.type==='boss');
+ if(guardian){
+  const dx=player.x-guardian.x,dy=player.y-guardian.y,d=Math.hypot(dx,dy),minDist=guardian.r+player.r+14;
+  if(d<minDist){
+   const a=d>.001?Math.atan2(dy,dx):Math.PI;
+   player.x=clamp(guardian.x+Math.cos(a)*minDist,30,W-30);
+   player.y=clamp(guardian.y+Math.sin(a)*minDist,70,H-70);
+  }
  }
 
  for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){player.hp-=q.damage;player.flash=.15;burst(player.x,player.y,'hit',5);projectiles.splice(i,1);if(player.hp<=0){player.hp=0;gameOver=true;msg('You died — tap FIRE to restart')}}}
@@ -254,7 +273,7 @@ function update(dt){
  if(roomCleared&&!atShop){const ex={x:W-22,y:H/2};if(Math.abs(player.x-ex.x)<30&&Math.abs(player.y-ex.y)<66){if(isBossRoom())beginAreaShop();else{room++;resetRoom();showPickup(`Entering room ${room}`)}}}
  updateHud();
 }
-function shootProjectile(x,y,a,speed,damage,type){projectiles.push({x,y,a,speed,damage,r:type==='arrow'?4:5,life:type==='arrow'?2.6:3.2,type})}
+function shootProjectile(x,y,a,speed,damage,type){projectiles.push({x,y,a,speed,damage,r:type==='arrow'?4:6,life:type==='arrow'?2.6:3.2,type,seed:Math.random()*Math.PI*2})}
 
 function burst(x,y,type='death',n=8,spawnType=''){
  for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=25+Math.random()*110;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:type==='shot'?.12:.45,type,spawnType})}
@@ -376,7 +395,30 @@ function drawEntrance(ent){
  ctx.restore();
  if(p<1){text(ent.type==='bat'?'DROP IN':ent.type==='goblin'?'MAGIC':'EARTH',x,y-28,6,ent.type==='goblin'?P.green:ent.type==='skeleton'?'#a57b4c':P.cream,'center')}
 }
-function drawProjectile(q){ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.a);ctx.shadowBlur=8;ctx.shadowColor=q.type==='arrow'?P.gold:P.red2;pixelRect(-6,-2,12,4,q.type==='arrow'?P.cream:P.red2);if(q.type==='spiral'){pixelRect(-2,-4,4,8,P.gold2)}ctx.restore()}
+function drawProjectile(q){
+ ctx.save();ctx.translate(q.x,q.y);ctx.rotate(q.a);
+ if(q.type==='arrow'){
+  ctx.shadowBlur=8;ctx.shadowColor=P.gold;pixelRect(-6,-2,12,4,P.cream);pixelRect(5,-1,4,2,P.gold2);
+ }else{
+  const pulse=.8+.2*Math.sin(performance.now()/70+q.seed);
+  // Layered ember/flame shapes make the Guardian's shots read as fire rather than red bars.
+  ctx.shadowBlur=13;ctx.shadowColor='#ff6a35';
+  pixelRect(-7,-3,14,6,'#a9362f');
+  pixelRect(-5,-5,10,10,'#e35a32');
+  pixelRect(-3,-4,7,8,'#ff9b3d');
+  pixelRect(-1,-3,4,6,'#ffe08a');
+  pixelRect(-10,-2,4,4,'#7a2528');
+  pixelRect(-13,-1,4,2,'#e35a32');
+  ctx.globalAlpha=.45*pulse;pixelRect(-17,-1,5,3,'#ff6a35');ctx.globalAlpha=1;
+  if(q.type==='spiral'){pixelRect(-3,-7,6,4,'#ff7a36');pixelRect(-2,3,5,5,'#b92f2f')}
+ }
+ ctx.restore();
+}
+
+function updateBossWarning(){
+ const n=document.getElementById('bossAttackNotice');if(!n)return;
+ n.textContent=bossWarningName;n.classList.toggle('show',bossWarning>0);
+}
 
 function drawLoot(l){
  const y=l.y+Math.sin(l.bob)*3,x=l.x;ctx.save();ctx.translate(x,y);ctx.shadowBlur=14;ctx.shadowColor=l.type==='Gold'?P.gold:P.teal;
@@ -443,7 +485,7 @@ function loop(t){const dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw
 resetRoom();requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space')fireHeld=true;if(gameOver&&e.code==='Space')restart()});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function restart(){gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;xp=0;level=1;xpNeed=12;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damage=WEAPONS.shortSword.damage;player.weapon='shortSword';nextSwingSide=1;swingCooldown=0;resetRoom()}
+function restart(){gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;xp=0;level=1;xpNeed=12;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damage=WEAPONS.shortSword.damage;player.weapon='shortSword';nextSwingSide=1;swingCooldown=0;bossWarning=0;bossWarningName='';updateBossWarning();resetRoom()}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
 function joyMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,m=Math.min(45,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*m/45;joy.y=Math.sin(a)*m/45;nub.style.transform=`translate(${joy.x*45}px,${joy.y*45}px)`}
