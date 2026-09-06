@@ -1,5 +1,5 @@
-const CACHE='dungeon-survivor-v0.2.5b';
-const PRECACHE=['./','./index.html','./style.css','./game.js','./manifest.json','./icon-192.png','./icon-512.png','./splash-screen.png','./menu-screen.png','./player-sprites.png','./enemy-sprites.png','./great-hall-modular-atlas.png','./great-hall-props.png','./floor-clean-1.png','./floor-clean-2.png','./floor-clean-3.png','./floor-clean-4.png','./floor-debris-1.png','./floor-debris-2.png','./floor-debris-3.png','./floor-debris-4.png','./floor-moss-1.png','./floor-moss-2.png','./floor-moss-3.png','./floor-moss-4.png'];
+const CACHE='dungeon-survivor-v0.2.5c';
+const PRECACHE=['./','./index.html','./style.css','./game.js','./manifest.json','./icon-192.png','./icon-512.png','./splash-screen.png','./menu-screen.png','./player-sprites.png','./enemy-sprites.png','./great-hall-modular-atlas.png','./great-hall-props.png','./assets/floor/floor_tiles.png','./assets/walls/top/top-wall-clean.png','./assets/walls/top/top-wall-cracked.png','./assets/walls/top/top-wall-mossy.png','./assets/walls/left/left-wall-clean.png','./assets/walls/right/right-wall-clean.png','./assets/walls/bottom/bottom-wall-clean.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(PRECACHE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
