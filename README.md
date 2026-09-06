@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.2.5fff**
+**Current Version: 0.2.5g**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -140,6 +140,19 @@ The 0.1 releases are retained here as historical development records rather than
 - Reduced character sprite scale to make the dungeon environment feel larger.
 
 ## Change Log
+
+### 0.2.5g — Environment Codebase Clean-up & Recovery
+
+- Rebuilt the room environment renderer as a single, isolated pipeline: **floor → walls → props → torch lighting**.
+- Removed the obsolete embedded Great Hall background and embedded modular prop artwork.
+- Removed the retired atlas-based floor renderer and legacy procedural room-decoration renderers.
+- Floor rendering now uses the approved individual **32×32 authored floor PNGs** directly.
+- Wall rendering now uses the approved modular wall assets only, with safe visual fallbacks so a missing asset cannot stop the game loop.
+- New authored props under `assets/props/` are the only active environmental decoration system.
+- Preserved the proven player, enemy, combat, loot, XP, inventory, progression and boss systems from the last stable gameplay base.
+- Hardened the service-worker asset list and bumped the cache to 0.2.5g.
+- Updated the visible build number to **v0.2.5g**.
+
 
 ### 0.2.5fff — Codebase Clean-up & Render Pipeline Rewrite
 
