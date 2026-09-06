@@ -8,8 +8,35 @@ greatHallBg.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWgAAAHgCAYAAACIB
 // 0.2.1 modular dungeon assets — embedded so the live game does not depend on GitHub folder uploads.
 const modularAtlas=new Image();
 modularAtlas.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAACQCAYAAABeUmTwAAAYWElEQVR4nO2dS3NaSZbHjyQsGYR4CIEAowctu6rssVzlionomoiehWMqvBg2/TW04mvM1iu+xmzupmO6te3q6OjqKlW4q/woyRIGBEIgCSHJkqxZSEmlksy8mXkzLxdzfxvZcEkucE7myZMn/zn25X/+4arV3Id4YhZ0k4zPQPv4BOrVOqQyKe3tx6aDsLt3AAftNkRjMe3tz89FoXN6BpVyDbK5tPb2w3enoHnQgWajCYlkQnv7iWgYKvU2dA4PIByJam8/m4pBo3UEw2w/gfZ+CwAA0F+dJOMz0Kg1AAB6f3USW1mEw4MDAIDeX53Mz0Wh+n4XAKD3VycPVhZhf28fAKD3VyeJaBiOjw4BAHp/tZKKwbDbTyA2G4dWcx9is3HtbwAAkEwnoV6tQzKdhM/TM8VfakcvaNe9365YAAD3FrMFmfYj0SgctNsQiV73cLl0rFSutddk2oglwhYAQLvZ6XvvzL15qJRrkLk3L9OkMLNzs9BsNGF2Tn8PCgAwPROBzuEBTM9EhK5/ujJX/P7t3q3fKJGcsZqNI+rvomo/9VrdSqVT1Dbrtbp1888Cbj84PFvCsbOrgNRd24BunPXBWDfcnb5Yjz9MhULHgWestoOhSeuk+8HWOWSNH4Bu+MPIo1ysCADwsty2NQwWpPEDALCMXwSWobNsxO45BM2WPk/PFMnn7i1mCzeP/4n2Gq0OIHLjqogY/6C4MxWwzs8uCgAAK8npIgDA28axshGqwjP8VrNpxRMJ179DkzZB9u6sDpY3Umh1AFV4Pf8wgIwfgG348fDdUqtzKj066cJN44/EQhYAwGG7K/WejxfjRQCAn7ZbQp2HbLhMYyAOMPXZXRTjwdmr08LHzMQGAMB49XJ1EPfjBrLGn07MlGrNo7VwJGiF7wS2a80jbc6z37ieUM4mkzZXqiFj+LjRixo+C5V5pJIDZJOREgBApXG4Zhf32xEMTVrHcLmo8tphAQ+RREEG3zk8KXTM3JYncGr0OCojgpIDVBqHvd6INPzHi/Gi3Yc6e3V66zXjXZW7GB5w419JThdNzg90TIQHTSQWslijSDA0aQHomxNqD4F0evSwEQ/fLQHwwx0dxh+OBC2A69GBfG5YDR8PhXghlO5kyDjvhtBN+dxmJTldRNkenNngxM86Jrq1yq7Fe75zeFKgGT8CjQIkrWbTAriO/WeTSVjKxkvO7rSfSCxkoUmwKLKT32Q0VEpGQ1runekAqpMSWacR/SDlrTKUt8pS9/Ikn+jdy15jz9pr7N36YWiP8Xi3WbYArntxWk+uK7RJZ+cd9XKsUYDMBL2rtIScFTmOCIftbkFkEow7iaytNQ66a42DrpakANMBeOxWqlXWc7JOQ/sg77crFprRO+HHzWbvXuaSc4W55NytH4b2GI+lfM6zaxEmEU2hynR+silSkvLWDtMGZeg5gOjN71aq1flsJqPjzVmGfm8xWyBn9LnlHOSWc8y2aD15Y7cOjd06ANweDXQRD98tobjfLarlipYf3gRuzf/KWzvV3PKCFhvsOYDIzTsxfrRMjUMzdDtYTmPXk+OjAYJ0iif5RFHGUVqd0zXTi1vpxEwpnZgpAVwbfyaX1fLDDyuixk+zNxpSk+D5bCbDCn/Q2gALkcIlEe4tZgv3v1jupcN4JOdTkJxnl9GSTvHjZvMFzVGccGcqYN2ZCvTu9d1m2UJzCRpn0av1s+jVOvp/rXm0VmserVXLleqDRyv/cHo/MvG8F8ktL2REwh9Re9M2CcbXBnTBmgecdD8UvFwbhHN+dlEgF8FU5hKZXDbz+uXbr1kZHpxaZddiZZIGUQ/kZYQnwbuValVn/C+CysqeTFZnENgZ/9TB2LOpgzFmbZRInj+dnS+oZJLwtOjTlbni05U5V9LgWPkzl/LWTlVn/A8guBDmtuGrclPX3/vh0QSYFwbFEmFrkOXQZ9Gr9XB0FuAAqEYfjgSt1y/ffg1wPQqYvBc8LUorizaFSBkNy/BRapyXIOHtHRAaAXQbv0j8rgJuyKKTWd3Gz4vvRQg9mrZCj6Z7bbx++fbrTC6byeSymWq5CtWyehIokZyxEskZ5v252evLgoz/8/RM0W6CSyZKlMqh67W6df+LZcf5Whq8+D0ZDZV0LHL8uNl8wev5TSEb308djD1rNpowxdgTnMllM6gy1Om92W1scbPXV4U0ZlrPLxM6M0eAVDoltKJHIhrPsXBi/CZy/Th4NscU3ZfHhe7L41vfOzL+TC4DmdzgIlETpRODRmklmIfJHUB26E5hksiWNH9qiJZODBNj3/7xv6+Mtf7xCmB8zFjzfvt++07bD+zW22Z1dbqnZnV1WkdmdXVqLbO6Os1Ds7o6R12zukxDbj8BX1eHja+rw+dT0GUKkLo6utGlq/Nus2zd/2K5Lw7XqauDVk/xRSRZXR1Z3NRlMsGw2A+C3LTEnATHEmELCUbJIltnL8JSPlc4P7so6Kq+RAVmtx5TXEGVhVaPI7uJRPU1ow5ZwMh0AHKBCDdq9G+WkcvW2csgU30ZjgQttH2QpNY8WsMrLU1BLjwtZeOlr1bvb5MpRZWUs4k1Gl2Idp54yfog4JZC4E6AGzRp3CpyhG7A2zYI8Ft+XQYkKTI2Pi4kNEUuPuGpxGwq1ne9U5UNrxC+E9gO29jFk3yi+Ofd+gvyMQD7lLYucQFHm+KR4csaP1pQ8mJePRwJWjTHuXs/tAEAAA1YBbipqkxNXJct1y+1CXsNu+EjRGyCtlpvei0H4LZImfJCWC4dUw4daCXCNFh1NXY19U6wGzXQhnIaumvts8lIyW6fhQqmarFE0TE/lO398d17eBitPAK4EfKw6moGsTf39E13Nf40agWfRrdb3x9cvz/R8+uotcdFx0zssQCQkxZ5v12xdEgQ4piaH/JgzR21l0IAOBsdTPIoFyuKbCihwauipKFaN2PS8HngVZb4v3Ubv9cwog1KGx1MK6KJ4EQ0qtk4KsDYxDrtuaVsvETWyQxb3QxeZbl9ePbcjR13qKMUiSZQyKt79HdNHPcvf/vlOQBYTj6AnfIaqpV3u2LynxtvFgFAm/w4HgbpaI/EbhPJSfdDQfQACkf3IRFGmwp7lUKgxu6u9K6MpXyuwPoQootbulUYapVdi7dW0Ef98hkt4xNPJAq48e83Gr10qQqDCoNwSON3osSWS8dKrLDYxKIpCRo9aIkT6ggQ+TJyre/+w2GfwTZ2d6vJ+fmMzPBlB+pBnXq5bM+fzs4XOocnTt5SGzxBWN3wtg/SCIYmLdV9Gk/yiSIvtenGhBjZFc2+bjnA5dz4evxemKnVjIwf4DfD17EI5lZWB6366tTap6Giu+/E+HnnbenAyXyAZvyox59LzhV0dqQIEZFiBDUEOjk6Xzw5Ou/T7E/Oz2fI8MeLK8Asas2jtc75xaJwyOMReFKUAHoXz4KhSUvnOgGt1AEvlRFdSJ1YmbQmVsTuq9U5XZsNTvxMEzAmuTUCTOx9fHa4dwh3fhfcIC8cRL0G8uTZ4MTPAHrEZ+0WumRB6VEnB8nx4ClyyKoqi+BW9oc0enxU0PEeorZCnQOc/3pCOaroqgpwPQrgj5oYwhBoCGt54IgUtMpLZnpww6cdMeoEOzkaFcPXJTog/H4UYYJyrb1GytHYGf7l22vHRKNA630nBAAQOZ10VIYilAVCsT8yflSw1Nitw/c/vJKuBRpGyEwPDd2qCv/1zaP/sQt/ZGEZv9vlEV45mlZoHYDs9d0oWPLCwpmbkDU/lcbh2k0Pb0wNGj97eRikJj+kxjbg6Hxxsn61GoFJLW06WgjTqbvzbrN8Kw06SsYP0L/ohXp+Vgiko2w6fCewfQIfAMBMzc8wILUQZnLBwiuHT6jWCjkF392FYn9e/J9KpwpOjJ9c2PKK8fNsbLJ+tTpZv9J6lK7UCDCIKj63GdQhc/g6gBs6rG5OhGVw28Z8XSC//ZFuP+Dr6rDxdXX4fAq6TAFfV4eNr6vD51PQZQro1NWhMQhdHScZErKuxqu6OnuNPUskXtatq0Oiw354NVqm7cfIjjAVlrLxEr6LyokSsZMMid3rdNfKqGJysqiivcSrr2LtxBtbmNwYW5jcQOegyb6nDlzbEGPHsOyoGoYFI6eo7Lng1VgNKrMmgtIIwMuVsw5ns6PVbFo0VQWvnljiZXgbUAYFLkCGTsK82vmwerXzQWteXxYlB+B59P0vlqnDIRnikLBqbUydWhKJhSxT0oLlrXJv26EJ7FTXVLSaWMTDd0uyMjS0TpAX4iCHUO08ZcGPgtIeArGGQq+FNDp3X+E1NU5Bxs0rFkPPuaHI1+qcri3lxXaQYXuybU/CDEeCVgdOrs9Eg+vqThFdVifl561m04onEgXUqWZTMbYDDPJUcrSfVmVn1SBAxo8cgbflEJUgsFZiRaskbzaarA3iHDQdkB0l72hYHCf7LmgRBjUE4hk/LigrM2TJ6uoMIyKjQOOguzboMgQVVT2RzJDKGWa0M9FEkBEe4NlenwPY9fx4ykpGSlzGc3nyg6MKWSSWnE8pV+OqFB7qVOMwCZpnIqPfbzTg9ctfmZ+3zwGuz6OtVNGZtGQvL9Lr657MOJUZMQ1+Ji3vMR52WRsy74+fiKkiUzMIqGcyKErU0zrJRHLG6pxfLAKId7i2WSCyl6f1+mRaVOWQCdowpUNsNvw4bIUfi2nVqwrRkqXE5a2dKv5YMhoq2S2eyU5m0aYkXKnDBLiorFNomSCZRTDyoG/SZpqNowJp+MhRWGn2W5PgarlSBbgeBURuCKFjoYPmsfFEovB0Za4IK3NG0qHZZKSEb0TpnF8s2unz2G0cKW/tVNGp5ghTMb+M8atK0nsp9CFtRCasZm1n7TnAILM+PGQNH/X2nZ+usynoLw1yF5ZIalTW+E2CZGpEnMDO8JGDhO8Etk0YPYoSdK8K03RZZeiFQE6N38lOKjczRE5Psge4Vk8G6I/zc8sLmfLWTpW8Tgem5QPRmQ12xr+SnC6K6O2QvCy3X5goiXC6vsRcB0gnZkoyBUqOlZc1cx6H9cRVqIv36jqMH+A33Uy7bYQ6xWXJSTCa+JqM/2l8anu1mZNgN6vzZOp98GVsO8iQhqwSfbwYLyJxKaeUt3aqboVApEwNXvujerKnKE5P5nGr3EEUx6UQqO5HVnEtkZyxUM8vE+fbXYti/js3/3+8GC/+5W+/PKeVOetSVCtv7VTHxif+cfNfbaMZ68A4stfHM0im9Xacihe4cQwtWgsQCY8cO4Cq1KApKUGSn7ZbL1Jp9oJRNhkp3ahTK0uMPP3y8/81kemR1V9C8pWmyiNWktPF7cOz56qHG9Yqu9ZXq/e3AcxEGEiZT2ZeIOUAtJPUh51K43ANOYjITjJa4dugSxvcwmn8n87OF2rNI12304dKqlzKAT4lw6chMgJ4eUPMsBbGiUKmPGVCHRae2RHm42OHiV2Dvi6Q3/5Itx/wdXXY+Lo6fD4FXaaAr6vDxtfVseET0GUK0HR1AG4f2iZzgBuZSfGqro4ow6Crw4Olq+O0hgbBsh9dyNiPyuEfzJVg3OBl9s86VS0G8I72jtu4eXbZPzfeLOooN/cSKulozwhj4Zx0PxRo6UaZ4jJ8w8iwILOo6LSkIP4wFYo/TIWctOEFWDYh2oF6xgGS0VCJdxjz++2KdXPaPPVDk1o4KqfY6K6jQSXGTqFV2uJrMiZHDicKfSYgbYRWcCij0qHsALo1dXibxT9PzxTvLWYLqPqS9qFngxM/o9MkVdFdR6NaMkBiV2mr++RLHDRP0CFQpsNmRMIcmcVKZQdA84J6rW7pKjNmQRo8bb/tj5vNFz9uNl+YDn1Utgjq2lKolfrlM6hfCp+wKFNmwKqwJeeSJsXJRHG8EkxOeLPJSAltTAaFykiRmTyvDt/pAX5P8okirw20YWTr7bvq8soSt/QZbRzxWg393fuhDQCA0zddqiwh60hYUVCVrV32UKc4mSrKDsA6wxbfZpiMz0i3yzJ+t863FXEgEeMH8J7hi6Jq+CQ0AzdxuLcTlEIguwOcaXzMTGx8zEz0nUAvilcqLrfevsNr/weG6hbUpytzxdM33VVW788CSdPYabza8dN264Ubxo8nSngSNdIOgBu/09ifdApemlNWZ8cUyytLmauPl1+bal80o4NPjGWyQKKxPEuL6V2ltaa6gOZmvI/PG3khs7QDzGczGXSGrcyC13j1cnW8etnrdbrTF+unh2d7+DW8PbQ6j/E0vcGchuhEmMzo1Cq7Fi3njxu9ySwQQodan2w1gRs4ngQ7jelwpwCAnqw4T2DWKaqnq2y9fVcFuB4FZF9rp7bA2mx09fHya5pih2mjH6Q0pdNKAh4okkAdqpQD0E4vVzX80HFAOAWnC5Etg6yzt0QnvqrQNhuJajVhsuQG7uzTgowkhEMgkdPLZelOX6x3py/W8cdyyzktvf+NfLj061ijg0njR+BhDWn8tDBIRVOTxyiexnPLAXiTFNzwdUmJuA1SVH6STxSdLJiJLoaxTlZhvRYPa5BIMW8fNtpYriJLTsPUaTw65Wd0cysEEp2ksMIembJpALNhEC/McbpY1uqcrq0kp4uzwekiL9ePJETi4bslfA4gIz3o5j5sHXtsaZhIe9pptIrSGwHQzNuJp3phZY+F7szP28bxC9L4WZKBslqb1/L09PjfZOHbbHDiZ5rxe7Fsmmb8tLPZ7KpCew6AZt5eWaHTjclzdRGiK793pgIWq1IUGT5r8qua/RHRX6WFQInkjCWyMkxKy5vM+cvsF7ErjPNVIQhiibBlWl0NVYlO3Z3oe86UQreqEJno61SUthHk7kO717OMWiV54pn9AHY4VVpm1fqTJ7OYNn6vgbRWBxnmkLsP7c5n0FkVMDQjgFOlZZZhmz5m1OugsCee0K9KYQKdFQEAvi6Q3/6Itz8Wyy2acwAfH48zPjHRPxHjIXu9zrZ41/ufwzle/Rwmv5OhmQT7+JjAdwCfkWYssZS/mg6HhV9w3OmAzPWBAHs4OmgfQDQmruhGuz5wcd1+s7MPibC4upro9aeBD7bXHLc7MB2T+A6x69H9Iw46BxANS3wnNtfzvn+SZnsfEjGJ77C9z7QFWTthXR8ITGixExYDHQH+ffV3nlti9zoP8omh/s4e5lOO7v/BAvvz855jMZZYyl9dXFwIvyAQCIDM9Trb4l2vo61vnn5m/fX7V9J5Zi99DtXPoOO9h6EtkrHFf1vtS4PaDV8P8ynrX5v1gsj1x52OseELoD+EwBEJc/L5mLW52S6wrkchEB62PFxIWf/aqXONTDQsYt3/g3zCer3ZLAD0hzn4c7TX4NeTIZBKmMO7/vTCPkREqIRFLFvQFRYphUC48QMMdyiDjF8GO+Pn8XBBLASgGbjdc7zXmMZJaOM0LHKCljnA3zd+HZn6GVEDZuHEeUyTX4jZfjbWNWSnKIOT15LIzgM8nQZVmdSYxs6ARRzEqROZYnPHfjQUuUYWHSMAspXXO/xRkLQpTzuAU9wIzUhjFunhvTwKkLjxHeoYAewMn3XdWPTeQt8kGJ9Fi2QVhjU7Q7bLex+TmQjdbQ0qo2KH7O/o9HPg78e6vpcFcrJwQWaFbt+o/UKM7Iz+wULCQp5MZlF0L4iJLIQhyMyPXbbouN1hLmLpWhALBCa0Zn7yCzELD4PsskBOF8Rw+zGxICYcAvHiNJ2TGBFUJ935vP0kTydOQh2V0MONRTITc4BBIuwAbhu5CVRSnoNCxclNp0FFskQqDH0a1Gc0MNX7D7Jz7XOAh/mUpeqRg/RkL+LFdKeOXlz3SDBIu+llgbya5aBlDnRlOb55+pn1941fC59CLY3TDJZIxkQF2UycqQwWeh/y/ai1QDqRKcelgWd8qO1zaoF0IJMFUsH0/Tv9/u2QqQVSwfT9j331h//w9wT7jCz+JNhnpPEdwGek8R3AZ6QJ3NtpAgBALhzU2nC5c3Lr/3779Patd68MKj/52OGPAD4jje8APiNNnzju/Axdt16U3aML7iKS3z6/fR936XMA0z+Q376Pl5AOgZ5/m1q3v8q7DPv9++hFygGQ8QyrEQ37/fvox58E+4w0wpPgL38/G8L///zb1PoP3+13yesGPYkc9vv3cZexwtJnVwD8hR5eyPCn/6tTz/r10kKVl+/fXwgbLEIhEMtIWI97jWG/fx9zCM8BSGMZNuMZ9vv3MYM/CfYZaaRWgn/4bh++/P1s6Ifv9rus6wY9iRz2+/dxF6FJsApemgR7uX1/EjxY/BDIZ6TxHcBnpPEdwGek8cuhPda+j7v45dAea9/HXfwQyGek8R3AZ6TxHcBnpPEdwGek+X9UzELuC68i9gAAAABJRU5ErkJggg==';
-const modularProps=new Image();
-modularProps.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAVAAAAAwCAYAAABHayI3AAAFHUlEQVR4nO3dW2gcVRzH8RMjiCi2qYXWxSJtpSQl2NitpBDxQhpvKCmNrQ8lKKUIQehDKxQivZhioGD7EJCASFVCX9SIVbFiE7zQQENNTWFp0mBapBItxKQRL1UJ60OZyczOTHdm53bOme8HlmRmZ2dOkp1f/mfO2V0hAAAAAACAAqrSbgCgo+1P1xVL1x0/Ocb5pplb0m4AAKiKAAWACt2adgMAyKHxqU2Oyw5ehr8c4HKEoAKFgmZ6Nvg+0YE4Ba5Am7dtifXJO/jBx/xni0DbtbFi/+I619/lze6TxUzPhuKSXd872ihTeO6vrfduy+Vg23eNF6T+e8BdRV34keHRiJtxQ76xIZb9YkHbtTFpAqgcrxAFZOErQNt3brWddLmWfDytKTlW3zsfcvJUwAhJFSpNN15VpkzVJyBEgAp0dHI6znY4NKxemujxskCl6tNgVKGEZ/ysA0OHe19z/L73dryh3D/juDGIpDlrNZp2WwDdMI1JM0ZQHlh0m7nuQPGSGZ6vz/1jbidj996oNGs2t5rriptbzfbPfnLC3I7ro0ib9gH6y6nW1Cuve1pOcKJn1I7uleJYp8uQvCRatj/v+/zw2vbU8Y8y+/wO3YWfn583bytyNbab9T6vG6Kjejddt+ucO7pX2r5CP74rUK9BnZGJq6EakNRg0eEjPyRyHKu9ex5M/JiQQ2loyl6JojK+AtQ6nah525aidR5o7r57Ax3wt+kZ2/JnP/1sfp9vbIhtIv3oFf2r3f7FdVUqV6GMtstj4PTFtJsQifXNj/l+Pp0b/CZw9mh/DTRr/ISojINHBr8hKvMAkleXnSo0nPzjD/sOw5GvTyfy/GAak4ZuFpAyh6ehXDiqGJ5+74daqEA19UDVKlslqkJwWhnTlaxkDk4h/Icjlag+MhOgDSuq025C4ozuvGrhKYSzKy97eAohbKHoFqZph2bH7pccXeAfr/4Ry357j74n/d8rCpkJ0KxSMTwNRoiqEJ5WMl8DPTfxq235rkV3Rr7P9WuWh96nKjIToFmaUrTrVWdFYOh5U/7K4MjLjWb73y3Yl/e8PSx9+1Xy+1z4CjTLMhOgWfPd0AXHukea1qbQksp8cdY5v/iZh5al0BKoaG1TUyLT4bQP0LmZf4UQQnS/VQj0uKOH1rmu373vvO99dL5SH+iYUJ+fUfi0u/GIDtOYAKBCBCgQoXLVJdWnXrTvwgNJO9Z5OfVpTO0d7am+JNbt+H29faEGAL1eXZTU9U43BCigqZHzk7blRzeuSWyKUemx8+tWB3r8pmf9f8Ty1Ozfnvddv/6f530XhoZCz+ggQIEYlFahMnTdvz0zkXYTtEOAAjExQlSG8MSC+5ffceNr2xO+q9xP+79yrVYZRAJiRHjqjQrUQ5D5ngCyKfEAvXvpEtvy1J9/JXJcJrUDiFqgAG3fubUohBC5lry5LuxHejxn2Zf1GNZ3wQcAGQWuQEcnp23L1dULbxN3ZWrW8z6/+xMi2s9Jqn3hJEEMIBYMIgFAhRhEAjQVdPI6giNANXDo4Isl89mKou3JOpcti45t9x18n0scGgr7skmV5GpuN78f+Hyg7M8dZP5nOQSoJgbPXAr8mOaNq2JoSTRUeO/PrvFClRBC7K+tr/iENPYBNQUO0CgHeAA3qr3rfNd4oaqSECU8vfmpJGUQKECZWgS4C1KNEpz6oAuvCZm741lSrholPNPn9br2SvDHBGJiDVKCEwACCjPABAAAAAB2/wNSVtObw8ilOgAAAABJRU5ErkJggg==';
+const floorTiles=[];
+const FLOOR_TILE_FILES=['floor-clean-1.png','floor-clean-2.png','floor-clean-3.png','floor-clean-4.png','floor-debris-1.png','floor-debris-2.png','floor-debris-3.png','floor-debris-4.png','floor-moss-1.png','floor-moss-2.png','floor-moss-3.png','floor-moss-4.png'];
+FLOOR_TILE_FILES.forEach((src,i)=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.src=src;floorTiles[i]=img});
+
+// 0.2.5e environmental prop set — all individual 32x32 RGBA assets.
+const PROP_FILES={
+  torch1:'assets/props/torch-1.png',torch2:'assets/props/torch-2.png',torch3:'assets/props/torch-3.png',torch4:'assets/props/torch-4.png',
+  chestClosed:'assets/props/chest-closed.png',chestOpen:'assets/props/chest-open.png',
+  crate1:'assets/props/crate-1.png',crateStack:'assets/props/crate-stack.png',barrel:'assets/props/barrel.png',pottery:'assets/props/pottery.png',
+  ruinedPillar:'assets/props/ruined-pillar.png',rubble:'assets/props/rubble.png',statue:'assets/props/statue.png'
+};
+const propImages={};
+Object.entries(PROP_FILES).forEach(([key,src])=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.src=src;propImages[key]=img});
+
+// Architectural wall assets. The top wall has three authored variants; side/bottom are the approved clean pieces.
+const WALL_FILES={
+  top:[
+    'walls/top/top-wall-clean-1.png','walls/top/top-wall-clean-2.png','walls/top/top-wall-clean-3.png',
+    'walls/top/top-wall-cracked-1.png','walls/top/top-wall-cracked-2.png','walls/top/top-wall-cracked-3.png',
+    'walls/top/top-wall-mossy-1.png','walls/top/top-wall-mossy-2.png','walls/top/top-wall-mossy-3.png'
+  ],
+  left:'walls/left/left-wall-clean.png',
+  right:'walls/right/right-wall-clean.png',
+  bottom:'walls/bottom/bottom-wall-clean.png'
+};
+const wallImages={top:[],left:null,right:null,bottom:null};
+WALL_FILES.top.forEach((src,i)=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.src=src;wallImages.top[i]=img});
+['left','right','bottom'].forEach(side=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.src=WALL_FILES[side];wallImages[side]=img});
+
 const characterSprites=new Image();
 let characterSpritesReady=false;
 characterSprites.onload=()=>{characterSpritesReady=true};
@@ -21,150 +48,162 @@ enemySprites.src='enemy-sprites.png';
 
 let roomTiles=[],roomDecor=[];
 const TILE=32, COLS=8, ROWS=12;
-const ROOM_X=52, ROOM_TOP=50, ROOM_BOTTOM=430, ROOM_W=256;
-// 0.2.5c: one approved 4x3 floor atlas (12 exact 32px tiles).
-const FLOOR_ATLAS=new Image();
-let floorAtlasReady=false;
-FLOOR_ATLAS.onload=()=>{floorAtlasReady=true};
-FLOOR_ATLAS.onerror=()=>{floorAtlasReady=false};
-FLOOR_ATLAS.src='assets/floor/floor_tiles.png';
-
-function roomHash(gx,gy){
-  const n=Math.sin((roomVariation+1)*12.9898 + room*78.233 + area*37.719 + gx*17.17 + gy*31.91)*43758.5453;
-  return n-Math.floor(n);
-}
 function makeRoomLayout(){
+  const rand=()=>{const n=Math.sin((roomVariation+1)*12.9898 + room*78.233 + area*37.719)*43758.5453;return n-Math.floor(n);};
   roomTiles=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+  // 0.2.5b: the floor is now built from the approved 12-tile authored set.
+  // Clean stone dominates; debris and moss appear as controlled, clustered dressing.
   const arch=roomArchetype();
   for(let gy=0;gy<ROWS;gy++) for(let gx=0;gx<COLS;gx++){
-    const roll=roomHash(gx,gy);
+    const edge=gx===0||gx===COLS-1||gy===0||gy===ROWS-1;
+    let roll=rand();
     let family=0;
-    if(arch==='RUINED CHAMBER') family=roll<.28?2:roll<.55?1:0;
-    else if(arch==='CHAPEL') family=roll<.10?2:roll<.30?1:0;
-    else if(arch==='PILLARED HALL') family=roll<.10?2:roll<.28?1:0;
-    else family=roll<.14?2:roll<.36?1:0;
-    // More moss/debris near the room perimeter, but never let one variant dominate.
-    const edge=Math.min(gx,COLS-1-gx,gy,ROWS-1-gy);
-    if(edge===0 && roll>.45) family=roll<.72?1:2;
-    const variant=Math.floor(roomHash(gx+19,gy+37)*4);
+    if(arch==='RUINED CHAMBER'){
+      family=roll<.24?2:roll<.52?1:0;
+    }else if(arch==='CHAPEL'){
+      family=roll<.12?2:roll<.28?1:0;
+    }else if(arch==='PILLARED HALL'){
+      family=roll<.09?2:roll<.22?1:0;
+    }else{
+      family=roll<.10?2:roll<.25?1:0;
+    }
+    // Moss hugs the outer stonework more often; debris favours corners and lower traffic.
+    const wallBias=Math.min(gx,COLS-1-gx,gy,ROWS-1-gy);
+    if(family===2 && wallBias>2 && roll>.55) family=0;
+    if(family===1 && wallBias===0 && roll<.35) family=2;
+    const variant=Math.floor(rand()*4);
     roomTiles[gy][gx]=family*4+variant;
   }
-  // Guarantee that every room visibly uses all 12 authored variants at least once.
-  for(let i=0;i<12;i++){
-    const gx=i%COLS, gy=Math.floor(i/COLS);
-    roomTiles[gy][gx]=i;
+  // Clear a readable central combat lane without reverting to a repeating checkerboard.
+  for(let gy=2;gy<ROWS-2;gy++){
+    const gx=Math.floor(COLS/2);
+    if(roomTiles[gy][gx]>=4 && roomTiles[gy][gx]<8) roomTiles[gy][gx]=Math.floor(rand()*4);
   }
-  roomDecor=[]; const used=[];
-  const add=(kind,gx,gy)=>{if(gx<1||gx>COLS-2||gy<1||gy>ROWS-2)return;if(Math.abs(gx-3)<=1&&Math.abs(gy-5)<=2)return;if(used.some(p=>p.gx===gx&&p.gy===gy))return;used.push({kind,gx,gy});roomDecor.push({kind,gx,gy});};
-  if(arch==='GREAT HALL'){add('banner',2,1);add('banner',5,1);add('altar',3,1);add('chest',5,4);add('chest',2,10);add('torchTeal',1,3);add('torchTeal',6,3);add('torchWarm',2,10);add('torchWarm',5,10);}
-  if(arch==='PILLARED HALL'){[2,5].forEach(g=>add('pillar',g,4));[2,5].forEach(g=>add('pillar',g,9));add('torchTeal',1,2);add('torchTeal',6,2);add('torchWarm',1,9);add('torchWarm',6,9);}
-  if(arch==='RUINED CHAMBER'){add('rubble',2,3);add('rubble',5,4);add('rubble',2,9);add('rubble',5,8);add('chest',5,10);add('torchWarm',1,3);add('torchTeal',6,9);}
-  if(arch==='CHAPEL'){add('altar',3,1);add('banner',2,1);add('banner',4,1);add('torchTeal',1,2);add('torchTeal',5,2);add('torchWarm',1,9);add('torchWarm',5,9);}
-  if(arch==='GUARD ROOM'){add('pillar',2,4);add('pillar',5,4);add('pillar',2,9);add('pillar',5,9);add('chest',3,2);add('torchWarm',1,2);add('torchWarm',6,2);add('rubble',2,10);add('rubble',5,10);}
-  if(arch==='CROSS HALL'){add('pillar',2,3);add('pillar',5,3);add('pillar',2,9);add('pillar',5,9);add('altar',3,6);add('torchTeal',1,2);add('torchTeal',6,2);}
+  // 0.2.5e: clear, deterministic edge decoration. The arena centre and bottom edge stay open.
+  roomDecor=[];
+  const candidates=[];
+  const addCandidate=(kind,x,y)=>{
+    if(x<58||x>302||y<72||y>392)return;
+    if(Math.abs(x-W/2)<52 && y>118)return; // protect the main combat lane
+    candidates.push({kind,x,y});
+  };
+  // Upper and side-edge slots only; nothing is ever placed along the bottom edge.
+  [108,180,252].forEach(x=>addCandidate('top',x,102));
+  [190,282,374].forEach(y=>{addCandidate('left',72,y);addCandidate('right',288,y)});
+
+  const seeded=(n)=>{const v=Math.sin((room+1)*127.1+(area+1)*311.7+(roomVariation+1)*71.9+n*19.37)*43758.5453;return v-Math.floor(v)};
+  const shuffle=(arr)=>{for(let i=arr.length-1;i>0;i--){const j=Math.floor(seeded(i*7.1)* (i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}return arr};
+  const distanceOk=(x,y,placed,min=34)=>placed.every(p=>Math.hypot(p.x-x,p.y-y)>=min);
+  const torchCount=2+Math.floor(seeded(41)*3); // 2–4, mandatory in every room.
+  const torchKinds=['torch1','torch2','torch3','torch4'];
+  const torchSlots=shuffle([
+    {x:72,y:88},{x:288,y:88},{x:72,y:122},{x:288,y:122}
+  ]).slice(0,torchCount);
+  const placed=[];
+  torchSlots.forEach((slot,i)=>{
+    const kind=torchKinds[Math.floor(seeded(70+i)*torchKinds.length)];
+    placed.push({kind,x:slot.x,y:slot.y,torch:true});
+  });
+
+  // 3–5 additional decorations, chosen from the new prop pool.
+  const decorationPool=['chestClosed','chestOpen','crate1','crateStack','barrel','pottery','ruinedPillar','rubble','statue'];
+  const decorCount=3+Math.floor(seeded(93)*3);
+  const available=shuffle(candidates.filter(c=>distanceOk(c.x,c.y,placed,38)));
+  const selected=available.slice(0,decorCount);
+  selected.forEach((slot,i)=>{
+    const kind=decorationPool[Math.floor(seeded(120+i)*decorationPool.length)];
+    if(distanceOk(slot.x,slot.y,placed,38)) placed.push({kind,x:slot.x,y:slot.y,torch:false});
+  });
+  roomDecor=placed;
 }
+
 function atlasTile(sx,sy,x,y){ctx.drawImage(modularAtlas,sx,sy,24,24,x,y,24,24);}
-function modularProp(kind,x,y){
-  const map={pillar:0,chest:48,torchTeal:96,torchWarm:144,banner:192,altar:240,rubble:288};
-  const sx=map[kind];if(sx==null)return;
-  ctx.drawImage(modularProps,sx,0,48,48,Math.round(x-24),Math.round(y-24),48,48);
+function drawProp(kind,x,y){
+  const img=propImages[kind];
+  if(!img||!img._ready)return;
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(img,Math.round(x-16),Math.round(y-16),32,32);ctx.restore();
 }
-function floorTileReady(){return floorAtlasReady && FLOOR_ATLAS.naturalWidth>=128 && FLOOR_ATLAS.naturalHeight>=96}
+function topWallIndex(){
+  // Room archetype biases: ruined rooms favour cracked/mossy; cleaner rooms favour clean.
+  const arch=roomArchetype();
+  const r=((room*53+area*17+roomVariation*7)%100)/100;
+  let family=0;
+  if(arch==='RUINED CHAMBER') family=r<.42?1:r<.72?2:0;
+  else if(arch==='CHAPEL') family=r<.10?2:r<.26?1:0;
+  else family=r<.10?2:r<.30?1:0;
+  const variant=(roomVariation+room*3+area)%3;
+  return family*3+variant;
+}
+function drawWalls(){
+  const top=wallImages.top[topWallIndex()];
+  if(top&&top._ready)ctx.drawImage(top,0,16,W,50);
+  const left=wallImages.left;
+  if(left&&left._ready)ctx.drawImage(left,0,16,52,H-16);
+  const right=wallImages.right;
+  if(right&&right._ready)ctx.drawImage(right,W-50,16,50,H-16);
+  const bottom=wallImages.bottom;
+  if(bottom&&bottom._ready)ctx.drawImage(bottom,0,H-50,W,50);
+}
+
+function floorTileReady(index){return !!(floorTiles[index]&&floorTiles[index]._ready)}
 function drawFloorTile(index,x,y,size=TILE){
-  if(!floorTileReady()) return false;
-  const idx=Math.max(0,Math.min(11,index|0));
-  const sx=(idx%4)*32, sy=Math.floor(idx/4)*32;
-  ctx.drawImage(FLOOR_ATLAS,sx,sy,32,32,x,y,size,size);
-  return true;
+  const img=floorTiles[index];
+  if(floorTileReady(index)){ctx.drawImage(img,0,0,32,32,x,y,size,size);return true;}
+  return false;
 }
 function floorIndexForCell(gx,gy){
   let idx=roomTiles[gy]?.[gx]??0;
   const arch=roomArchetype();
-  if((arch==='GUARD ROOM'||arch==='PILLARED HALL') && gx>=2 && gx<=5 && gy>=2 && gy<=9 && idx>=4 && idx<8) idx-=4;
+  // Keep some archetypes visually calmer in their principal traffic lanes.
+  if((arch==='GUARD ROOM'||arch==='PILLARED HALL') && gx>=3 && gx<=7 && gy>=3 && gy<=10 && idx>=4 && idx<8) idx-=4;
   return idx;
 }
-function drawBrokenMasonry(){
-  const left=ROOM_X,top=ROOM_TOP;
+function drawBrokenMasonry(seedBase, arch){
+  // 0.2.5f: use the twelve uploaded 32x32 floor PNGs directly.
+  // These are individual game-ready tiles, not the labelled presentation sheet.
+  const left=52,top=66,roomW=COLS*TILE,roomH=H-top-50;
   ctx.fillStyle='#071316';ctx.fillRect(0,0,W,H);
   ctx.imageSmoothingEnabled=false;
-  // Interior is exactly 8 x 12 of the approved 32x32 tiles, fitted cleanly between the walls.
+  ctx.save();
+  ctx.beginPath();ctx.rect(left,top,roomW,roomH);ctx.clip();
   for(let gy=0;gy<ROWS;gy++) for(let gx=0;gx<COLS;gx++){
     const idx=floorIndexForCell(gx,gy);
-    if(!drawFloorTile(idx,left+gx*TILE,top+gy*TILE,TILE)){
-      ctx.fillStyle='#12262a';ctx.fillRect(left+gx*TILE,top+gy*TILE,TILE,TILE);
-    }
+    drawFloorTile(idx,left+gx*TILE,top+gy*TILE,TILE);
   }
-}
-
-function wallImage(src){const img=new Image();img.decoding='async';img.src=src;return img}
-const WALLS={
-  topClean:[
-    wallImage('assets/walls/top/top-wall-clean-1.png'),
-    wallImage('assets/walls/top/top-wall-clean-2.png'),
-    wallImage('assets/walls/top/top-wall-clean-3.png')
-  ],
-  topCracked:[
-    wallImage('assets/walls/top/top-wall-cracked-1.png'),
-    wallImage('assets/walls/top/top-wall-cracked-2.png'),
-    wallImage('assets/walls/top/top-wall-cracked-3.png')
-  ],
-  topMossy:[
-    wallImage('assets/walls/top/top-wall-mossy-1.png'),
-    wallImage('assets/walls/top/top-wall-mossy-2.png'),
-    wallImage('assets/walls/top/top-wall-mossy-3.png')
-  ],
-  left:wallImage('assets/walls/left/left-wall-clean.png'),
-  right:wallImage('assets/walls/right/right-wall-clean.png'),
-  bottom:wallImage('assets/walls/bottom/bottom-wall-clean.png')
-};
-function wallReady(img){return !!(img&&img.complete&&img.naturalWidth>0)}
-function drawTopWall(img){
-  if(!wallReady(img))return;
-  // All top-wall assets are normalised visually to the same 360x50 room-edge band.
-  ctx.drawImage(img,0,0,img.naturalWidth,img.naturalHeight,0,0,W,ROOM_TOP);
-}
-function drawSideWall(img,side){
-  if(!wallReady(img))return;
-  const targetW=ROOM_X,targetH=H;
-  const x=side==='left'?0:W-targetW;
-  ctx.drawImage(img,0,0,img.naturalWidth,img.naturalHeight,x,0,targetW,targetH);
-}
-function drawBottomWall(img){
-  if(!wallReady(img))return;
-  ctx.drawImage(img,0,0,img.naturalWidth,img.naturalHeight,0,ROOM_BOTTOM,W,H-ROOM_BOTTOM);
-}
-function drawArchitecturalWalls(){
-  const arch=roomArchetype();
-  const variant=(roomVariation+room+area)%3;
-  let topSet=WALLS.topClean;
-  if(arch==='RUINED CHAMBER') topSet=WALLS.topCracked;
-  else if(arch==='CHAPEL') topSet=WALLS.topClean;
-  else if(variant===2) topSet=WALLS.topMossy;
-  drawTopWall(topSet[variant]);
-  drawSideWall(WALLS.left,'left');
-  drawSideWall(WALLS.right,'right');
-  drawBottomWall(WALLS.bottom);
+  // Cover only the unused strip to the right of the 8-tile-wide floor.
+  ctx.restore();
+  ctx.fillStyle='#071316';
+  ctx.fillRect(left+roomW,top,W-(left+roomW),roomH);
+  // Subtle depth over the actual floor tiles, without introducing another texture.
+  const vg=ctx.createLinearGradient(0,top,0,top+roomH);
+  vg.addColorStop(0,'rgba(0,0,0,.16)');vg.addColorStop(.15,'rgba(0,0,0,0)');vg.addColorStop(.82,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.24)');
+  ctx.fillStyle=vg;ctx.fillRect(left,top,roomW,roomH);
 }
 
 function drawModularDungeon(){
   ctx.fillStyle=P.ink;ctx.fillRect(0,0,W,H);
   const arch=roomArchetype();
+  const seedBase=roomVariation*997+room*131+area*17;
   ctx.save();ctx.imageSmoothingEnabled=false;
-  drawBrokenMasonry();
-  drawArchitecturalWalls();
+  drawBrokenMasonry(seedBase,arch);
   ctx.restore();
-  // Existing central room props remain inside the floor area; wall assets now own the room boundary.
-  for(const d of roomDecor) modularProp(d.kind,ROOM_X+d.gx*TILE+16,ROOM_TOP+d.gy*TILE+16);
+
+  // New authored architecture replaces the legacy modular wall/prop dressing.
+  drawWalls();
+
+  // New props are deliberately sparse and edge-biased; centre and bottom remain clear.
+  for(const d of roomDecor) drawProp(d.kind,d.x,d.y);
+
+  // Warm light around the mandatory torches, without drawing the old procedural torch sprites.
   const now=performance.now()/1000;
-  for(const d of roomDecor) if(d.kind==='torchTeal'||d.kind==='torchWarm'){
-    const x=ROOM_X+d.gx*TILE+16,y=ROOM_TOP+d.gy*TILE+12,teal=d.kind==='torchTeal',pulse=.82+.18*Math.sin(now*5+d.gx);
-    const g=ctx.createRadialGradient(x,y,2,x,y,42);
-    g.addColorStop(0,teal?`rgba(82,216,192,${.18*pulse})`:`rgba(255,150,55,${.15*pulse})`);
-    g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x-44,y-44,88,88);
+  for(const d of roomDecor) if(d.torch){
+    const g=ctx.createRadialGradient(d.x,d.y-10,2,d.x,d.y-10,42);
+    g.addColorStop(0,`rgba(255,154,58,${.16+.04*Math.sin(now*4+d.x)})`);
+    g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(d.x-44,d.y-54,88,88);
   }
 }
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
-const VERSION='0.2.5d';
+const VERSION='0.2.5f';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
@@ -261,7 +300,7 @@ function chooseEnemyType(weights){
  const r=Math.random();let acc=0;for(const [type,w] of weights){acc+=w;if(r<=acc)return type}return weights[weights.length-1][0];
 }
 function resetRoom(){
- player.x=64;player.y=H/2;player.hp=clamp(player.hp,0,player.maxHp);roomVariation=(room*37+area*101)%997;makeRoomLayout();player.flash=0;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;
+ player.x=58;player.y=H/2;player.hp=clamp(player.hp,0,player.maxHp);roomVariation=(room*37+area*101)%997;makeRoomLayout();player.flash=0;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;
  enemies=[];loot=[];slashes=[];deathMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=false;atShop=false;areaComplete=false;areaClearTimer=0;areaClearShown=false;bossWarningTimer=0;setBossWarning('');
  spawnQueue=[];spawnTimer=.35;totalSpawned=0;bossPatternTimer=1.1;bossPatternStep=0;bossPatternMode='burst';
  const isBoss=room===bossRoom;
@@ -411,8 +450,8 @@ function update(dt){
  if(joy.active){mx=joy.x;my=joy.y}
  const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l}
  if(l>.12){facing=Math.atan2(my,mx);facingDir=dirFromAngle(facing)}
- player.x=clamp(player.x+mx*player.speed*dt,58,W-58);player.y=clamp(player.y+my*player.speed*dt,58,H-58);
- player.x=clamp(player.x,58,W-58);player.y=clamp(player.y,58,H-58);
+ player.x=clamp(player.x+mx*player.speed*dt,30,W-30);player.y=clamp(player.y+my*player.speed*dt,70,H-70);
+ player.x=clamp(player.x,30,W-30);player.y=clamp(player.y,70,H-70);
  // Keep the player outside the Guardian's body, while leaving enough overlap-free distance for sword reach to connect.
  const guardian=enemies.find(e=>e.type==='boss');
  if(guardian){const minD=guardian.r+player.r+6;const dx=player.x-guardian.x,dy=player.y-guardian.y,d=Math.hypot(dx,dy);if(d>0&&d<minD){player.x=guardian.x+dx/d*minD;player.y=guardian.y+dy/d*minD;}}
@@ -522,13 +561,13 @@ function update(dt){
     if(bossPatternTimer>=3.6){e.patternActive=false;e.attackTimer=5.4;}
    }
   }
-  e.x=clamp(e.x,58,W-58);e.y=clamp(e.y,58,H-58);
+  e.x=clamp(e.x,32,W-32);e.y=clamp(e.y,72,H-72);
   if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){damagePlayer(e.type==='boss'?Math.round(30*enemyDamageScale()):Math.round(22*enemyDamageScale()),e.x,e.y,e.type==='boss'?1.2:.55,'normal')}
   if(player.hp<=0){player.hp=0;finishGameOver()}
  }
  clampEnemySeparation();
 
- for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.age+=dt;q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<50||q.x>W-50||q.y<50||q.y>H-50){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){if(damagePlayer(q.damage,q.x,q.y,q.type==='fireball'?1.0:.85,q.type==='fireball'||q.type==='fireblast'?'fire':'normal'))projectiles.splice(i,1);else projectiles.splice(i,1)}}
+ for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.age+=dt;q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){if(damagePlayer(q.damage,q.x,q.y,q.type==='fireball'?1.0:.85,q.type==='fireball'||q.type==='fireblast'?'fire':'normal'))projectiles.splice(i,1);else projectiles.splice(i,1)}}
 
  for(let i=slashes.length-1;i>=0;i--){
   const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const reach=s.reach||playerWeapon().reach;const centre=s.angle+s.side*(Math.PI*.40-(Math.min(1,progress)*Math.PI*.80));
@@ -549,7 +588,7 @@ function update(dt){
  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0);
  if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){roomCleared=true;roomsCleared++;msg('ROOM CLEARED  •  WALK TO EXIT »');burst(W/2,H/2,'clear',18)}
  if(isBossRoom()&&enemies.length===0&&!roomCleared){roomCleared=true;msg(`AREA ${area} COMPLETE  •  WALK TO EXIT »`)}
- if(roomCleared&&!atShop&&!weaponPromptOpen){const ex={x:W-58,y:H/2};if(Math.abs(player.x-ex.x)<24&&Math.abs(player.y-ex.y)<58){if(isBossRoom())beginAreaShop();else if(weaponFinds.length){pendingWeaponIndex=0;weaponPromptOpen=true;openWeaponPrompt();}else{room++;resetRoom();showPickup(`Entering room ${room}`)}}}
+ if(roomCleared&&!atShop&&!weaponPromptOpen){const ex={x:W-22,y:H/2};if(Math.abs(player.x-ex.x)<30&&Math.abs(player.y-ex.y)<66){if(isBossRoom())beginAreaShop();else if(weaponFinds.length){pendingWeaponIndex=0;weaponPromptOpen=true;openWeaponPrompt();}else{room++;resetRoom();showPickup(`Entering room ${room}`)}}}
  updateHud();
 }
 function shootProjectile(x,y,a,speed,damage,type){projectiles.push({x,y,a,speed,damage,r:type==='arrow'?4:7,life:type==='arrow'?2.6:3.2,type,age:0})}
@@ -725,15 +764,27 @@ function drawLoot(l){
  ctx.restore();
 }
 
-function drawEntranceDoor(){}
+function drawEntranceDoor(){
+ const x=12,y=H/2;ctx.save();
+ pixelRect(x,y-54,24,108,'#081619');pixelRect(x,y-48,20,96,'#173336');pixelRect(x+3,y-44,17,88,'#0d2528');
+ ctx.strokeStyle='#376566';ctx.lineWidth=3;ctx.strokeRect(x+1,y-50,21,100);
+ // Deep black threshold and subtle interior glow suggest the room lies beyond it.
+ pixelRect(x+4,y-42,14,84,'#061316');
+ pixelRect(x+7,y-30,2,60,'#29494a');
+ text('ENTER',x+12,y+65,7,'#78918a','center');
+ ctx.restore();
+}
 function drawExit(){
-  const x=W-54,y=H/2;
-  if(!roomCleared){
-    ctx.save();
-    pixelRect(x-9,y-9,18,20,'#6d5a34');pixelRect(x-6,y-13,12,10,'#b9a56b');
-    ctx.strokeStyle='#172124';ctx.lineWidth=3;ctx.strokeRect(x-4,y-10,8,10);pixelRect(x-2,y-3,4,5,'#172124');
-    ctx.restore();
-  }
+ const x=W-12,y=H/2;ctx.save();
+ // Door is recessed into the right wall.
+ pixelRect(x-24,y-54,24,108,'#081619');pixelRect(x-20,y-48,20,96,'#173336');pixelRect(x-17,y-44,17,88,'#0d2528');
+ ctx.strokeStyle=P.teal2;ctx.lineWidth=3;ctx.strokeRect(x-21,y-50,21,100);
+ text('»',x-9,y+12,38,P.teal2,'center');
+ if(!roomCleared){
+  pixelRect(x-14,y-9,18,20,'#6d5a34');pixelRect(x-11,y-13,12,10,'#b9a56b');
+  ctx.strokeStyle='#172124';ctx.lineWidth=3;ctx.strokeRect(x-9,y-10,8,10);pixelRect(x-7,y-3,4,5,'#172124');
+ }else text('EXIT',x-9,y+65,8,P.cream,'center');
+ ctx.restore();
 }
 function drawShop(){
  ctx.fillStyle='#02090ae8';ctx.fillRect(10,55,W-20,H-110);
