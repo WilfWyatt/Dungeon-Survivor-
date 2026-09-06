@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.2.5ff**
+**Current Version: 0.2.5fff**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -48,7 +48,110 @@ The game is built as a lightweight HTML, CSS and JavaScript project with a portr
 
 Upload the project files to the root of a GitHub repository, then enable **Settings → Pages → Deploy from a branch → main → /(root)**. Open the generated Pages URL in Chrome on Android and use Chrome's menu to install/add the app to the home screen.
 
+## Archived 0.1.x Releases
+
+The 0.1 releases are retained here as historical development records rather than current project documentation.
+
+### 0.1.9 — Weapons, Decisions & Start Menu
+
+- Added physical weapon drops that must be collected by walking over them.
+- Added Short Sword, Long Sword and Claymore as distinct weapon classes.
+- Added Common, Uncommon, Rare, Epic and Legendary weapon rarities.
+- Kept the Short Sword as the guaranteed starting weapon.
+- Added weapon discovery/equip decisions at room exits.
+- Slowed Goblins slightly and changed Bat close-range behaviour.
+- Added the Local Scoreboard and return-to-start controls.
+- Added a discreet version number and Exit App control.
+
+### 0.1.8 — Movement, Combat Feel & Castle Room Variation
+
+- Rebalanced movement speed hierarchy for player and enemies.
+- Kept Bats as the fastest enemy and the Guardian deliberately slow.
+- Fixed Game Over screen shake after lethal hits.
+- Added deterministic Castle room variation including pillars, alcoves, rubble, moss, torches, banners, shrines and floor details.
+
+### 0.1.7 — Progression, Scoring & Front-End Presentation
+
+- Added area/level-based enemy scaling and stronger area progression naming.
+- Increased gold rewards and potion healing with progression.
+- Added scoring and damage penalties.
+- Added a local top-five high-score table.
+- Added an Area Cleared presentation after the Guardian.
+- Replaced early splash/menu approximations with selected torchlit dungeon artwork.
+- Updated PWA icons and front-end presentation.
+
+### 0.1.6 — Combat Feedback & Presentation
+
+- Added Goblin Archer simultaneous active limits and clearer aiming/firing feedback.
+- Added player hit feedback, knockback, hit recovery and low-health warning.
+- Added clearer enemy attack presentation.
+- Added the branded splash screen, hero app icon and matching title-menu presentation.
+
+### 0.1.5 — Guardian Fix & Run Flow
+
+- Fixed Guardian sword damage and defeat handling.
+- Tuned Guardian projectile speed.
+- Changed Game Over and fresh-run flow.
+- Kept the Guardian body blocker so close-range sword hits remain possible.
+
+### 0.1.4 — Combat & Presentation Polish
+
+- Added the dedicated title/start screen.
+- Added Guardian attack warnings and stronger boss-attack presentation.
+- Reworked Guardian projectiles with layered flame-like effects.
+- Added the Guardian collision blocker, sword-hit feedback and player movement polish.
+- Added gold sparkle feedback, room-clear presentation and run summary.
+- Separated README documentation from the version history.
+
+### 0.1.3 — Directional Characters & Room Presentation
+
+- Added the left-side decorative entrance and left-side player starting position.
+- Added irregular floor detail and directional player/enemy presentation.
+- Fixed skeleton movement and Guardian repositioning.
+- Restored player damage upgrades to sword-swing damage.
+
+### 0.1.2 — Sword Combat & Enemy Polish
+
+- Fixed sword damage collision.
+- Expanded the visual sword swing while keeping the gameplay hitbox separate.
+- Added hit flash, stagger, knockback and stronger impact particles.
+- Refined Bat, Goblin and Skeleton behaviours.
+- Added deterministic decorative pillars and dropped-gold bounce.
+
+### 0.1.1 — Combat Feel & Gold Pickup
+
+- Added close-range magnetic gold pickup.
+- Added visible animated player and skeleton sword swings.
+- Added Short Sword / Long Sword / Claymore weapon-class foundation.
+- Added weapon-rarity data foundation.
+
+### 0.1.0 — Core Gameplay Loop
+
+- Established the first dedicated core-loop milestone.
+- Added progressive room spawning with active caps and total quotas.
+- Added furthest-edge spawn selection and enemy entrance animations.
+- Added Goblin ranged combat, Skeleton telegraphed melee attacks and Guardian projectile patterns.
+- Added spawn/death combat feedback and physical loot collection.
+- Added the Area 1 castle room sequence, Guardian encounter and upgrade shop.
+
+### 0.0.x — Early Prototype Archive
+
+- Prototype room combat, sword system, locked exit, XP, loot and Area 1 boss/shop progression.
+- Reduced character sprite scale to make the dungeon environment feel larger.
+
 ## Change Log
+
+### 0.2.5fff — Codebase Clean-up & Render Pipeline Rewrite
+
+- Reworked the active game renderer into a single, clean floor → walls → props pipeline.
+- Removed obsolete embedded environment artwork and the unused legacy room-decoration renderers.
+- Removed the old floor-sheet slicing path that was sampling tiny regions from the large presentation atlas.
+- Uses the twelve authored 32×32 floor PNGs directly, with an organised-folder fallback.
+- Simplified wall loading while retaining compatibility with the organised wall folders and existing root-level uploads.
+- Kept only the new authored `assets/props/` decoration system in the live room renderer.
+- Removed unused room-archetype decorative helpers, obsolete atlas helpers and dead environment code.
+- Cleaned and hardened the service-worker cache list around assets that are actually used.
+- Bumped the build identifier to **0.2.5fff**.
 
 ### 0.2.5ff — Floor & Architecture Recovery
 
@@ -153,93 +256,3 @@ Upload the project files to the root of a GitHub repository, then enable **Setti
 - Added the requested Game Over **MAIN MENU** button.
 - Updated the start-menu visual language, splash presentation and PWA artwork.
 
-## Archived 0.1.x Releases
-
-The 0.1 releases are retained here as historical development records rather than current project documentation.
-
-### 0.1.9 — Weapons, Decisions & Start Menu
-
-- Added physical weapon drops that must be collected by walking over them.
-- Added Short Sword, Long Sword and Claymore as distinct weapon classes.
-- Added Common, Uncommon, Rare, Epic and Legendary weapon rarities.
-- Kept the Short Sword as the guaranteed starting weapon.
-- Added weapon discovery/equip decisions at room exits.
-- Slowed Goblins slightly and changed Bat close-range behaviour.
-- Added the Local Scoreboard and return-to-start controls.
-- Added a discreet version number and Exit App control.
-
-### 0.1.8 — Movement, Combat Feel & Castle Room Variation
-
-- Rebalanced movement speed hierarchy for player and enemies.
-- Kept Bats as the fastest enemy and the Guardian deliberately slow.
-- Fixed Game Over screen shake after lethal hits.
-- Added deterministic Castle room variation including pillars, alcoves, rubble, moss, torches, banners, shrines and floor details.
-
-### 0.1.7 — Progression, Scoring & Front-End Presentation
-
-- Added area/level-based enemy scaling and stronger area progression naming.
-- Increased gold rewards and potion healing with progression.
-- Added scoring and damage penalties.
-- Added a local top-five high-score table.
-- Added an Area Cleared presentation after the Guardian.
-- Replaced early splash/menu approximations with selected torchlit dungeon artwork.
-- Updated PWA icons and front-end presentation.
-
-### 0.1.6 — Combat Feedback & Presentation
-
-- Added Goblin Archer simultaneous active limits and clearer aiming/firing feedback.
-- Added player hit feedback, knockback, hit recovery and low-health warning.
-- Added clearer enemy attack presentation.
-- Added the branded splash screen, hero app icon and matching title-menu presentation.
-
-### 0.1.5 — Guardian Fix & Run Flow
-
-- Fixed Guardian sword damage and defeat handling.
-- Tuned Guardian projectile speed.
-- Changed Game Over and fresh-run flow.
-- Kept the Guardian body blocker so close-range sword hits remain possible.
-
-### 0.1.4 — Combat & Presentation Polish
-
-- Added the dedicated title/start screen.
-- Added Guardian attack warnings and stronger boss-attack presentation.
-- Reworked Guardian projectiles with layered flame-like effects.
-- Added the Guardian collision blocker, sword-hit feedback and player movement polish.
-- Added gold sparkle feedback, room-clear presentation and run summary.
-- Separated README documentation from the version history.
-
-### 0.1.3 — Directional Characters & Room Presentation
-
-- Added the left-side decorative entrance and left-side player starting position.
-- Added irregular floor detail and directional player/enemy presentation.
-- Fixed skeleton movement and Guardian repositioning.
-- Restored player damage upgrades to sword-swing damage.
-
-### 0.1.2 — Sword Combat & Enemy Polish
-
-- Fixed sword damage collision.
-- Expanded the visual sword swing while keeping the gameplay hitbox separate.
-- Added hit flash, stagger, knockback and stronger impact particles.
-- Refined Bat, Goblin and Skeleton behaviours.
-- Added deterministic decorative pillars and dropped-gold bounce.
-
-### 0.1.1 — Combat Feel & Gold Pickup
-
-- Added close-range magnetic gold pickup.
-- Added visible animated player and skeleton sword swings.
-- Added Short Sword / Long Sword / Claymore weapon-class foundation.
-- Added weapon-rarity data foundation.
-
-### 0.1.0 — Core Gameplay Loop
-
-- Established the first dedicated core-loop milestone.
-- Added progressive room spawning with active caps and total quotas.
-- Added furthest-edge spawn selection and enemy entrance animations.
-- Added Goblin ranged combat, Skeleton telegraphed melee attacks and Guardian projectile patterns.
-- Added spawn/death combat feedback and physical loot collection.
-- Added the Area 1 castle room sequence, Guardian encounter and upgrade shop.
-
-### 0.0.x — Early Prototype Archive
-
-- Prototype room combat, sword system, locked exit, XP, loot and Area 1 boss/shop progression.
-- Reduced character sprite scale to make the dungeon environment feel larger.
