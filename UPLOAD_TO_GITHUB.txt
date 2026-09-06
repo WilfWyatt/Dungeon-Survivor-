@@ -1,0 +1,19 @@
+DUNGEON SURVIVOR v0.2.5b — GITHUB UPLOAD
+
+Upload ALL files in this folder to the repository ROOT.
+
+The new floor tiles are individual 32x32 PNG files and MUST also be uploaded to the repository ROOT:
+- floor-clean-1.png
+- floor-clean-2.png
+- floor-clean-3.png
+- floor-clean-4.png
+- floor-debris-1.png
+- floor-debris-2.png
+- floor-debris-3.png
+- floor-debris-4.png
+- floor-moss-1.png
+- floor-moss-2.png
+- floor-moss-3.png
+- floor-moss-4.png
+
+No assets folder is required.

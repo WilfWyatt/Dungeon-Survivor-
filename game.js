@@ -9,6 +9,9 @@ greatHallBg.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWgAAAHgCAYAAACIB
 const modularAtlas=new Image();
 modularAtlas.src='data:image/png;base64,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';
 const modularProps=new Image();
+const floorTiles=[];
+const FLOOR_TILE_FILES=['floor-clean-1.png','floor-clean-2.png','floor-clean-3.png','floor-clean-4.png','floor-debris-1.png','floor-debris-2.png','floor-debris-3.png','floor-debris-4.png','floor-moss-1.png','floor-moss-2.png','floor-moss-3.png','floor-moss-4.png'];
+FLOOR_TILE_FILES.forEach((src,i)=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.src=src;floorTiles[i]=img});
 modularProps.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAVAAAAAwCAYAAABHayI3AAAFHUlEQVR4nO3dW2gcVRzH8RMjiCi2qYXWxSJtpSQl2NitpBDxQhpvKCmNrQ8lKKUIQehDKxQivZhioGD7EJCASFVCX9SIVbFiE7zQQENNTWFp0mBapBItxKQRL1UJ60OZyczOTHdm53bOme8HlmRmZ2dOkp1f/mfO2V0hAAAAAACAAqrSbgCgo+1P1xVL1x0/Ocb5pplb0m4AAKiKAAWACt2adgMAyKHxqU2Oyw5ehr8c4HKEoAKFgmZ6Nvg+0YE4Ba5Am7dtifXJO/jBx/xni0DbtbFi/+I619/lze6TxUzPhuKSXd872ihTeO6vrfduy+Vg23eNF6T+e8BdRV34keHRiJtxQ76xIZb9YkHbtTFpAqgcrxAFZOErQNt3brWddLmWfDytKTlW3zsfcvJUwAhJFSpNN15VpkzVJyBEgAp0dHI6znY4NKxemujxskCl6tNgVKGEZ/ysA0OHe19z/L73dryh3D/juDGIpDlrNZp2WwDdMI1JM0ZQHlh0m7nuQPGSGZ6vz/1jbidj996oNGs2t5rriptbzfbPfnLC3I7ro0ib9gH6y6nW1Cuve1pOcKJn1I7uleJYp8uQvCRatj/v+/zw2vbU8Y8y+/wO3YWfn583bytyNbab9T6vG6Kjejddt+ucO7pX2r5CP74rUK9BnZGJq6EakNRg0eEjPyRyHKu9ex5M/JiQQ2loyl6JojK+AtQ6nah525aidR5o7r57Ax3wt+kZ2/JnP/1sfp9vbIhtIv3oFf2r3f7FdVUqV6GMtstj4PTFtJsQifXNj/l+Pp0b/CZw9mh/DTRr/ISojINHBr8hKvMAkleXnSo0nPzjD/sOw5GvTyfy/GAak4ZuFpAyh6ehXDiqGJ5+74daqEA19UDVKlslqkJwWhnTlaxkDk4h/Icjlag+MhOgDSuq025C4ozuvGrhKYSzKy97eAohbKHoFqZph2bH7pccXeAfr/4Ry357j74n/d8rCpkJ0KxSMTwNRoiqEJ5WMl8DPTfxq235rkV3Rr7P9WuWh96nKjIToFmaUrTrVWdFYOh5U/7K4MjLjWb73y3Yl/e8PSx9+1Xy+1z4CjTLMhOgWfPd0AXHukea1qbQksp8cdY5v/iZh5al0BKoaG1TUyLT4bQP0LmZf4UQQnS/VQj0uKOH1rmu373vvO99dL5SH+iYUJ+fUfi0u/GIDtOYAKBCBCgQoXLVJdWnXrTvwgNJO9Z5OfVpTO0d7am+JNbt+H29faEGAL1eXZTU9U43BCigqZHzk7blRzeuSWyKUemx8+tWB3r8pmf9f8Ty1Ozfnvddv/6f530XhoZCz+ggQIEYlFahMnTdvz0zkXYTtEOAAjExQlSG8MSC+5ffceNr2xO+q9xP+79yrVYZRAJiRHjqjQrUQ5D5ngCyKfEAvXvpEtvy1J9/JXJcJrUDiFqgAG3fubUohBC5lry5LuxHejxn2Zf1GNZ3wQcAGQWuQEcnp23L1dULbxN3ZWrW8z6/+xMi2s9Jqn3hJEEMIBYMIgFAhRhEAjQVdPI6giNANXDo4Isl89mKou3JOpcti45t9x18n0scGgr7skmV5GpuN78f+Hyg7M8dZP5nOQSoJgbPXAr8mOaNq2JoSTRUeO/PrvFClRBC7K+tr/iENPYBNQUO0CgHeAA3qr3rfNd4oaqSECU8vfmpJGUQKECZWgS4C1KNEpz6oAuvCZm741lSrholPNPn9br2SvDHBGJiDVKCEwACCjPABAAAAAB2/wNSVtObw8ilOgAAAABJRU5ErkJggg==';
 const characterSprites=new Image();
 let characterSpritesReady=false;
@@ -20,37 +23,46 @@ enemySprites.onload=()=>{enemySpritesReady=true};
 enemySprites.src='enemy-sprites.png';
 
 let roomTiles=[],roomDecor=[];
-const TILE=24, COLS=15, ROWS=20;
+const TILE=32, COLS=11, ROWS=14;
 function makeRoomLayout(){
   const rand=()=>{const n=Math.sin((roomVariation+1)*12.9898 + room*78.233 + area*37.719)*43758.5453;return n-Math.floor(n);};
   roomTiles=Array.from({length:ROWS},()=>Array(COLS).fill(0));
-  // 0.2.1a: varied masonry floor. Tiles remain modular, but the dressing is intentionally
-  // non-uniform so the player sees a dungeon floor rather than a repeating checkerboard.
+  // 0.2.5b: the floor is now built from the approved 12-tile authored set.
+  // Clean stone dominates; debris and moss appear as controlled, clustered dressing.
+  const arch=roomArchetype();
   for(let gy=0;gy<ROWS;gy++) for(let gx=0;gx<COLS;gx++){
     const edge=gx===0||gx===COLS-1||gy===0||gy===ROWS-1;
-    roomTiles[gy][gx]=edge?32+Math.floor(rand()*8):Math.floor(rand()*32);
+    let roll=rand();
+    let family=0;
+    if(arch==='RUINED CHAMBER'){
+      family=roll<.24?2:roll<.52?1:0;
+    }else if(arch==='CHAPEL'){
+      family=roll<.12?2:roll<.28?1:0;
+    }else if(arch==='PILLARED HALL'){
+      family=roll<.09?2:roll<.22?1:0;
+    }else{
+      family=roll<.10?2:roll<.25?1:0;
+    }
+    // Moss hugs the outer stonework more often; debris favours corners and lower traffic.
+    const wallBias=Math.min(gx,COLS-1-gx,gy,ROWS-1-gy);
+    if(family===2 && wallBias>2 && roll>.55) family=0;
+    if(family===1 && wallBias===0 && roll<.35) family=2;
+    const variant=Math.floor(rand()*4);
+    roomTiles[gy][gx]=family*4+variant;
   }
-  // Keep the entrance/exit lanes visually open.
-  for(let gy=8;gy<=11;gy++){roomTiles[gy][0]=24+Math.floor(rand()*4);roomTiles[gy][COLS-1]=24+Math.floor(rand()*4);}
-  const arch=roomArchetype();
-  // A central architectural runner in rooms where it makes sense.
-  if(['GREAT HALL','CHAPEL','CROSS HALL'].includes(arch)){
-    for(let gy=2;gy<18;gy++) for(let gx=6;gx<=8;gx++) roomTiles[gy][gx]=40+((gy+gx+roomVariation)%4);
-  }
-  // Ruined chambers have visibly broken sections without blocking movement.
-  if(arch==='RUINED CHAMBER') for(let i=0;i<20;i++){
-    const gx=1+Math.floor(rand()*13),gy=2+Math.floor(rand()*16);
-    if(Math.abs(gx-7)<=1&&Math.abs(gy-10)<=3)continue;
-    roomTiles[gy][gx]=Math.floor(rand()*32);
+  // Clear a readable central combat lane without reverting to a repeating checkerboard.
+  for(let gy=2;gy<ROWS-2;gy++){
+    const gx=Math.floor(COLS/2);
+    if(roomTiles[gy][gx]>=4 && roomTiles[gy][gx]<8) roomTiles[gy][gx]=Math.floor(rand()*4);
   }
   roomDecor=[]; const used=[];
-  const add=(kind,gx,gy)=>{if(gx<2||gx>12||gy<2||gy>17)return;if(Math.abs(gx-7)<=1&&Math.abs(gy-10)<=3)return;if(used.some(p=>p.gx===gx&&p.gy===gy))return;used.push({kind,gx,gy});roomDecor.push({kind,gx,gy});};
-  if(arch==='GREAT HALL'){add('banner',3,2);add('banner',11,2);add('altar',7,2);add('chest',11,5);add('chest',3,15);add('torchTeal',2,4);add('torchTeal',12,4);add('torchWarm',3,17);add('torchWarm',11,17);}
-  if(arch==='PILLARED HALL'){[3,5,9,11].forEach(g=>add('pillar',g,5));[3,5,9,11].forEach(g=>add('pillar',g,14));add('torchTeal',2,3);add('torchTeal',12,3);add('torchWarm',2,16);add('torchWarm',12,16);}
-  if(arch==='RUINED CHAMBER'){add('rubble',3,4);add('rubble',11,6);add('rubble',4,15);add('rubble',10,14);add('chest',11,16);add('torchWarm',2,4);add('torchTeal',12,15);}
-  if(arch==='CHAPEL'){add('altar',7,2);add('banner',4,2);add('banner',10,2);add('torchTeal',3,3);add('torchTeal',11,3);add('torchWarm',3,16);add('torchWarm',11,16);}
-  if(arch==='GUARD ROOM'){add('pillar',3,5);add('pillar',11,5);add('pillar',3,14);add('pillar',11,14);add('chest',7,4);add('torchWarm',2,3);add('torchWarm',12,3);add('rubble',3,16);add('rubble',11,16);}
-  if(arch==='CROSS HALL'){add('pillar',3,4);add('pillar',11,4);add('pillar',3,15);add('pillar',11,15);add('altar',7,9);add('torchTeal',2,3);add('torchTeal',12,3);}
+  const add=(kind,gx,gy)=>{if(gx<1||gx>COLS-2||gy<1||gy>ROWS-2)return;if(Math.abs(gx-5)<=1&&Math.abs(gy-7)<=2)return;if(used.some(p=>p.gx===gx&&p.gy===gy))return;used.push({kind,gx,gy});roomDecor.push({kind,gx,gy});};
+  if(arch==='GREAT HALL'){add('banner',2,1);add('banner',8,1);add('altar',5,1);add('chest',8,4);add('chest',2,11);add('torchTeal',1,3);add('torchTeal',9,3);add('torchWarm',2,12);add('torchWarm',8,12);}
+  if(arch==='PILLARED HALL'){[2,3,7,8].forEach(g=>add('pillar',g,4));[2,3,7,8].forEach(g=>add('pillar',g,10));add('torchTeal',1,2);add('torchTeal',9,2);add('torchWarm',1,11);add('torchWarm',9,11);}
+  if(arch==='RUINED CHAMBER'){add('rubble',2,3);add('rubble',8,4);add('rubble',3,10);add('rubble',7,9);add('chest',8,11);add('torchWarm',1,3);add('torchTeal',9,10);}
+  if(arch==='CHAPEL'){add('altar',5,1);add('banner',3,1);add('banner',7,1);add('torchTeal',2,2);add('torchTeal',8,2);add('torchWarm',2,11);add('torchWarm',8,11);}
+  if(arch==='GUARD ROOM'){add('pillar',2,4);add('pillar',8,4);add('pillar',2,10);add('pillar',8,10);add('chest',5,2);add('torchWarm',1,2);add('torchWarm',9,2);add('rubble',2,11);add('rubble',8,11);}
+  if(arch==='CROSS HALL'){add('pillar',2,3);add('pillar',8,3);add('pillar',2,10);add('pillar',8,10);add('altar',5,7);add('torchTeal',1,2);add('torchTeal',9,2);}
 }
 function atlasTile(sx,sy,x,y){ctx.drawImage(modularAtlas,sx,sy,24,24,x,y,24,24);}
 function modularProp(kind,x,y){
@@ -58,58 +70,38 @@ function modularProp(kind,x,y){
   const sx=map[kind];if(sx==null)return;
   ctx.drawImage(modularProps,sx,0,48,48,Math.round(x-24),Math.round(y-24),48,48);
 }
-function drawBrokenMasonry(seedBase, arch){
-  // 0.2.3: use the authored modular atlas as the actual room surface.
-  // Each 24px cell is a real reusable tile; variation is selected per cell so
-  // the room is constructed, not a single baked background image.
-  const left=24, top=24, right=W-24, bottom=H-24;
-  const cols=Math.floor((right-left)/24), rows=Math.floor((bottom-top)/24);
-  const seeded=(n)=>{const v=Math.sin(seedBase+n*12.9898)*43758.5453;return v-Math.floor(v)};
-  ctx.fillStyle='#0b1719';ctx.fillRect(left,top,right-left,bottom-top);
-  ctx.imageSmoothingEnabled=false;
-  // Floor: eight related stone samples from the modular atlas.
-  for(let gy=0;gy<rows;gy++) for(let gx=0;gx<cols;gx++){
-    let variant=Math.floor(seeded(100+gy*cols+gx)*8);
-    // A few broad lanes get slightly calmer stone so combat remains readable.
-    if(Math.abs(gx-6.5)<1.2 && gy>1 && gy<rows-2) variant=(variant+2)%8;
-    atlasTile(variant*24,0,left+gx*24,top+gy*24);
-  }
-  // Wall ring: the second atlas row is a genuine repeatable brick/wall strip.
-  for(let gx=0;gx<cols;gx++){
-    atlasTile((gx%8)*24,24,left+gx*24,0);
-    atlasTile(((gx+3)%8)*24,24,left+gx*24,bottom);
-  }
-  for(let gy=0;gy<rows;gy++){
-    atlasTile((gy%8)*24,24,0,top+gy*24);
-    atlasTile(((gy+4)%8)*24,24,right,top+gy*24);
-  }
-  // Ancient wear: fine chips, mineral flecks and cracks sit on top of the tiles.
-  for(let i=0;i<125;i++){
-    const x=left+5+seeded(700+i*3.1)*(right-left-10);
-    const y=top+5+seeded(900+i*4.7)*(bottom-top-10);
-    const kind=i%9;
-    if(kind<=3){
-      ctx.fillStyle=kind===0?'rgba(154,160,143,.18)':kind===1?'rgba(5,14,15,.28)':kind===2?'rgba(191,161,103,.10)':'rgba(71,104,94,.16)';
-      pixelRect(x,y,1+(i%2),1+(i%2),ctx.fillStyle);
-    }else if(kind===4||kind===5){
-      ctx.fillStyle='rgba(40,91,68,.25)';pixelRect(x-2,y,3+(i%3),1,ctx.fillStyle);pixelRect(x-1,y+1,1+(i%2),2,ctx.fillStyle);
-    }else if(kind===6){ctx.fillStyle='rgba(88,65,49,.20)';pixelRect(x,y,2,1,ctx.fillStyle)}
-  }
-  ctx.strokeStyle='rgba(8,19,20,.62)';ctx.lineWidth=1;
-  for(let i=0;i<25;i++){
-    let x=left+8+seeded(1200+i)*(right-left-16),y=top+10+seeded(1400+i)*(bottom-top-20);
-    ctx.beginPath();ctx.moveTo(x,y);
-    const steps=2+(i%4);
-    for(let k=0;k<steps;k++){x+=3+seeded(1600+i*5+k)*7;y+=(-3+seeded(1800+i*7+k)*7);ctx.lineTo(x,y)}
-    ctx.stroke();
-    if(i%6===0){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-4,y+5);ctx.lineTo(x-1,y+8);ctx.stroke()}
-  }
-  // A restrained inner vignette makes the live sprites sit into the environment.
-  const vg=ctx.createRadialGradient(W/2,H/2,70,W/2,H/2,245);
-  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(.72,'rgba(0,0,0,.04)');vg.addColorStop(1,'rgba(0,0,0,.34)');
-  ctx.fillStyle=vg;ctx.fillRect(left,top,right-left,bottom-top);
+function floorTileReady(index){return !!(floorTiles[index]&&floorTiles[index]._ready)}
+function drawFloorTile(index,x,y,size=TILE){
+  const img=floorTiles[index];
+  if(floorTileReady(index)){ctx.drawImage(img,0,0,32,32,x,y,size,size);return true;}
+  return false;
 }
-
+function floorIndexForCell(gx,gy){
+  let idx=roomTiles[gy]?.[gx]??0;
+  const arch=roomArchetype();
+  // Keep some archetypes visually calmer in their principal traffic lanes.
+  if((arch==='GUARD ROOM'||arch==='PILLARED HALL') && gx>=3 && gx<=7 && gy>=3 && gy<=10 && idx>=4 && idx<8) idx-=4;
+  return idx;
+}
+function drawBrokenMasonry(seedBase, arch){
+  // 0.2.5b: 32x32 authored floor tiles are now the actual procedural room surface.
+  // The 12 variants are selected per cell, with deterministic weighting by room archetype.
+  const left=4,top=16;
+  ctx.fillStyle='#071316';ctx.fillRect(0,0,W,H);
+  ctx.imageSmoothingEnabled=false;
+  for(let gy=0;gy<ROWS;gy++) for(let gx=0;gx<COLS;gx++){
+    const idx=floorIndexForCell(gx,gy);
+    drawFloorTile(idx,left+gx*TILE,top+gy*TILE,TILE);
+  }
+  // Fill the tiny right/bottom remainder so no background strip leaks into the room.
+  ctx.fillStyle='#0a1719';
+  ctx.fillRect(left+COLS*TILE,top,W-(left+COLS*TILE),ROWS*TILE);
+  ctx.fillRect(left,top+ROWS*TILE,W-left,H-(top+ROWS*TILE));
+  // Subtle depth under the perimeter, without drawing another fake floor texture.
+  const vg=ctx.createLinearGradient(0,top,0,H);
+  vg.addColorStop(0,'rgba(0,0,0,.16)');vg.addColorStop(.15,'rgba(0,0,0,0)');vg.addColorStop(.82,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.24)');
+  ctx.fillStyle=vg;ctx.fillRect(left,top,COLS*TILE,ROWS*TILE);
+}
 
 function drawModularDungeon(){
   ctx.fillStyle=P.ink;ctx.fillRect(0,0,W,H);
@@ -134,10 +126,10 @@ function drawModularDungeon(){
   pixelRect(W-30,H/2-48,6,96,'#13282a');
   pixelRect(24,H/2-48,6,96,'#13282a');
   ctx.restore();
-  for(const d of roomDecor) modularProp(d.kind,d.gx*TILE+12,d.gy*TILE+12);
+  for(const d of roomDecor) modularProp(d.kind,4+d.gx*TILE+16,16+d.gy*TILE+16);
   const now=performance.now()/1000;
   for(const d of roomDecor) if(d.kind==='torchTeal'||d.kind==='torchWarm'){
-    const x=d.gx*TILE+12,y=d.gy*TILE+8,teal=d.kind==='torchTeal',pulse=.82+.18*Math.sin(now*5+d.gx);
+    const x=4+d.gx*TILE+16,y=16+d.gy*TILE+12,teal=d.kind==='torchTeal',pulse=.82+.18*Math.sin(now*5+d.gx);
     const g=ctx.createRadialGradient(x,y,2,x,y,42);
     g.addColorStop(0,teal?`rgba(82,216,192,${.18*pulse})`:`rgba(255,150,55,${.15*pulse})`);
     g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x-44,y-44,88,88);
@@ -145,7 +137,7 @@ function drawModularDungeon(){
   text(arch,W/2,82,7,'#78918a','center');
 }
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
-const VERSION='0.2.5';
+const VERSION='0.2.5b';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
