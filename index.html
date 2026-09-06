@@ -13,13 +13,12 @@
 </head>
 <body>
   <main id="app">
-    <section id="topUI">
-      <div class="brand"><span>DUNGEON</span><strong>SURVIVOR</strong></div>
+    <section id="topUI" aria-label="Player status">
       <div class="stats">
-        <div class="stat"><span class="label">PURSE</span><span id="gold" class="value gold">0</span></div>
         <div class="stat healthStat"><span class="label">HEALTH</span><div class="healthLine"><div class="healthTrack"><div id="hp"></div></div><span id="hpText">100 / 100</span></div></div>
-        <div class="stat"><span class="label">XP</span><div class="xpLine"><div class="xpTrack"><div id="xp"></div></div><span id="levelText">LV 1</span></div></div>
-        <div class="stat roomStat"><span class="label">ROOM</span><span id="room" class="value">1</span><span id="areaText" class="subvalue">AREA 1 • CASTLE</span></div>
+        <div class="stat xpStat"><span class="label">XP / LEVEL</span><div class="xpLine"><span id="levelText">LV 1</span><div class="xpTrack"><div id="xp"></div></div><span id="xpTextTop">12 XP</span></div></div>
+        <div class="stat purseStat"><span class="label">PURSE</span><span id="gold" class="value gold">0</span></div>
+        <div class="stat roomStat"><span class="label">ROOM</span><span id="room" class="value">1</span><span id="areaText" class="subvalue">CASTLE • R1</span></div>
       </div>
     </section>
 
@@ -32,7 +31,7 @@
           <button id="scoreboardButton" type="button">LOCAL SCOREBOARD</button>
           <button id="exitAppButton" type="button">EXIT APP</button>
         </div>
-        <div id="versionLabel">v0.2.3</div>
+        <div id="versionLabel">v0.2.5</div>
       </div>
       <div id="scoreboardScreen" aria-label="Local scoreboard">
         <div class="menuPanel scoreboardPanel">
@@ -52,17 +51,25 @@
           </div>
         </div>
       </div>
+      <div id="inventoryScreen" aria-label="Inventory and player card">
+        <div class="menuPanel inventoryPanel">
+          <div class="inventoryHeader"><div><div class="menuTitle">INVENTORY</div><div class="menuSub">PLAYER CARD • GAME PAUSED</div></div><button id="inventoryClose" type="button" aria-label="Close inventory">×</button></div>
+          <div id="inventoryContent"></div>
+          <button id="inventoryCloseBottom" type="button" class="menuButton primary">CLOSE INVENTORY</button>
+        </div>
+      </div>
       <div id="bossWarning" aria-live="polite"></div>
-      <div id="message"></div>
+      <div id="message" aria-live="polite"></div>
       <div id="pickupNotice"></div>
     </section>
 
-    <section id="controls">
+    <section id="controls" aria-label="Game controls">
       <div id="stick"><div id="nub"></div></div>
+      <button id="inventoryButton" type="button" aria-label="Open inventory"><span>✦</span><small>INVENTORY</small></button>
       <div id="controlHint">MOVE</div>
-      <div id="fire">⚔<span>SWING</span></div>
+      <div id="fire" role="button" aria-label="Swing sword">⚔<span>SWING</span></div>
     </section>
   </main>
-  <script src="game.js?v=0.2.4-architecture-props"></script>
+  <script src="game.js?v=0.2.5"></script>
 </body>
 </html>

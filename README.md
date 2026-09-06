@@ -1,3 +1,19 @@
+# DUNGEON SURVIVOR
+
+**Current Version: 0.2.5**
+
+## 0.2.5 — Player HUD, Controls & Inventory Foundation
+- Moved the player status UI out of the dungeon canvas into a slim banner above the game world.
+- Reduced the status information to the essentials: health, XP/level, purse and room.
+- Removed the in-world minimap so the dungeon has more visual space and less HUD clutter.
+- Moved all transient player notifications to the top of the game world directly beneath the status banner.
+- Removed the duplicate room-clear notification from the bottom of the screen.
+- Repositioned the virtual controls lower on the phone layout.
+- Added a dedicated central Inventory button between Move and Swing.
+- Inventory opens a full player card and pauses the run without advancing enemies, projectiles or timers.
+- Inventory currently shows health, XP/level, purse, equipped weapon stats and run progress, with an armour section reserved for the future equipment system.
+- Kept the modular dungeon, authored environment pipeline, enemies, combat, loot, weapons, progression and PWA structure intact.
+
 ## 0.2.3 — Textured Modular Dungeon
 - Promoted the modular atlas from an unused/secondary source into the actual live room surface.
 - Every 24px floor cell is now selected from reusable authored stone samples, with a separate repeatable brick wall ring.
@@ -5,7 +21,12 @@
 - Added a compact in-canvas HUD for health, XP, level and purse plus a live minimap.
 - Kept room archetypes, props, enemy behaviour, combat, loot and progression intact.
 
-## 0.2.1 — The Living Dungeon\n- Great Hall now renders from a reusable 24px modular environment atlas instead of a single background image.\n- Deterministic room layouts for Great Hall, Pillared Hall, Ruined Chamber, Chapel, Guard Room and Cross Hall.\n- Independent modular props for pillars, chests, torches, banners, altar and rubble.\n- Independent torch glow layers; the room itself is no longer a baked scene image.\n\n# DUNGEON SURVIVOR
+## 0.2.1 — The Living Dungeon
+- Great Hall now renders from a reusable 24px modular environment atlas instead of a single background image.
+- Deterministic room layouts for Great Hall, Pillared Hall, Ruined Chamber, Chapel, Guard Room and Cross Hall.
+- Independent modular props for pillars, chests, torches, banners, altar and rubble.
+- Independent torch glow layers; the room itself is no longer a baked scene image.
+
 
 ## 0.2.1c — Ancient Stone graphical refinement
 - Refined the modular floor into finer-grained individual masonry slabs, closer to the original graphical target.
@@ -15,7 +36,6 @@
 - Kept the modular architecture, gameplay collision and clear combat lanes intact.
 
 
-**Current Version: 0.2.3**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
