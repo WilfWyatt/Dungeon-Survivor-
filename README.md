@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.2.5f**
+**Current Version: 0.2.5ff**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -49,6 +49,16 @@ The game is built as a lightweight HTML, CSS and JavaScript project with a portr
 Upload the project files to the root of a GitHub repository, then enable **Settings → Pages → Deploy from a branch → main → /(root)**. Open the generated Pages URL in Chrome on Android and use Chrome's menu to install/add the app to the home screen.
 
 ## Change Log
+
+### 0.2.5ff — Floor & Architecture Recovery
+
+- Repaired the room render pipeline after 0.2.5f blanked the floor and wall architecture.
+- Uses the uploaded `assets/floor/floor_tiles.png` as the primary 4×3 sheet of twelve 32×32 floor tiles, with the existing individual floor PNGs retained as a compatibility fallback.
+- Added repository-path fallbacks for the approved wall assets so the room still renders if the organised `/walls/...` paths or earlier root-level uploads are present.
+- Supports the packed three-variant root cracked/mossy wall files as a fallback without stretching the whole three-variant image into a single wall.
+- Keeps the new authored `assets/props/` decorations as the active room-decoration layer; no legacy room-decoration drawing is used by the live room renderer.
+- Hardened service-worker installation so one missing optional asset cannot prevent the new cache from installing.
+- Bumped the build identifier to **0.2.5ff** for easier testing.
 
 ### 0.2.5f — Floor & Decoration Fix
 

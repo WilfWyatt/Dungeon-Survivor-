@@ -9,33 +9,44 @@ greatHallBg.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWgAAAHgCAYAAACIB
 const modularAtlas=new Image();
 modularAtlas.src='data:image/png;base64,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';
 const floorTiles=[];
+const floorSheet=new Image();
+let floorSheetReady=false;
+floorSheet.decoding='async';
+floorSheet.onload=()=>{floorSheetReady=true};
+floorSheet.src='assets/floor/floor_tiles.png';
 const FLOOR_TILE_FILES=['floor-clean-1.png','floor-clean-2.png','floor-clean-3.png','floor-clean-4.png','floor-debris-1.png','floor-debris-2.png','floor-debris-3.png','floor-debris-4.png','floor-moss-1.png','floor-moss-2.png','floor-moss-3.png','floor-moss-4.png'];
 FLOOR_TILE_FILES.forEach((src,i)=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.src=src;floorTiles[i]=img});
-
-// 0.2.5e environmental prop set — all individual 32x32 RGBA assets.
 const PROP_FILES={
   torch1:'assets/props/torch-1.png',torch2:'assets/props/torch-2.png',torch3:'assets/props/torch-3.png',torch4:'assets/props/torch-4.png',
-  chestClosed:'assets/props/chest-closed.png',chestOpen:'assets/props/chest-open.png',
-  crate1:'assets/props/crate-1.png',crateStack:'assets/props/crate-stack.png',barrel:'assets/props/barrel.png',pottery:'assets/props/pottery.png',
-  ruinedPillar:'assets/props/ruined-pillar.png',rubble:'assets/props/rubble.png',statue:'assets/props/statue.png'
+  chestClosed:'assets/props/chest-closed.png',chestOpen:'assets/props/chest-open.png',crate1:'assets/props/crate-1.png',crateStack:'assets/props/crate-stack.png',
+  barrel:'assets/props/barrel.png',pottery:'assets/props/pottery.png',ruinedPillar:'assets/props/ruined-pillar.png',rubble:'assets/props/rubble.png',statue:'assets/props/statue.png'
 };
 const propImages={};
 Object.entries(PROP_FILES).forEach(([key,src])=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.src=src;propImages[key]=img});
 
-// Architectural wall assets. The top wall has three authored variants; side/bottom are the approved clean pieces.
-const WALL_FILES={
+// Architectural assets. 0.2.5ff supports both the organised /walls paths and the
+// earlier root-level uploads, so a repository folder mismatch cannot blank the room.
+const WALL_CANDIDATES={
   top:[
-    'walls/top/top-wall-clean-1.png','walls/top/top-wall-clean-2.png','walls/top/top-wall-clean-3.png',
-    'walls/top/top-wall-cracked-1.png','walls/top/top-wall-cracked-2.png','walls/top/top-wall-cracked-3.png',
-    'walls/top/top-wall-mossy-1.png','walls/top/top-wall-mossy-2.png','walls/top/top-wall-mossy-3.png'
+    ['walls/top/top-wall-clean-1.png','top-wall-clean.png'],['walls/top/top-wall-clean-2.png','top-wall-clean.png'],['walls/top/top-wall-clean-3.png','top-wall-clean.png'],
+    ['walls/top/top-wall-cracked-1.png','top-wall-cracked.png'],['walls/top/top-wall-cracked-2.png','top-wall-cracked.png'],['walls/top/top-wall-cracked-3.png','top-wall-cracked.png'],
+    ['walls/top/top-wall-mossy-1.png','top-wall-mossy.png'],['walls/top/top-wall-mossy-2.png','top-wall-mossy.png'],['walls/top/top-wall-mossy-3.png','top-wall-mossy.png']
   ],
-  left:'walls/left/left-wall-clean.png',
-  right:'walls/right/right-wall-clean.png',
-  bottom:'walls/bottom/bottom-wall-clean.png'
+  left:['walls/left/left-wall-clean.png','left-wall-clean.png'],
+  right:['walls/right/right-wall-clean.png','right-wall-clean.png'],
+  bottom:['walls/bottom/bottom-wall-clean.png','bottom-wall-clean.png']
 };
+function loadImageWithFallback(paths,onready){
+  const img=new Image();img.decoding='async';let i=0;
+  const next=()=>{if(i>=paths.length)return;img._ready=false;img.src=paths[i++];};
+  img.onload=()=>{img._ready=true;img._source=img.src;if(onready)onready(img)};
+  img.onerror=next;next();return img;
+}
 const wallImages={top:[],left:null,right:null,bottom:null};
-WALL_FILES.top.forEach((src,i)=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.src=src;wallImages.top[i]=img});
-['left','right','bottom'].forEach(side=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.src=WALL_FILES[side];wallImages[side]=img});
+WALL_CANDIDATES.top.forEach((paths,i)=>{wallImages.top[i]=loadImageWithFallback(paths)});
+wallImages.left=loadImageWithFallback(WALL_CANDIDATES.left);
+wallImages.right=loadImageWithFallback(WALL_CANDIDATES.right);
+wallImages.bottom=loadImageWithFallback(WALL_CANDIDATES.bottom);
 
 const characterSprites=new Image();
 let characterSpritesReady=false;
@@ -134,19 +145,33 @@ function topWallIndex(){
   const variant=(roomVariation+room*3+area)%3;
   return family*3+variant;
 }
+function drawWallImage(img,x,y,w,h,sourceY=0,sourceH=null){
+  if(!img||!img._ready)return false;
+  const sh=sourceH??img.naturalHeight??img.height;
+  ctx.drawImage(img,0,sourceY,img.naturalWidth||img.width,sh,x,y,w,h);return true;
+}
 function drawWalls(){
   const top=wallImages.top[topWallIndex()];
-  if(top&&top._ready)ctx.drawImage(top,0,16,W,50);
-  const left=wallImages.left;
-  if(left&&left._ready)ctx.drawImage(left,0,16,52,H-16);
-  const right=wallImages.right;
-  if(right&&right._ready)ctx.drawImage(right,W-50,16,50,H-16);
-  const bottom=wallImages.bottom;
-  if(bottom&&bottom._ready)ctx.drawImage(bottom,0,H-50,W,50);
+  if(top&&top._ready){
+    const sourceH=(top.naturalHeight||top.height);
+    // Root fallback cracked/mossy files are three 50px variants stacked vertically.
+    let sy=0,sh=sourceH;
+    if((top._source||'').endsWith('top-wall-cracked.png') || (top._source||'').endsWith('top-wall-mossy.png')){
+      sy=(topWallIndex()%3)*50;sh=50;
+    }
+    drawWallImage(top,0,16,W,50,sy,sh);
+  }
+  drawWallImage(wallImages.left,0,16,52,H-66);
+  drawWallImage(wallImages.right,W-50,16,50,H-66);
+  drawWallImage(wallImages.bottom,0,H-50,W,50);
 }
 
 function floorTileReady(index){return !!(floorTiles[index]&&floorTiles[index]._ready)}
 function drawFloorTile(index,x,y,size=TILE){
+  if(floorSheetReady){
+    const sx=(index%4)*32,sy=Math.floor(index/4)*32;
+    ctx.drawImage(floorSheet,sx,sy,32,32,x,y,size,size);return true;
+  }
   const img=floorTiles[index];
   if(floorTileReady(index)){ctx.drawImage(img,0,0,32,32,x,y,size,size);return true;}
   return false;
@@ -154,27 +179,24 @@ function drawFloorTile(index,x,y,size=TILE){
 function floorIndexForCell(gx,gy){
   let idx=roomTiles[gy]?.[gx]??0;
   const arch=roomArchetype();
-  // Keep some archetypes visually calmer in their principal traffic lanes.
   if((arch==='GUARD ROOM'||arch==='PILLARED HALL') && gx>=3 && gx<=7 && gy>=3 && gy<=10 && idx>=4 && idx<8) idx-=4;
   return idx;
 }
-function drawBrokenMasonry(seedBase, arch){
-  // 0.2.5f: use the twelve uploaded 32x32 floor PNGs directly.
-  // These are individual game-ready tiles, not the labelled presentation sheet.
-  const left=52,top=66,roomW=COLS*TILE,roomH=H-top-50;
+function drawBrokenMasonry(seedBase,arch){
+  const left=52,top=66,roomW=COLS*TILE,roomH=ROWS*TILE;
   ctx.fillStyle='#071316';ctx.fillRect(0,0,W,H);
   ctx.imageSmoothingEnabled=false;
-  ctx.save();
-  ctx.beginPath();ctx.rect(left,top,roomW,roomH);ctx.clip();
+  ctx.save();ctx.beginPath();ctx.rect(left,top,roomW,roomH);ctx.clip();
   for(let gy=0;gy<ROWS;gy++) for(let gx=0;gx<COLS;gx++){
-    const idx=floorIndexForCell(gx,gy);
-    drawFloorTile(idx,left+gx*TILE,top+gy*TILE,TILE);
+    drawFloorTile(floorIndexForCell(gx,gy),left+gx*TILE,top+gy*TILE,TILE);
   }
-  // Cover only the unused strip to the right of the 8-tile-wide floor.
   ctx.restore();
+  // Fill the non-room area, leaving the architectural wall pieces to define the border.
   ctx.fillStyle='#071316';
-  ctx.fillRect(left+roomW,top,W-(left+roomW),roomH);
-  // Subtle depth over the actual floor tiles, without introducing another texture.
+  ctx.fillRect(0,0,left, H);
+  ctx.fillRect(left+roomW,0,W-(left+roomW),H);
+  ctx.fillRect(left,0,roomW,top);
+  ctx.fillRect(left,top+roomH,roomW,H-(top+roomH));
   const vg=ctx.createLinearGradient(0,top,0,top+roomH);
   vg.addColorStop(0,'rgba(0,0,0,.16)');vg.addColorStop(.15,'rgba(0,0,0,0)');vg.addColorStop(.82,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.24)');
   ctx.fillStyle=vg;ctx.fillRect(left,top,roomW,roomH);
@@ -203,7 +225,7 @@ function drawModularDungeon(){
   }
 }
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
-const VERSION='0.2.5f';
+const VERSION='0.2.5ff';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
