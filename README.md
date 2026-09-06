@@ -86,14 +86,14 @@ The game is built as a lightweight HTML, CSS and JavaScript project with a portr
 
 ## Change Log
 
-### 0.2.5c — Authored 12-Tile Procedural Floor
+### 0.2.5d — Authored 12-Tile Procedural Floor
 - Replaced the procedural-looking 0.2.5 floor rendering with the approved **12-piece authored floor set**.
 - Added four clean stone variants, four debris variants and four moss variants as individual **32×32 PNG assets**.
 - The room floor is now assembled cell-by-cell from those assets, with deterministic variation and room-archetype weighting.
 - Clean stone remains dominant; debris and moss are clustered rather than distributed as a noisy checkerboard.
 - Central combat lanes are kept readable while retaining natural floor variation.
 - Floor assets live at `assets/floor/floor_tiles.png`, with wall assets grouped under `assets/walls/`.
-- Updated PWA cache/version references to **0.2.5c**.
+- Updated PWA cache/version references to **0.2.5d**.
 
 ## 0.2.1c — Ancient Stone
 - Reduced the visible masonry scale so the Castle floor reads as many individual worn stones rather than a handful of giant slabs.

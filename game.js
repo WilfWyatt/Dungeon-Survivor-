@@ -21,6 +21,7 @@ enemySprites.src='enemy-sprites.png';
 
 let roomTiles=[],roomDecor=[];
 const TILE=32, COLS=8, ROWS=12;
+const ROOM_X=52, ROOM_TOP=50, ROOM_BOTTOM=430, ROOM_W=256;
 // 0.2.5c: one approved 4x3 floor atlas (12 exact 32px tiles).
 const FLOOR_ATLAS=new Image();
 let floorAtlasReady=false;
@@ -83,10 +84,10 @@ function floorIndexForCell(gx,gy){
   return idx;
 }
 function drawBrokenMasonry(){
-  const left=48,top=48;
+  const left=ROOM_X,top=ROOM_TOP;
   ctx.fillStyle='#071316';ctx.fillRect(0,0,W,H);
   ctx.imageSmoothingEnabled=false;
-  // Interior is exactly 8 x 12 of the approved 32x32 tiles.
+  // Interior is exactly 8 x 12 of the approved 32x32 tiles, fitted cleanly between the walls.
   for(let gy=0;gy<ROWS;gy++) for(let gx=0;gx<COLS;gx++){
     const idx=floorIndexForCell(gx,gy);
     if(!drawFloorTile(idx,left+gx*TILE,top+gy*TILE,TILE)){
@@ -97,39 +98,49 @@ function drawBrokenMasonry(){
 
 function wallImage(src){const img=new Image();img.decoding='async';img.src=src;return img}
 const WALLS={
-  topClean:wallImage('assets/walls/top/top-wall-clean.png'),
-  topCracked:wallImage('assets/walls/top/top-wall-cracked.png'),
-  topMossy:wallImage('assets/walls/top/top-wall-mossy.png'),
+  topClean:[
+    wallImage('assets/walls/top/top-wall-clean-1.png'),
+    wallImage('assets/walls/top/top-wall-clean-2.png'),
+    wallImage('assets/walls/top/top-wall-clean-3.png')
+  ],
+  topCracked:[
+    wallImage('assets/walls/top/top-wall-cracked-1.png'),
+    wallImage('assets/walls/top/top-wall-cracked-2.png'),
+    wallImage('assets/walls/top/top-wall-cracked-3.png')
+  ],
+  topMossy:[
+    wallImage('assets/walls/top/top-wall-mossy-1.png'),
+    wallImage('assets/walls/top/top-wall-mossy-2.png'),
+    wallImage('assets/walls/top/top-wall-mossy-3.png')
+  ],
   left:wallImage('assets/walls/left/left-wall-clean.png'),
   right:wallImage('assets/walls/right/right-wall-clean.png'),
   bottom:wallImage('assets/walls/bottom/bottom-wall-clean.png')
 };
-const TOP_WALL_VARIANTS={
-  clean:[0,1,2],cracked:[0,1,2],mossy:[0,1,2]
-};
 function wallReady(img){return !!(img&&img.complete&&img.naturalWidth>0)}
-function drawTopWall(img,variant){
+function drawTopWall(img){
   if(!wallReady(img))return;
-  const rects=[[0,0,img.naturalWidth,205],[0,230,img.naturalWidth,185],[0,430,img.naturalWidth,185]];
-  const r=rects[variant%3];
-  ctx.drawImage(img,r[0],r[1],r[2],r[3],0,0,W,50);
+  // All top-wall assets are normalised visually to the same 360x50 room-edge band.
+  ctx.drawImage(img,0,0,img.naturalWidth,img.naturalHeight,0,0,W,ROOM_TOP);
 }
 function drawSideWall(img,side){
   if(!wallReady(img))return;
-  const targetW=56,targetH=480;
-  if(side==='left') ctx.drawImage(img,0,0,img.naturalWidth,img.naturalHeight,0,0,targetW,targetH);
-  else ctx.drawImage(img,0,0,img.naturalWidth,img.naturalHeight,W-targetW,0,targetW,targetH);
+  const targetW=ROOM_X,targetH=H;
+  const x=side==='left'?0:W-targetW;
+  ctx.drawImage(img,0,0,img.naturalWidth,img.naturalHeight,x,0,targetW,targetH);
 }
 function drawBottomWall(img){
   if(!wallReady(img))return;
-  ctx.drawImage(img,0,0,img.naturalWidth,img.naturalHeight,0,H-50,W,50);
+  ctx.drawImage(img,0,0,img.naturalWidth,img.naturalHeight,0,ROOM_BOTTOM,W,H-ROOM_BOTTOM);
 }
 function drawArchitecturalWalls(){
   const arch=roomArchetype();
   const variant=(roomVariation+room+area)%3;
-  const topType=arch==='RUINED CHAMBER'?'cracked':arch==='CHAPEL'?'clean':(variant===2?'mossy':'clean');
-  const topImg=topType==='cracked'?WALLS.topCracked:topType==='mossy'?WALLS.topMossy:WALLS.topClean;
-  drawTopWall(topImg,variant);
+  let topSet=WALLS.topClean;
+  if(arch==='RUINED CHAMBER') topSet=WALLS.topCracked;
+  else if(arch==='CHAPEL') topSet=WALLS.topClean;
+  else if(variant===2) topSet=WALLS.topMossy;
+  drawTopWall(topSet[variant]);
   drawSideWall(WALLS.left,'left');
   drawSideWall(WALLS.right,'right');
   drawBottomWall(WALLS.bottom);
@@ -143,17 +154,17 @@ function drawModularDungeon(){
   drawArchitecturalWalls();
   ctx.restore();
   // Existing central room props remain inside the floor area; wall assets now own the room boundary.
-  for(const d of roomDecor) modularProp(d.kind,48+d.gx*TILE+16,48+d.gy*TILE+16);
+  for(const d of roomDecor) modularProp(d.kind,ROOM_X+d.gx*TILE+16,ROOM_TOP+d.gy*TILE+16);
   const now=performance.now()/1000;
   for(const d of roomDecor) if(d.kind==='torchTeal'||d.kind==='torchWarm'){
-    const x=48+d.gx*TILE+16,y=48+d.gy*TILE+12,teal=d.kind==='torchTeal',pulse=.82+.18*Math.sin(now*5+d.gx);
+    const x=ROOM_X+d.gx*TILE+16,y=ROOM_TOP+d.gy*TILE+12,teal=d.kind==='torchTeal',pulse=.82+.18*Math.sin(now*5+d.gx);
     const g=ctx.createRadialGradient(x,y,2,x,y,42);
     g.addColorStop(0,teal?`rgba(82,216,192,${.18*pulse})`:`rgba(255,150,55,${.15*pulse})`);
     g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x-44,y-44,88,88);
   }
 }
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
-const VERSION='0.2.5c';
+const VERSION='0.2.5d';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
