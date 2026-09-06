@@ -209,3 +209,10 @@ The game is built as a lightweight HTML, CSS and JavaScript project with a portr
 ## GitHub Pages
 
 Upload the project files to the root of a GitHub repository, then enable **Settings → Pages → Deploy from a branch → main → /(root)**. Open the generated Pages URL in Chrome on Android and use Chrome's menu to install/add the app to the home screen.
+
+## v0.2.4 — Architecture & Props Pass
+- Externalised the modular Castle atlas/prop sheets into real repository assets.
+- Added deeper wall construction, inner trim, doorway masonry and corner/buttress dressing.
+- Added physical collision for substantial pillars, chests, altars and rubble.
+- Added prop shadows and room-specific architectural dressing.
+- Kept the room surface fully modular: individual floor cells are assembled from the atlas rather than using a baked room background.
