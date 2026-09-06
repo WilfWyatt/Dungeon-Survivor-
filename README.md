@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.2.5g**
+**Current Version: 0.2.5gg**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -140,6 +140,16 @@ The 0.1 releases are retained here as historical development records rather than
 - Reduced character sprite scale to make the dungeon environment feel larger.
 
 ## Change Log
+
+### 0.2.5gg — Claude Fix Integration
+
+- Rebased the environment implementation on the known-working Claude fix rather than the failed 0.2.5g rewrite.
+- Restored the approved 128×96 floor sheet as the canonical floor source, sliced as twelve 32×32 tiles.
+- Preserved Claude’s working asynchronous asset-loading and environment-render flow.
+- Kept the new authored prop system and existing gameplay systems intact.
+- Made wall asset resolution tolerant of the project’s organised `/walls/`, `assets/walls/` and root-level upload layouts.
+- Removed only demonstrably dead embedded Great Hall and unused atlas-renderer code; no working environment path was replaced.
+- Bumped the visible build number and service-worker cache to **0.2.5gg**.
 
 ### 0.2.5g — Environment Codebase Clean-up & Recovery
 

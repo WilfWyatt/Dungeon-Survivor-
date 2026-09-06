@@ -1,4 +1,43 @@
 const c=document.getElementById('game'),ctx=c.getContext('2d');
+const floorTiles=[];
+const floorSheet=new Image();
+let floorSheetReady=false;
+floorSheet.decoding='async';
+floorSheet.onload=()=>{floorSheetReady=true};
+floorSheet.src='assets/floor/floor_tiles.png';
+const FLOOR_TILE_FILES=['floor-clean-1.png','floor-clean-2.png','floor-clean-3.png','floor-clean-4.png','floor-debris-1.png','floor-debris-2.png','floor-debris-3.png','floor-debris-4.png','floor-moss-1.png','floor-moss-2.png','floor-moss-3.png','floor-moss-4.png'];
+FLOOR_TILE_FILES.forEach((src,i)=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.src=src;floorTiles[i]=img});
+const PROP_FILES={
+  torch1:'assets/props/torch-1.png',torch2:'assets/props/torch-2.png',torch3:'assets/props/torch-3.png',torch4:'assets/props/torch-4.png',
+  chestClosed:'assets/props/chest-closed.png',chestOpen:'assets/props/chest-open.png',crate1:'assets/props/crate-1.png',crateStack:'assets/props/crate-stack.png',
+  barrel:'assets/props/barrel.png',pottery:'assets/props/pottery.png',ruinedPillar:'assets/props/ruined-pillar.png',rubble:'assets/props/rubble.png',statue:'assets/props/statue.png'
+};
+const propImages={};
+Object.entries(PROP_FILES).forEach(([key,src])=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.src=src;propImages[key]=img});
+
+// Architectural assets. Support the organised /walls paths, Claude's earlier assets/walls layout, and root-level uploads so repository layout cannot blank the room.
+const WALL_CANDIDATES={
+  top:[
+    ['walls/top/top-wall-clean-1.png','assets/walls/top/top-wall-clean-1.png','top-wall-clean.png'],['walls/top/top-wall-clean-2.png','assets/walls/top/top-wall-clean-2.png','top-wall-clean.png'],['walls/top/top-wall-clean-3.png','assets/walls/top/top-wall-clean-3.png','top-wall-clean.png'],
+    ['walls/top/top-wall-cracked-1.png','assets/walls/top/top-wall-cracked-1.png','top-wall-cracked.png'],['walls/top/top-wall-cracked-2.png','assets/walls/top/top-wall-cracked-2.png','top-wall-cracked.png'],['walls/top/top-wall-cracked-3.png','assets/walls/top/top-wall-cracked-3.png','top-wall-cracked.png'],
+    ['walls/top/top-wall-mossy-1.png','assets/walls/top/top-wall-mossy-1.png','top-wall-mossy.png'],['walls/top/top-wall-mossy-2.png','assets/walls/top/top-wall-mossy-2.png','top-wall-mossy.png'],['walls/top/top-wall-mossy-3.png','assets/walls/top/top-wall-mossy-3.png','top-wall-mossy.png']
+  ],
+  left:['walls/left/left-wall-clean.png','assets/walls/left/left-wall-clean.png','left-wall-clean.png'],
+  right:['walls/right/right-wall-clean.png','assets/walls/right/right-wall-clean.png','right-wall-clean.png'],
+  bottom:['walls/bottom/bottom-wall-clean.png','assets/walls/bottom/bottom-wall-clean.png','bottom-wall-clean.png']
+};
+function loadImageWithFallback(paths,onready){
+  const img=new Image();img.decoding='async';let i=0;
+  const next=()=>{if(i>=paths.length)return;img._ready=false;img.src=paths[i++];};
+  img.onload=()=>{img._ready=true;img._source=img.src;if(onready)onready(img)};
+  img.onerror=next;next();return img;
+}
+const wallImages={top:[],left:null,right:null,bottom:null};
+WALL_CANDIDATES.top.forEach((paths,i)=>{wallImages.top[i]=loadImageWithFallback(paths)});
+wallImages.left=loadImageWithFallback(WALL_CANDIDATES.left);
+wallImages.right=loadImageWithFallback(WALL_CANDIDATES.right);
+wallImages.bottom=loadImageWithFallback(WALL_CANDIDATES.bottom);
+
 const characterSprites=new Image();
 let characterSpritesReady=false;
 characterSprites.onload=()=>{characterSpritesReady=true};
@@ -8,283 +47,174 @@ let enemySpritesReady=false;
 enemySprites.onload=()=>{enemySpritesReady=true};
 enemySprites.src='enemy-sprites.png';
 
-
-/* --------------------------------------------------------------------------
- * ROOM ENVIRONMENT
- * --------------------------------------------------------------------------
- * The environment is deliberately self-contained.  It owns only the room
- * floor, architectural walls and authored props.  Gameplay entities never
- * depend on the environment renderer, so a missing image can never stop the
- * update loop.
- */
-
-const TILE = 32;
-const COLS = 8;
-const ROWS = 12;
-const ROOM_X = 52;
-const ROOM_TOP = 50;
-const ROOM_BOTTOM = ROOM_TOP + ROWS * TILE;
-const ROOM_W = COLS * TILE;
-const ROOM_H = ROWS * TILE;
-
-const FLOOR_FILES = [
-  'floor-clean-1.png', 'floor-clean-2.png', 'floor-clean-3.png', 'floor-clean-4.png',
-  'floor-debris-1.png', 'floor-debris-2.png', 'floor-debris-3.png', 'floor-debris-4.png',
-  'floor-moss-1.png', 'floor-moss-2.png', 'floor-moss-3.png', 'floor-moss-4.png'
-];
-
-function loadImage(src) {
-  const image = new Image();
-  image.decoding = 'async';
-  image.ready = false;
-  image.onload = () => { image.ready = true; };
-  image.onerror = () => { image.ready = false; };
-  image.src = src;
-  return image;
-}
-
-const floorTiles = FLOOR_FILES.map(file => loadImage(file));
-
-const WALL_FILES = {
-  top: [
-    'walls/top/top-wall-clean-1.png',
-    'walls/top/top-wall-clean-2.png',
-    'walls/top/top-wall-clean-3.png',
-    'walls/top/top-wall-cracked-1.png',
-    'walls/top/top-wall-cracked-2.png',
-    'walls/top/top-wall-cracked-3.png',
-    'walls/top/top-wall-mossy-1.png',
-    'walls/top/top-wall-mossy-2.png',
-    'walls/top/top-wall-mossy-3.png'
-  ],
-  left: 'walls/left/left-wall-clean.png',
-  right: 'walls/right/right-wall-clean.png',
-  bottom: 'walls/bottom/bottom-wall-clean.png'
-};
-
-const wallImages = {
-  top: WALL_FILES.top.map(loadImage),
-  left: loadImage(WALL_FILES.left),
-  right: loadImage(WALL_FILES.right),
-  bottom: loadImage(WALL_FILES.bottom)
-};
-
-const PROP_FILES = {
-  torch1: 'assets/props/torch-1.png',
-  torch2: 'assets/props/torch-2.png',
-  torch3: 'assets/props/torch-3.png',
-  torch4: 'assets/props/torch-4.png',
-  chestClosed: 'assets/props/chest-closed.png',
-  chestOpen: 'assets/props/chest-open.png',
-  crate1: 'assets/props/crate-1.png',
-  crateStack: 'assets/props/crate-stack.png',
-  barrel: 'assets/props/barrel.png',
-  pottery: 'assets/props/pottery.png',
-  ruinedPillar: 'assets/props/ruined-pillar.png',
-  rubble: 'assets/props/rubble.png',
-  statue: 'assets/props/statue.png'
-};
-
-const propImages = Object.fromEntries(
-  Object.entries(PROP_FILES).map(([name, file]) => [name, loadImage(file)])
-);
-
-const DECOR_POOL = [
-  'chestClosed', 'chestOpen', 'crate1', 'crateStack',
-  'barrel', 'pottery', 'ruinedPillar', 'rubble', 'statue'
-];
-
-const TORCH_SLOTS = [
-  { x: 72, y: 88 },
-  { x: 288, y: 88 },
-  { x: 72, y: 122 },
-  { x: 288, y: 122 }
-];
-
-const PROP_SLOTS = [
-  { x: 108, y: 102 }, { x: 180, y: 102 }, { x: 252, y: 102 },
-  { x: 72, y: 190 }, { x: 288, y: 190 },
-  { x: 72, y: 282 }, { x: 288, y: 282 },
-  { x: 72, y: 374 }, { x: 288, y: 374 }
-];
-
-let roomTiles = [];
-let roomDecor = [];
-
-function roomRandom(offset = 0) {
-  const seed = area * 1009 + room * 131 + roomVariation * 17 + offset;
-  const value = Math.sin(seed * 12.9898) * 43758.5453;
-  return value - Math.floor(value);
-}
-
-function makeRoomLayout() {
-  const archetype = roomArchetype();
-
-  roomTiles = Array.from({ length: ROWS }, (_, y) =>
-    Array.from({ length: COLS }, (_, x) => {
-      const roll = roomRandom(y * COLS + x);
-      let family = 0;
-
-      if (archetype === 'RUINED CHAMBER') {
-        family = roll < 0.24 ? 2 : roll < 0.52 ? 1 : 0;
-      } else if (archetype === 'CHAPEL') {
-        family = roll < 0.12 ? 2 : roll < 0.28 ? 1 : 0;
-      } else if (archetype === 'PILLARED HALL') {
-        family = roll < 0.09 ? 2 : roll < 0.22 ? 1 : 0;
-      } else {
-        family = roll < 0.10 ? 2 : roll < 0.25 ? 1 : 0;
-      }
-
-      const variant = Math.floor(roomRandom(100 + y * COLS + x) * 4);
-      return family * 4 + variant;
-    })
-  );
-
-  // Keep the middle of the room visually clean and combat-friendly.
-  const centre = Math.floor(COLS / 2);
-  for (let y = 2; y < ROWS - 2; y++) {
-    if (roomTiles[y][centre] >= 4 && roomTiles[y][centre] < 8) {
-      roomTiles[y][centre] -= 4;
+let roomTiles=[],roomDecor=[];
+const TILE=32, COLS=8, ROWS=12;
+function makeRoomLayout(){
+  const rand=()=>{const n=Math.sin((roomVariation+1)*12.9898 + room*78.233 + area*37.719)*43758.5453;return n-Math.floor(n);};
+  roomTiles=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+  // 0.2.5b: the floor is now built from the approved 12-tile authored set.
+  // Clean stone dominates; debris and moss appear as controlled, clustered dressing.
+  const arch=roomArchetype();
+  for(let gy=0;gy<ROWS;gy++) for(let gx=0;gx<COLS;gx++){
+    const edge=gx===0||gx===COLS-1||gy===0||gy===ROWS-1;
+    let roll=rand();
+    let family=0;
+    if(arch==='RUINED CHAMBER'){
+      family=roll<.24?2:roll<.52?1:0;
+    }else if(arch==='CHAPEL'){
+      family=roll<.12?2:roll<.28?1:0;
+    }else if(arch==='PILLARED HALL'){
+      family=roll<.09?2:roll<.22?1:0;
+    }else{
+      family=roll<.10?2:roll<.25?1:0;
     }
+    // Moss hugs the outer stonework more often; debris favours corners and lower traffic.
+    const wallBias=Math.min(gx,COLS-1-gx,gy,ROWS-1-gy);
+    if(family===2 && wallBias>2 && roll>.55) family=0;
+    if(family===1 && wallBias===0 && roll<.35) family=2;
+    const variant=Math.floor(rand()*4);
+    roomTiles[gy][gx]=family*4+variant;
   }
-
-  const placed = [];
-  const occupied = new Set();
-
-  const addProp = (kind, x, y, torch = false) => {
-    const key = `${x}:${y}`;
-    if (occupied.has(key)) return false;
-    if (!torch && y > ROOM_BOTTOM - 55) return false;
-    if (!torch && Math.abs(x - W / 2) < 55 && y > ROOM_TOP + 55) return false;
-    if (x < ROOM_X + 16 || x > ROOM_X + ROOM_W - 16) return false;
-    if (y < ROOM_TOP + 16 || y > ROOM_BOTTOM - 16) return false;
-
-    occupied.add(key);
-    placed.push({ kind, x, y, torch });
-    return true;
+  // Clear a readable central combat lane without reverting to a repeating checkerboard.
+  for(let gy=2;gy<ROWS-2;gy++){
+    const gx=Math.floor(COLS/2);
+    if(roomTiles[gy][gx]>=4 && roomTiles[gy][gx]<8) roomTiles[gy][gx]=Math.floor(rand()*4);
+  }
+  // 0.2.5e: clear, deterministic edge decoration. The arena centre and bottom edge stay open.
+  roomDecor=[];
+  const candidates=[];
+  const addCandidate=(kind,x,y)=>{
+    if(x<58||x>302||y<72||y>392)return;
+    if(Math.abs(x-W/2)<52 && y>118)return; // protect the main combat lane
+    candidates.push({kind,x,y});
   };
+  // Upper and side-edge slots only; nothing is ever placed along the bottom edge.
+  [108,180,252].forEach(x=>addCandidate('top',x,102));
+  [190,282,374].forEach(y=>{addCandidate('left',72,y);addCandidate('right',288,y)});
 
-  // Every room gets 2–4 authored torches, kept away from the doors.
-  const torchCount = 2 + Math.floor(roomRandom(401) * 3);
-  const torchOrder = TORCH_SLOTS
-    .map((slot, index) => ({ slot, order: roomRandom(410 + index) }))
-    .sort((a, b) => a.order - b.order);
+  const seeded=(n)=>{const v=Math.sin((room+1)*127.1+(area+1)*311.7+(roomVariation+1)*71.9+n*19.37)*43758.5453;return v-Math.floor(v)};
+  const shuffle=(arr)=>{for(let i=arr.length-1;i>0;i--){const j=Math.floor(seeded(i*7.1)* (i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}return arr};
+  const distanceOk=(x,y,placed,min=34)=>placed.every(p=>Math.hypot(p.x-x,p.y-y)>=min);
+  const torchCount=2+Math.floor(seeded(41)*3); // 2–4, mandatory in every room.
+  const torchKinds=['torch1','torch2','torch3','torch4'];
+  const torchSlots=shuffle([
+    {x:72,y:88},{x:288,y:88},{x:72,y:122},{x:288,y:122}
+  ]).slice(0,torchCount);
+  const placed=[];
+  torchSlots.forEach((slot,i)=>{
+    const kind=torchKinds[Math.floor(seeded(70+i)*torchKinds.length)];
+    placed.push({kind,x:slot.x,y:slot.y,torch:true});
+  });
 
-  for (let i = 0; i < torchCount; i++) {
-    const slot = torchOrder[i].slot;
-    const kind = `torch${1 + Math.floor(roomRandom(420 + i) * 4)}`;
-    addProp(kind, slot.x, slot.y, true);
-  }
-
-  // Add 3–5 non-torch props, biased to the upper/side edges.
-  const propCount = 3 + Math.floor(roomRandom(600) * 3);
-  const propOrder = PROP_SLOTS
-    .map((slot, index) => ({ slot, order: roomRandom(500 + index) }))
-    .sort((a, b) => a.order - b.order);
-
-  let added = 0;
-  for (let i = 0; i < propOrder.length && added < propCount; i++) {
-    const kind = DECOR_POOL[Math.floor(roomRandom(610 + i) * DECOR_POOL.length)];
-    if (addProp(kind, propOrder[i].slot.x, propOrder[i].slot.y)) added++;
-  }
-
-  roomDecor = placed;
+  // 3–5 additional decorations, chosen from the new prop pool.
+  const decorationPool=['chestClosed','chestOpen','crate1','crateStack','barrel','pottery','ruinedPillar','rubble','statue'];
+  const decorCount=3+Math.floor(seeded(93)*3);
+  const available=shuffle(candidates.filter(c=>distanceOk(c.x,c.y,placed,38)));
+  const selected=available.slice(0,decorCount);
+  selected.forEach((slot,i)=>{
+    const kind=decorationPool[Math.floor(seeded(120+i)*decorationPool.length)];
+    if(distanceOk(slot.x,slot.y,placed,38)) placed.push({kind,x:slot.x,y:slot.y,torch:false});
+  });
+  roomDecor=placed;
 }
 
-function drawFloor() {
-  ctx.fillStyle = '#0b191c';
-  ctx.fillRect(ROOM_X, ROOM_TOP, ROOM_W, ROOM_H);
-  ctx.imageSmoothingEnabled = false;
-
-  for (let y = 0; y < ROWS; y++) {
-    for (let x = 0; x < COLS; x++) {
-      const index = roomTiles[y]?.[x] ?? 0;
-      const tile = floorTiles[index];
-      const dx = ROOM_X + x * TILE;
-      const dy = ROOM_TOP + y * TILE;
-
-      if (tile?.ready && tile.naturalWidth >= 32 && tile.naturalHeight >= 32) {
-        ctx.drawImage(tile, 0, 0, 32, 32, dx, dy, TILE, TILE);
-      } else {
-        // Safe visual fallback while an image is loading/missing.
-        ctx.fillStyle = '#15282b';
-        ctx.fillRect(dx, dy, TILE, TILE);
-        ctx.fillStyle = '#203638';
-        ctx.fillRect(dx + 1, dy + 1, TILE - 2, 2);
-        ctx.fillRect(dx + 1, dy + TILE - 3, TILE - 2, 2);
-      }
+function drawProp(kind,x,y){
+  const img=propImages[kind];
+  if(!img||!img._ready)return;
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(img,Math.round(x-16),Math.round(y-16),32,32);ctx.restore();
+}
+function topWallIndex(){
+  // Room archetype biases: ruined rooms favour cracked/mossy; cleaner rooms favour clean.
+  const arch=roomArchetype();
+  const r=((room*53+area*17+roomVariation*7)%100)/100;
+  let family=0;
+  if(arch==='RUINED CHAMBER') family=r<.42?1:r<.72?2:0;
+  else if(arch==='CHAPEL') family=r<.10?2:r<.26?1:0;
+  else family=r<.10?2:r<.30?1:0;
+  const variant=(roomVariation+room*3+area)%3;
+  return family*3+variant;
+}
+function drawWallImage(img,x,y,w,h,sourceY=0,sourceH=null){
+  if(!img||!img._ready)return false;
+  const sh=sourceH??img.naturalHeight??img.height;
+  ctx.drawImage(img,0,sourceY,img.naturalWidth||img.width,sh,x,y,w,h);return true;
+}
+function drawWalls(){
+  const top=wallImages.top[topWallIndex()];
+  if(top&&top._ready){
+    const sourceH=(top.naturalHeight||top.height);
+    // Root fallback cracked/mossy files are three 50px variants stacked vertically.
+    let sy=0,sh=sourceH;
+    if((top._source||'').endsWith('top-wall-cracked.png') || (top._source||'').endsWith('top-wall-mossy.png')){
+      sy=(topWallIndex()%3)*50;sh=50;
     }
+    drawWallImage(top,0,16,W,50,sy,sh);
   }
+  drawWallImage(wallImages.left,0,16,52,H-66);
+  drawWallImage(wallImages.right,W-50,16,50,H-66);
+  drawWallImage(wallImages.bottom,0,H-50,W,50);
 }
 
-function drawWallImage(image, x, y, width, height) {
-  if (!image?.ready) return false;
-  ctx.drawImage(image, 0, 0, image.naturalWidth, image.naturalHeight, x, y, width, height);
-  return true;
-}
-
-function drawWalls() {
-  const archetype = roomArchetype();
-  const variant = (roomVariation + room + area) % 3;
-  let topSet = wallImages.top.slice(0, 3);
-
-  if (archetype === 'RUINED CHAMBER') topSet = wallImages.top.slice(3, 6);
-  else if (variant === 2) topSet = wallImages.top.slice(6, 9);
-
-  const top = topSet[variant];
-  const topDrawn = drawWallImage(top, 0, 0, W, ROOM_TOP);
-  const leftDrawn = drawWallImage(wallImages.left, 0, 0, ROOM_X, H);
-  const rightDrawn = drawWallImage(wallImages.right, W - ROOM_X, 0, ROOM_X, H);
-  const bottomDrawn = drawWallImage(wallImages.bottom, 0, ROOM_BOTTOM, W, H - ROOM_BOTTOM);
-
-  // Never leave a completely empty room edge if an asset is unavailable.
-  ctx.fillStyle = '#13282b';
-  if (!topDrawn) ctx.fillRect(0, 0, W, ROOM_TOP);
-  if (!leftDrawn) ctx.fillRect(0, 0, ROOM_X, H);
-  if (!rightDrawn) ctx.fillRect(W - ROOM_X, 0, ROOM_X, H);
-  if (!bottomDrawn) ctx.fillRect(0, ROOM_BOTTOM, W, H - ROOM_BOTTOM);
-}
-
-function drawProps() {
-  ctx.imageSmoothingEnabled = false;
-
-  for (const prop of roomDecor) {
-    const image = propImages[prop.kind];
-    if (!image?.ready) continue;
-    ctx.drawImage(image, Math.round(prop.x - 16), Math.round(prop.y - 16), 32, 32);
+function floorTileReady(index){return !!(floorTiles[index]&&floorTiles[index]._ready)}
+function drawFloorTile(index,x,y,size=TILE){
+  if(floorSheetReady){
+    const sx=(index%4)*32,sy=Math.floor(index/4)*32;
+    ctx.drawImage(floorSheet,sx,sy,32,32,x,y,size,size);return true;
   }
+  const img=floorTiles[index];
+  if(floorTileReady(index)){ctx.drawImage(img,0,0,32,32,x,y,size,size);return true;}
+  return false;
 }
-
-function drawTorchLight() {
-  const now = performance.now() * 0.004;
-
-  for (const torch of roomDecor) {
-    if (!torch.torch) continue;
-
-    const pulse = 0.14 + 0.035 * Math.sin(now + torch.x * 0.03);
-    const glow = ctx.createRadialGradient(
-      torch.x, torch.y - 8, 2,
-      torch.x, torch.y - 8, 42
-    );
-    glow.addColorStop(0, `rgba(255, 154, 58, ${pulse})`);
-    glow.addColorStop(1, 'rgba(255, 120, 30, 0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(torch.x - 44, torch.y - 52, 88, 88);
+function floorIndexForCell(gx,gy){
+  let idx=roomTiles[gy]?.[gx]??0;
+  const arch=roomArchetype();
+  if((arch==='GUARD ROOM'||arch==='PILLARED HALL') && gx>=3 && gx<=7 && gy>=3 && gy<=10 && idx>=4 && idx<8) idx-=4;
+  return idx;
+}
+function drawBrokenMasonry(seedBase,arch){
+  const left=52,top=66,roomW=COLS*TILE,roomH=ROWS*TILE;
+  ctx.fillStyle='#071316';ctx.fillRect(0,0,W,H);
+  ctx.imageSmoothingEnabled=false;
+  ctx.save();ctx.beginPath();ctx.rect(left,top,roomW,roomH);ctx.clip();
+  for(let gy=0;gy<ROWS;gy++) for(let gx=0;gx<COLS;gx++){
+    drawFloorTile(floorIndexForCell(gx,gy),left+gx*TILE,top+gy*TILE,TILE);
   }
-}
-
-function drawRoomEnvironment() {
-  ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  drawFloor();
-  drawWalls();
-  drawProps();
-  drawTorchLight();
   ctx.restore();
+  // Fill the non-room area, leaving the architectural wall pieces to define the border.
+  ctx.fillStyle='#071316';
+  ctx.fillRect(0,0,left, H);
+  ctx.fillRect(left+roomW,0,W-(left+roomW),H);
+  ctx.fillRect(left,0,roomW,top);
+  ctx.fillRect(left,top+roomH,roomW,H-(top+roomH));
+  const vg=ctx.createLinearGradient(0,top,0,top+roomH);
+  vg.addColorStop(0,'rgba(0,0,0,.16)');vg.addColorStop(.15,'rgba(0,0,0,0)');vg.addColorStop(.82,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.24)');
+  ctx.fillStyle=vg;ctx.fillRect(left,top,roomW,roomH);
 }
 
+function drawModularDungeon(){
+  ctx.fillStyle=P.ink;ctx.fillRect(0,0,W,H);
+  const arch=roomArchetype();
+  const seedBase=roomVariation*997+room*131+area*17;
+  ctx.save();ctx.imageSmoothingEnabled=false;
+  drawBrokenMasonry(seedBase,arch);
+  ctx.restore();
+
+  // New authored architecture replaces the legacy modular wall/prop dressing.
+  drawWalls();
+
+  // New props are deliberately sparse and edge-biased; centre and bottom remain clear.
+  for(const d of roomDecor) drawProp(d.kind,d.x,d.y);
+
+  // Warm light around the mandatory torches, without drawing the old procedural torch sprites.
+  const now=performance.now()/1000;
+  for(const d of roomDecor) if(d.torch){
+    const g=ctx.createRadialGradient(d.x,d.y-10,2,d.x,d.y-10,42);
+    g.addColorStop(0,`rgba(255,154,58,${.16+.04*Math.sin(now*4+d.x)})`);
+    g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(d.x-44,d.y-54,88,88);
+  }
+}
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
-const VERSION='0.2.5g';
+const VERSION='0.2.5gg';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
@@ -324,6 +254,7 @@ function clampEnemySeparation(){
   if(d<min){const push=(min-d)/2,ux=dx/d,uy=dy/d;a.x-=ux*push;a.y-=uy*push;b.x+=ux*push;b.y+=uy*push;}
  }
 }
+function nearestGoblins(){return enemies.filter(e=>e.type==='goblin').sort((a,b)=>dist(a,player)-dist(b,player))}
 const SCORE_VALUES={bat:50,goblin:75,skeleton:100,boss:1000};
 let highScores=[];
 try{highScores=JSON.parse(localStorage.getItem('dungeonSurvivorHighScores')||'[]');if(!Array.isArray(highScores))highScores=[]}catch(e){highScores=[]}
@@ -380,7 +311,7 @@ function chooseEnemyType(weights){
  const r=Math.random();let acc=0;for(const [type,w] of weights){acc+=w;if(r<=acc)return type}return weights[weights.length-1][0];
 }
 function resetRoom(){
- player.x=64;player.y=H/2;player.hp=clamp(player.hp,0,player.maxHp);roomVariation=(room*37+area*101)%997;makeRoomLayout();player.flash=0;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;
+ player.x=58;player.y=H/2;player.hp=clamp(player.hp,0,player.maxHp);roomVariation=(room*37+area*101)%997;makeRoomLayout();player.flash=0;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;
  enemies=[];loot=[];slashes=[];deathMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=false;atShop=false;areaComplete=false;areaClearTimer=0;areaClearShown=false;bossWarningTimer=0;setBossWarning('');
  spawnQueue=[];spawnTimer=.35;totalSpawned=0;bossPatternTimer=1.1;bossPatternStep=0;bossPatternMode='burst';
  const isBoss=room===bossRoom;
@@ -434,6 +365,7 @@ function activateEntrance(ent){
 }
 
 function isBossRoom(){return room===bossRoom}
+function bossDefeated(){return room===bossRoom && roomCleared}
 function beginAreaShop(){
  atShop=true;areaComplete=true;shopMessage=`${areaName} COMPLETE — spend your gold before the next area.`;
  msg('AREA COMPLETE — CHOOSE YOUR UPGRADES');
@@ -529,8 +461,8 @@ function update(dt){
  if(joy.active){mx=joy.x;my=joy.y}
  const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l}
  if(l>.12){facing=Math.atan2(my,mx);facingDir=dirFromAngle(facing)}
- player.x=clamp(player.x+mx*player.speed*dt,58,W-58);player.y=clamp(player.y+my*player.speed*dt,58,H-58);
- player.x=clamp(player.x,58,W-58);player.y=clamp(player.y,58,H-58);
+ player.x=clamp(player.x+mx*player.speed*dt,30,W-30);player.y=clamp(player.y+my*player.speed*dt,70,H-70);
+ player.x=clamp(player.x,30,W-30);player.y=clamp(player.y,70,H-70);
  // Keep the player outside the Guardian's body, while leaving enough overlap-free distance for sword reach to connect.
  const guardian=enemies.find(e=>e.type==='boss');
  if(guardian){const minD=guardian.r+player.r+6;const dx=player.x-guardian.x,dy=player.y-guardian.y,d=Math.hypot(dx,dy);if(d>0&&d<minD){player.x=guardian.x+dx/d*minD;player.y=guardian.y+dy/d*minD;}}
@@ -640,13 +572,13 @@ function update(dt){
     if(bossPatternTimer>=3.6){e.patternActive=false;e.attackTimer=5.4;}
    }
   }
-  e.x=clamp(e.x,58,W-58);e.y=clamp(e.y,58,H-58);
+  e.x=clamp(e.x,32,W-32);e.y=clamp(e.y,72,H-72);
   if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){damagePlayer(e.type==='boss'?Math.round(30*enemyDamageScale()):Math.round(22*enemyDamageScale()),e.x,e.y,e.type==='boss'?1.2:.55,'normal')}
   if(player.hp<=0){player.hp=0;finishGameOver()}
  }
  clampEnemySeparation();
 
- for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.age+=dt;q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<50||q.x>W-50||q.y<50||q.y>H-50){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){if(damagePlayer(q.damage,q.x,q.y,q.type==='fireball'?1.0:.85,q.type==='fireball'||q.type==='fireblast'?'fire':'normal'))projectiles.splice(i,1);else projectiles.splice(i,1)}}
+ for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.age+=dt;q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){if(damagePlayer(q.damage,q.x,q.y,q.type==='fireball'?1.0:.85,q.type==='fireball'||q.type==='fireblast'?'fire':'normal'))projectiles.splice(i,1);else projectiles.splice(i,1)}}
 
  for(let i=slashes.length-1;i>=0;i--){
   const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const reach=s.reach||playerWeapon().reach;const centre=s.angle+s.side*(Math.PI*.40-(Math.min(1,progress)*Math.PI*.80));
@@ -667,7 +599,7 @@ function update(dt){
  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0);
  if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){roomCleared=true;roomsCleared++;msg('ROOM CLEARED  •  WALK TO EXIT »');burst(W/2,H/2,'clear',18)}
  if(isBossRoom()&&enemies.length===0&&!roomCleared){roomCleared=true;msg(`AREA ${area} COMPLETE  •  WALK TO EXIT »`)}
- if(roomCleared&&!atShop&&!weaponPromptOpen){const ex={x:W-58,y:H/2};if(Math.abs(player.x-ex.x)<24&&Math.abs(player.y-ex.y)<58){if(isBossRoom())beginAreaShop();else if(weaponFinds.length){pendingWeaponIndex=0;weaponPromptOpen=true;openWeaponPrompt();}else{room++;resetRoom();showPickup(`Entering room ${room}`)}}}
+ if(roomCleared&&!atShop&&!weaponPromptOpen){const ex={x:W-22,y:H/2};if(Math.abs(player.x-ex.x)<30&&Math.abs(player.y-ex.y)<66){if(isBossRoom())beginAreaShop();else if(weaponFinds.length){pendingWeaponIndex=0;weaponPromptOpen=true;openWeaponPrompt();}else{room++;resetRoom();showPickup(`Entering room ${room}`)}}}
  updateHud();
 }
 function shootProjectile(x,y,a,speed,damage,type){projectiles.push({x,y,a,speed,damage,r:type==='arrow'?4:7,life:type==='arrow'?2.6:3.2,type,age:0})}
@@ -679,46 +611,66 @@ function pixelRect(x,y,w,h,fill){ctx.fillStyle=fill;ctx.fillRect(Math.round(x),M
 function text(t,x,y,size,fill,align='left'){ctx.fillStyle=fill;ctx.font=`700 ${size}px ui-monospace,monospace`;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.fillText(t,x,y)}
 function panel(x,y,w,h){pixelRect(x,y,w,h,'#061619e8');ctx.strokeStyle='#376566';ctx.lineWidth=2;ctx.strokeRect(x,y,w,h)}
 
-function drawDungeon() {
-  // One environment pass: floor -> walls -> props -> torch light.
-  drawRoomEnvironment();
+function drawDungeon(){
+  // 0.2.5: gameplay HUD lives in the slim banner above the world.
+  ctx.fillStyle=P.ink;ctx.fillRect(0,0,W,H);
+  drawModularDungeon();
 }
-function drawBone(x, y, rotation) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(rotation);
-  pixelRect(-18, -2, 36, 4, '#9c9a85');
-  pixelRect(-17, -6, 5, 5, P.cream);
-  pixelRect(12, 1, 5, 5, P.cream);
-  ctx.restore();
+function drawRoomArchetypeDetail(){
+ const a=roomArchetype();
+ if(a==='GREAT HALL'){for(let x=78;x<W-58;x+=58){drawBanner(x,18)}}
+ if(a==='PILLARED HALL'){for(let y=150;y<350;y+=72){drawPillar(58,y);drawPillar(W-58,y)}}
+ if(a==='RUINED CHAMBER'){for(let i=0;i<5;i++)drawRubble(70+(i*61)%220,115+(i*43)%255,i%3)}
+ if(a==='CHAPEL'){drawAltar(W/2,116);for(let x=85;x<=275;x+=95)drawCandle(x,142)}
+ if(a==='GUARD ROOM'){drawTable(W/2,126);drawWeaponRack(55,165);drawWeaponRack(W-55,165)}
+ if(a==='CROSS HALL'){drawFloorCross();}
+ text(a,W/2,82,7,'#78918a','center');
 }
-
-function drawBlood(x, y, colour) {
-  for (let i = 0; i < 8; i++) {
-    const angle = i * 1.7;
-    const radius = 6 + ((i * 13) % 17);
-    pixelRect(
-      x + Math.cos(angle) * radius,
-      y + Math.sin(angle) * radius * 0.55,
-      2 + (i % 3),
-      2 + (i % 2),
-      colour
-    );
-  }
+function drawTorchLight(){
+ const torches=[[55,42],[W-82,42],[55,H-95],[W-82,H-95]];
+ for(const [x,y] of torches){const g=ctx.createRadialGradient(x,y-8,2,x,y-8,52);g.addColorStop(0,'rgba(82,216,192,.13)');g.addColorStop(1,'rgba(82,216,192,0)');ctx.fillStyle=g;ctx.fillRect(x-54,y-62,108,108)}
 }
-
-function drawBonePile(x, y) {
-  drawBone(x - 5, y - 2, -0.65);
-  drawBone(x + 6, y + 3, 0.7);
+function drawAltar(x,y){pixelRect(x-36,y,72,12,'#132a2e');pixelRect(x-28,y-15,56,15,P.stone);pixelRect(x-19,y-28,38,13,'#315454');pixelRect(x-3,y-24,6,7,P.teal2)}
+function drawCandle(x,y){pixelRect(x-2,y-10,4,10,'#d4c18a');pixelRect(x,y-15,3,6,P.teal2)}
+function drawTable(x,y){pixelRect(x-34,y,68,9,'#59472f');pixelRect(x-27,y+8,6,22,'#493b29');pixelRect(x+21,y+8,6,22,'#493b29')}
+function drawWeaponRack(x,y){pixelRect(x-5,y,10,42,'#493b29');for(let i=-1;i<=1;i++)drawSwordAt(x+i*10,y+8,'shortSword',-1.15,1,.55)}
+function drawFloorCross(){pixelRect(W/2-10,105,20,250,'#162f32');pixelRect(72,215,216,20,'#162f32');for(let i=0;i<4;i++)pixelRect(80+i*68,208,8,8,P.moss)}
+function drawRoomVariation(){
+ const v=roomVariation;
+ // Pillars: chunky but purely decorative, positioned away from the entrance/exit lanes.
+ const pillarSets=[
+  [[108,118],[252,362]],
+  [[104,352],[256,118]],
+  [[108,122],[108,358],[252,122],[252,358]],
+  [[150,118],[250,300]],
+  [[105,300],[255,180]],
+  []
+ ];
+ const pillars=pillarSets[v%pillarSets.length];
+ for(const p of pillars)drawPillar(p[0],p[1]);
+ // Wall alcoves/niches create a different silhouette without changing collision.
+ const alcoveSide=v%4;
+ if(alcoveSide!==3)drawAlcove(alcoveSide===0?'left':'right',118+(v%3)*76);
+ if(v%5===1)drawAlcove('left',318);
+ // Small debris clusters vary the floor dressing.
+ const rubbleCount=2+(v%4);
+ for(let i=0;i<rubbleCount;i++){
+  const x=82+((v*43+i*71)%196),y=120+((v*29+i*83)%250);
+  if(Math.abs(x-58)<34&&Math.abs(y-H/2)<72)continue;
+  if(Math.abs(x-(W-22))<34&&Math.abs(y-H/2)<72)continue;
+  drawRubble(x,y,(v+i)%3);
+ }
 }
-
-function drawDeathMarks() {
-  for (const mark of deathMarks) {
-    if (mark.type === 'skeleton') drawBonePile(mark.x, mark.y);
-    else if (mark.type === 'bat' || mark.type === 'boss') drawBlood(mark.x, mark.y, '#7a3035');
-    else drawBlood(mark.x, mark.y, '#3b7b45');
-  }
-}
+function drawPillar(x,y){ctx.save();ctx.shadowBlur=8;ctx.shadowColor='#0a1719';pixelRect(x-13,y-13,26,34,'#122a2d');pixelRect(x-10,y-9,20,29,P.stone);pixelRect(x-14,y-15,28,7,P.wall2);pixelRect(x-14,y+19,28,7,P.wall2);pixelRect(x-5,y-5,4,18,'#3a5b59');pixelRect(x+4,y-3,3,15,'#1d393c');ctx.restore()}
+function drawAlcove(side,y){const x=side==='left'?12:W-12,dir=side==='left'?1:-1;ctx.save();pixelRect(x,y-34,dir*24,68,'#081619');pixelRect(x+dir*3,y-29,dir*18,58,'#0d2528');pixelRect(x+dir*7,y-24,dir*11,48,'#102c30');pixelRect(x+dir*2,y-38,dir*22,6,P.wall2);pixelRect(x+dir*2,y+32,dir*22,6,P.wall2);ctx.restore()}
+function drawRubble(x,y,type){ctx.save();ctx.translate(x,y);ctx.rotate((type-1)*.18);pixelRect(-7,0,8,6,'#52615a');pixelRect(2,-4,7,7,P.stone);pixelRect(-2,-8,5,4,'#314b4b');if(type===2)pixelRect(8,2,4,3,P.moss);ctx.restore()}
+function drawBanner(x,y){ctx.save();ctx.translate(x,y);pixelRect(-18,0,36,6,'#6d5630');pixelRect(-14,5,28,39,'#163e3b');pixelRect(-10,9,20,26,'#245650');pixelRect(-3,15,6,8,P.teal);pixelRect(-6,18,12,3,P.teal);ctx.fillStyle='#c7a65a';ctx.beginPath();ctx.moveTo(-14,44);ctx.lineTo(0,55);ctx.lineTo(14,44);ctx.closePath();ctx.fill();ctx.restore()}
+function drawSkullShrine(x,y){ctx.save();ctx.shadowBlur=10;ctx.shadowColor='#142f31';pixelRect(x-30,y-2,60,30,'#10262a');pixelRect(x-24,y-15,48,15,P.wall2);text('☠',x,y+18,31,'#7c9181','center');ctx.restore()}
+function drawBone(x,y,r){ctx.save();ctx.translate(x,y);ctx.rotate(r);pixelRect(-18,-2,36,4,'#9c9a85');pixelRect(-17,-6,5,5,P.cream);pixelRect(12,1,5,5,P.cream);ctx.restore()}
+function drawBlood(x,y,col){ctx.fillStyle=col;for(let i=0;i<8;i++){const a=i*1.7;const rr=6+((i*13)%17);pixelRect(x+Math.cos(a)*rr,y+Math.sin(a)*rr*.55,2+(i%3),2+(i%2),ctx.fillStyle)}}
+function drawBonePile(x,y){drawBone(x-5,y-2,-.65);drawBone(x+6,y+3,.7)}
+function drawDeathMarks(){for(const m of deathMarks){if(m.type==='skeleton')drawBonePile(m.x,m.y);else if(m.type==='bat'||m.type==='boss')drawBlood(m.x,m.y,'#7a3035');else drawBlood(m.x,m.y,'#3b7b45')}}
+function drawTorch(x,y){const t=performance.now()/115+x*.04;const wobble=Math.sin(t)*2;ctx.save();ctx.shadowBlur=24+Math.sin(t*.7)*5;ctx.shadowColor=P.teal;pixelRect(x-8,y,16,28,'#5b655d');pixelRect(x-5,y+5,10,19,'#2b4543');ctx.fillStyle=P.teal2;ctx.beginPath();ctx.moveTo(x+wobble,y-21-Math.sin(t)*2);ctx.lineTo(x+9,y-5);ctx.lineTo(x+Math.sin(t*1.3)*2,y+4);ctx.lineTo(x-9,y-5);ctx.closePath();ctx.fill();ctx.fillStyle=P.teal;ctx.beginPath();ctx.moveTo(x+wobble*.5,y-15);ctx.lineTo(x+4,y-5);ctx.lineTo(x,y);ctx.lineTo(x-4,y-5);ctx.closePath();ctx.fill();ctx.restore()}
 
 function drawSwordAt(x,y,weaponKeyOrInstance,angle,alpha=1,scale=1){
  const w=weaponKeyOrInstance?.id?weaponKeyOrInstance:(WEAPONS[weaponKeyOrInstance]||WEAPONS.shortSword);
@@ -823,15 +775,27 @@ function drawLoot(l){
  ctx.restore();
 }
 
-function drawEntranceDoor(){}
+function drawEntranceDoor(){
+ const x=12,y=H/2;ctx.save();
+ pixelRect(x,y-54,24,108,'#081619');pixelRect(x,y-48,20,96,'#173336');pixelRect(x+3,y-44,17,88,'#0d2528');
+ ctx.strokeStyle='#376566';ctx.lineWidth=3;ctx.strokeRect(x+1,y-50,21,100);
+ // Deep black threshold and subtle interior glow suggest the room lies beyond it.
+ pixelRect(x+4,y-42,14,84,'#061316');
+ pixelRect(x+7,y-30,2,60,'#29494a');
+ text('ENTER',x+12,y+65,7,'#78918a','center');
+ ctx.restore();
+}
 function drawExit(){
-  const x=W-54,y=H/2;
-  if(!roomCleared){
-    ctx.save();
-    pixelRect(x-9,y-9,18,20,'#6d5a34');pixelRect(x-6,y-13,12,10,'#b9a56b');
-    ctx.strokeStyle='#172124';ctx.lineWidth=3;ctx.strokeRect(x-4,y-10,8,10);pixelRect(x-2,y-3,4,5,'#172124');
-    ctx.restore();
-  }
+ const x=W-12,y=H/2;ctx.save();
+ // Door is recessed into the right wall.
+ pixelRect(x-24,y-54,24,108,'#081619');pixelRect(x-20,y-48,20,96,'#173336');pixelRect(x-17,y-44,17,88,'#0d2528');
+ ctx.strokeStyle=P.teal2;ctx.lineWidth=3;ctx.strokeRect(x-21,y-50,21,100);
+ text('»',x-9,y+12,38,P.teal2,'center');
+ if(!roomCleared){
+  pixelRect(x-14,y-9,18,20,'#6d5a34');pixelRect(x-11,y-13,12,10,'#b9a56b');
+  ctx.strokeStyle='#172124';ctx.lineWidth=3;ctx.strokeRect(x-9,y-10,8,10);pixelRect(x-7,y-3,4,5,'#172124');
+ }else text('EXIT',x-9,y+65,8,P.cream,'center');
+ ctx.restore();
 }
 function drawShop(){
  ctx.fillStyle='#02090ae8';ctx.fillRect(10,55,W-20,H-110);
