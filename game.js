@@ -59,85 +59,57 @@ function modularProp(kind,x,y){
   ctx.drawImage(modularProps,sx,0,48,48,Math.round(x-24),Math.round(y-24),48,48);
 }
 function drawBrokenMasonry(seedBase, arch){
-  // 0.2.1c: finer ancient masonry. The floor is still generated from reusable
-  // polygons, but the visual scale is much closer to the reference artwork.
+  // 0.2.3: use the authored modular atlas as the actual room surface.
+  // Each 24px cell is a real reusable tile; variation is selected per cell so
+  // the room is constructed, not a single baked background image.
   const left=24, top=24, right=W-24, bottom=H-24;
-  const cols=10, rows=16;
+  const cols=Math.floor((right-left)/24), rows=Math.floor((bottom-top)/24);
   const seeded=(n)=>{const v=Math.sin(seedBase+n*12.9898)*43758.5453;return v-Math.floor(v)};
-  const pts=[];
-  for(let gy=0;gy<=rows;gy++){
-    const row=[];
-    for(let gx=0;gx<=cols;gx++){
-      const edge=gx===0||gx===cols||gy===0||gy===rows;
-      const baseX=left+(right-left)*(gx/cols);
-      const baseY=top+(bottom-top)*(gy/rows);
-      const jx=edge?0:(seeded(gy*41+gx*7)-.5)*8;
-      const jy=edge?0:(seeded(gy*53+gx*11)-.5)*5;
-      row.push({x:baseX+jx,y:baseY+jy});
-    }
-    pts.push(row);
-  }
-  ctx.fillStyle='#101f21';ctx.fillRect(left,top,right-left,bottom-top);
-  const fills=['#26393a','#293d3d','#233738','#2c4140','#273b3c','#304342','#25393a','#2a3e3f','#223536'];
+  ctx.fillStyle='#0b1719';ctx.fillRect(left,top,right-left,bottom-top);
+  ctx.imageSmoothingEnabled=false;
+  // Floor: eight related stone samples from the modular atlas.
   for(let gy=0;gy<rows;gy++) for(let gx=0;gx<cols;gx++){
-    const a=pts[gy][gx],b=pts[gy][gx+1],c=pts[gy+1][gx+1],d=pts[gy+1][gx];
-    const v=Math.floor(seeded(400+gy*cols+gx)*fills.length);
-    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.lineTo(c.x,c.y);ctx.lineTo(d.x,d.y);ctx.closePath();
-    ctx.fillStyle=fills[v];ctx.fill();
-    // Subtle masonry seams: never a heavy black grid.
-    ctx.strokeStyle='rgba(9,20,21,.42)';ctx.lineWidth=.75;ctx.stroke();
-    // Broken highlight/shadow fragments give each slab a worn, dimensional edge.
-    if((gx+gy)%3!==0){
-      ctx.strokeStyle='rgba(103,121,111,.16)';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(a.x+2,a.y+1);ctx.lineTo(b.x-4,a.y+1);ctx.stroke();
-    }
-    if(v===1||v===5){
-      ctx.fillStyle='rgba(9,18,19,.16)';
-      ctx.beginPath();ctx.moveTo(a.x+4,a.y+4);ctx.lineTo(b.x-8,a.y+3);ctx.lineTo(c.x-5,c.y-5);ctx.lineTo(d.x+5,d.y-4);ctx.closePath();ctx.fill();
-    }
+    let variant=Math.floor(seeded(100+gy*cols+gx)*8);
+    // A few broad lanes get slightly calmer stone so combat remains readable.
+    if(Math.abs(gx-6.5)<1.2 && gy>1 && gy<rows-2) variant=(variant+2)%8;
+    atlasTile(variant*24,0,left+gx*24,top+gy*24);
   }
-  // Fine surface wear: tiny chips, mineral flecks and moss that do not follow the grid.
-  for(let i=0;i<155;i++){
+  // Wall ring: the second atlas row is a genuine repeatable brick/wall strip.
+  for(let gx=0;gx<cols;gx++){
+    atlasTile((gx%8)*24,24,left+gx*24,0);
+    atlasTile(((gx+3)%8)*24,24,left+gx*24,bottom);
+  }
+  for(let gy=0;gy<rows;gy++){
+    atlasTile((gy%8)*24,24,0,top+gy*24);
+    atlasTile(((gy+4)%8)*24,24,right,top+gy*24);
+  }
+  // Ancient wear: fine chips, mineral flecks and cracks sit on top of the tiles.
+  for(let i=0;i<125;i++){
     const x=left+5+seeded(700+i*3.1)*(right-left-10);
     const y=top+5+seeded(900+i*4.7)*(bottom-top-10);
-    if(arch!=='GUARD ROOM' && Math.abs(x-W/2)<22 && y>82 && y<408) continue;
     const kind=i%9;
     if(kind<=3){
-      ctx.fillStyle=kind===0?'rgba(126,137,122,.22)':kind===1?'rgba(12,24,25,.30)':kind===2?'rgba(161,142,99,.12)':'rgba(83,103,94,.18)';
+      ctx.fillStyle=kind===0?'rgba(154,160,143,.18)':kind===1?'rgba(5,14,15,.28)':kind===2?'rgba(191,161,103,.10)':'rgba(71,104,94,.16)';
       pixelRect(x,y,1+(i%2),1+(i%2),ctx.fillStyle);
     }else if(kind===4||kind===5){
-      ctx.fillStyle='rgba(47,89,67,.24)';
-      pixelRect(x-2,y,3+(i%3),1,ctx.fillStyle);pixelRect(x-1,y+1,1+(i%2),2,ctx.fillStyle);
-    }else if(kind===6){
-      ctx.fillStyle='rgba(92,72,55,.18)';pixelRect(x,y,2,1,ctx.fillStyle);
-    }
+      ctx.fillStyle='rgba(40,91,68,.25)';pixelRect(x-2,y,3+(i%3),1,ctx.fillStyle);pixelRect(x-1,y+1,1+(i%2),2,ctx.fillStyle);
+    }else if(kind===6){ctx.fillStyle='rgba(88,65,49,.20)';pixelRect(x,y,2,1,ctx.fillStyle)}
   }
-  // Short cracks are more numerous and finer; a few deliberately cross seams.
-  ctx.strokeStyle='rgba(10,22,23,.48)';ctx.lineWidth=1;
-  for(let i=0;i<27;i++){
-    let x=left+8+seeded(1200+i)*(right-left-16);
-    let y=top+10+seeded(1400+i)*(bottom-top-20);
+  ctx.strokeStyle='rgba(8,19,20,.62)';ctx.lineWidth=1;
+  for(let i=0;i<25;i++){
+    let x=left+8+seeded(1200+i)*(right-left-16),y=top+10+seeded(1400+i)*(bottom-top-20);
     ctx.beginPath();ctx.moveTo(x,y);
     const steps=2+(i%4);
-    for(let k=0;k<steps;k++){
-      x+=3+seeded(1600+i*5+k)*7;y+=(-3+seeded(1800+i*7+k)*7);ctx.lineTo(x,y);
-    }
+    for(let k=0;k<steps;k++){x+=3+seeded(1600+i*5+k)*7;y+=(-3+seeded(1800+i*7+k)*7);ctx.lineTo(x,y)}
     ctx.stroke();
-    if(i%6===0){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-4,y+5);ctx.lineTo(x-1,y+8);ctx.stroke();}
+    if(i%6===0){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-4,y+5);ctx.lineTo(x-1,y+8);ctx.stroke()}
   }
-  // Occasional larger broken slabs: irregular outlines, not another visible grid.
-  for(let i=0;i<10;i++){
-    const x=left+20+seeded(2200+i)*(right-left-40), y=top+25+seeded(2400+i)*(bottom-top-50);
-    const w=8+seeded(2600+i)*17, h=5+seeded(2800+i)*11;
-    ctx.strokeStyle='rgba(9,20,21,.38)';ctx.lineWidth=1;ctx.beginPath();
-    ctx.moveTo(x,y);ctx.lineTo(x+w*.55,y-2);ctx.lineTo(x+w,y+h*.35);ctx.lineTo(x+w*.72,y+h);ctx.lineTo(x+w*.18,y+h*.8);ctx.lineTo(x-2,y+h*.35);ctx.closePath();ctx.stroke();
-  }
-  // High-traffic worn patches keep the centre visually varied without obstructing it.
-  for(let i=0;i<8;i++){
-    const x=55+seeded(3100+i)*190,y=80+seeded(3300+i)*300;
-    ctx.fillStyle='rgba(112,108,82,.045)';ctx.beginPath();ctx.ellipse(x,y,18+seeded(3500+i)*18,7+seeded(3700+i)*9,seeded(3900+i)*Math.PI,0,Math.PI*2);ctx.fill();
-  }
+  // A restrained inner vignette makes the live sprites sit into the environment.
+  const vg=ctx.createRadialGradient(W/2,H/2,70,W/2,H/2,245);
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(.72,'rgba(0,0,0,.04)');vg.addColorStop(1,'rgba(0,0,0,.34)');
+  ctx.fillStyle=vg;ctx.fillRect(left,top,right-left,bottom-top);
 }
+
 
 function drawModularDungeon(){
   ctx.fillStyle=P.ink;ctx.fillRect(0,0,W,H);
@@ -173,7 +145,7 @@ function drawModularDungeon(){
   text(arch,W/2,64,7,'#78918a','center');
 }
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
-const VERSION='0.2.2';
+const VERSION='0.2.3';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
@@ -560,9 +532,31 @@ function text(t,x,y,size,fill,align='left'){ctx.fillStyle=fill;ctx.font=`700 ${s
 function panel(x,y,w,h){pixelRect(x,y,w,h,'#061619e8');ctx.strokeStyle='#376566';ctx.lineWidth=2;ctx.strokeRect(x,y,w,h)}
 
 function drawDungeon(){
-  // 0.2.1: genuine modular room construction from reusable 24px tiles.
+  // 0.2.3: textured modular dungeon presentation.
   ctx.fillStyle=P.ink;ctx.fillRect(0,0,W,H);
   drawModularDungeon();
+  drawGameplayHud();
+}
+function drawGameplayHud(){
+  // Compact in-canvas HUD inspired by the original design sheet.
+  ctx.save();
+  ctx.fillStyle='rgba(3,10,12,.78)';ctx.fillRect(6,6,126,52);
+  ctx.strokeStyle='rgba(82,216,192,.45)';ctx.lineWidth=1;ctx.strokeRect(6.5,6.5,125,51);
+  text('♥',14,22,10,'#d85a60');text(`${Math.ceil(player.hp)} / ${player.maxHp}`,29,22,8,P.cream);
+  pixelRect(14,27,82,4,'#142124');pixelRect(14,27,82*Math.max(0,player.hp/player.maxHp),4,'#c44e58');
+  text('✦',14,45,9,P.teal2);text(`LV ${level}`,29,45,8,P.cream);text(`${xp}/${xpNeed} XP`,65,45,7,'#88bcb0');
+  text('PURSE',14,55,6,'#78918a');text(`${gold}`,51,55,7,P.gold2);
+  // Small live minimap: architecture, enemies and player are represented without
+  // affecting gameplay or collisions.
+  const mx=W-78,my=7,mw=70,mh=52;
+  ctx.fillStyle='rgba(3,10,12,.82)';ctx.fillRect(mx,my,mw,mh);ctx.strokeStyle='rgba(82,216,192,.55)';ctx.strokeRect(mx+.5,my+.5,mw-1,mh-1);
+  const sx=mw/(W-48),sy=mh/(H-48);
+  ctx.fillStyle='rgba(88,116,108,.35)';ctx.fillRect(mx+5,my+5,mw-10,mh-10);
+  for(const d of roomDecor){const dx=mx+5+(d.gx*TILE/W)*mw,dy=my+5+(d.gy*TILE/H)*mh;pixelRect(dx,dy,3,3,d.kind==='chest'?P.gold2:d.kind.includes('torch')?P.teal2:'#6c7770')}
+  for(const e of enemies){pixelRect(mx+5+(e.x/W)*mw,my+5+(e.y/H)*mh,3,3,e.type==='skeleton'?P.cream:e.type==='goblin'?P.green:e.type==='bat'?P.red2:P.gold2)}
+  pixelRect(mx+5+(player.x/W)*mw,my+5+(player.y/H)*mh,4,4,P.teal2);
+  text(roomArchetype(),W/2,18,7,'#91aaa2','center');
+  ctx.restore();
 }
 function drawRoomArchetypeDetail(){
  const a=roomArchetype();

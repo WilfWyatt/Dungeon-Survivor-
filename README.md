@@ -1,3 +1,10 @@
+## 0.2.3 — Textured Modular Dungeon
+- Promoted the modular atlas from an unused/secondary source into the actual live room surface.
+- Every 24px floor cell is now selected from reusable authored stone samples, with a separate repeatable brick wall ring.
+- Added finer surface wear, cracks and a restrained inner vignette for more depth.
+- Added a compact in-canvas HUD for health, XP, level and purse plus a live minimap.
+- Kept room archetypes, props, enemy behaviour, combat, loot and progression intact.
+
 ## 0.2.1 — The Living Dungeon\n- Great Hall now renders from a reusable 24px modular environment atlas instead of a single background image.\n- Deterministic room layouts for Great Hall, Pillared Hall, Ruined Chamber, Chapel, Guard Room and Cross Hall.\n- Independent modular props for pillars, chests, torches, banners, altar and rubble.\n- Independent torch glow layers; the room itself is no longer a baked scene image.\n\n# DUNGEON SURVIVOR
 
 ## 0.2.1c — Ancient Stone graphical refinement
@@ -8,7 +15,7 @@
 - Kept the modular architecture, gameplay collision and clear combat lanes intact.
 
 
-**Current Version: 0.2.2**
+**Current Version: 0.2.3**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
