@@ -1,6 +1,6 @@
-const CACHE='dungeon-survivor-v0.2.5gg';
+const CACHE='dungeon-survivor-v0.2.5h';
 const PRECACHE=[
- './','./index.html','./style.css','./game.js','./manifest.json','./icon-192.png','./icon-512.png','./splash-screen.png','./menu-screen.png','./player-sprites.png','./enemy-sprites.png',
+ './','./index.html','./style.css','./game.js','./manifest.json','./icon-192.png','./icon-512.png','./splash-screen.png','./menu-screen.png','./assets/sprites/player.png','./assets/sprites/bat.png','./assets/sprites/goblin.png','./assets/sprites/skeleton.png','./assets/sprites/boss_mage.png',
  './assets/floor/floor_tiles.png','./floor_tiles.png','./floor-tiles-atlas.png',
  './floor-clean-1.png','./floor-clean-2.png','./floor-clean-3.png','./floor-clean-4.png','./floor-debris-1.png','./floor-debris-2.png','./floor-debris-3.png','./floor-debris-4.png','./floor-moss-1.png','./floor-moss-2.png','./floor-moss-3.png','./floor-moss-4.png',
  './assets/props/torch-1.png','./assets/props/torch-2.png','./assets/props/torch-3.png','./assets/props/torch-4.png','./assets/props/chest-closed.png','./assets/props/chest-open.png','./assets/props/crate-1.png','./assets/props/crate-stack.png','./assets/props/barrel.png','./assets/props/pottery.png','./assets/props/ruined-pillar.png','./assets/props/rubble.png','./assets/props/statue.png',

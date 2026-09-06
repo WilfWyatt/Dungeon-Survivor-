@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.2.5gg**
+**Current Version: 0.2.5h**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -140,6 +140,15 @@ The 0.1 releases are retained here as historical development records rather than
 - Reduced character sprite scale to make the dungeon environment feel larger.
 
 ## Change Log
+
+### 0.2.5h — Character Sprite Integration
+
+- Added the five final character sprite sheets: player, bat, goblin archer, skeleton with claymore, and Guardian mage with staff.
+- Sprite sheets use a strict 4×5 grid of 32×32 frames: idle, walk, attack, hurt and death.
+- Player and enemy rendering now uses the new individual sprite sheets instead of the retired combined player/enemy sheets.
+- Attack and hurt animation rows are selected from the live combat state so weapon continuity is preserved throughout the relevant frames.
+- Preserved the working 0.2.5gg environment and gameplay foundation.
+
 
 ### 0.2.5gg — Claude Fix Integration
 
