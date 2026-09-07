@@ -1,0 +1,5 @@
+DUNGEON SURVIVOR SOUND LIBRARY v0.3.2
+
+Original procedural audio generated for this project. No third-party audio files are included. Free to use, modify and distribute with Dungeon Survivor.
+
+All WAV files in this pack were generated specifically for Dungeon Survivor in this build.
