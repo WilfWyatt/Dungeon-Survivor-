@@ -45,11 +45,20 @@ Object.entries(SPRITE_SHEET_FILES).forEach(([key,src])=>{const img=new Image();i
 const SPRITE_FRAME=32;
 const SPRITE_COLS=4;
 const SPRITE_ROWS={idle:0,walk:1,attack:2,hurt:3,death:4};
-function drawCharacterSprite(kind,action,frame,x,y,size,flip=false,alpha=1){
+// Codex sheets use the four columns differently by state: idle/walk are directional poses,
+// while attack/hurt/death are four-frame animations. Bats are the exception: all states are animated.
+const DIRECTIONAL_POSE_SPRITES=new Set(['player','goblin','skeleton','boss']);
+const DIRECTION_FRAME={down:0,up:1,right:2,left:3};
+function directionFrame(dir){return DIRECTION_FRAME[dir]??DIRECTION_FRAME.right;}
+function drawCharacterSprite(kind,action,frame,x,y,size,flip=false,alpha=1,direction=null){
  const img=spriteImages[kind];
  if(!img||!spriteReady[kind])return false;
  const row=SPRITE_ROWS[action]??SPRITE_ROWS.idle;
- const f=((frame%SPRITE_COLS)+SPRITE_COLS)%SPRITE_COLS;
+ let f=((frame%SPRITE_COLS)+SPRITE_COLS)%SPRITE_COLS;
+ if(DIRECTIONAL_POSE_SPRITES.has(kind)&&(action==='idle'||action==='walk')){
+   f=directionFrame(direction||'right');
+   flip=false;
+ }
  return drawSpriteFrame(img,f*SPRITE_FRAME,row*SPRITE_FRAME,SPRITE_FRAME,SPRITE_FRAME,x,y,size,size,flip,alpha);
 }
 function animFrame(time,rate=8){return Math.floor(time*rate)%SPRITE_COLS;}
@@ -105,18 +114,27 @@ function makeRoomLayout(){
   const distanceOk=(x,y,placed,min=34)=>placed.every(p=>Math.hypot(p.x-x,p.y-y)>=min);
   const torchCount=2+Math.floor(seeded(41)*3); // 2–4, mandatory in every room.
   const torchKinds=['torch1','torch2','torch3','torch4'];
-  const torchSlots=shuffle([
-    {x:72,y:88},{x:288,y:88},{x:72,y:122},{x:288,y:122}
-  ]).slice(0,torchCount);
+  // Put mandatory torches in distinct corner zones. With 2, use opposite corners;
+  // with 3–4, fill additional corners. This prevents the old top-left clustering.
+  const cornerSlots=[
+    {x:72,y:88,corner:'TL'},{x:288,y:88,corner:'TR'},
+    {x:72,y:374,corner:'BL'},{x:288,y:374,corner:'BR'}
+  ];
+  let torchSlots;
+  if(torchCount===2){
+    torchSlots=seeded(42)<.5?[cornerSlots[0],cornerSlots[3]]:[cornerSlots[1],cornerSlots[2]];
+  }else{
+    torchSlots=shuffle(cornerSlots.slice()).slice(0,torchCount);
+  }
   const placed=[];
   torchSlots.forEach((slot,i)=>{
     const kind=torchKinds[Math.floor(seeded(70+i)*torchKinds.length)];
     placed.push({kind,x:slot.x,y:slot.y,torch:true});
   });
 
-  // 3–5 additional decorations, chosen from the new prop pool.
+  // 2–5 additional decorations, chosen from the new prop pool.
   const decorationPool=['chestClosed','chestOpen','crate1','crateStack','barrel','pottery','ruinedPillar','rubble','statue'];
-  const decorCount=3+Math.floor(seeded(93)*3);
+  const decorCount=2+Math.floor(seeded(93)*4);
   const available=shuffle(candidates.filter(c=>distanceOk(c.x,c.y,placed,38)));
   const selected=available.slice(0,decorCount);
   selected.forEach((slot,i)=>{
@@ -222,7 +240,7 @@ function drawModularDungeon(){
   }
 }
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
-const VERSION='0.2.5h';
+const VERSION='0.2.5i';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
@@ -714,7 +732,7 @@ function drawPlayer(){
  else if(slashes.length){const s=slashes[slashes.length-1];action='attack';frame=timedAnimFrame(s.age,s.duration,18)}
  else if(moving){action='walk';frame=animFrame(walkTime/10,8)}
  const flip=facingDir==='left';
- if(drawCharacterSprite('player',action,frame,x,y,48,flip,hurt?.78:1)){
+ if(drawCharacterSprite('player',action,frame,x,y,48,flip,hurt?.78:1,facingDir)){
    ctx.restore();
    return;
  }
@@ -730,17 +748,15 @@ function drawEnemy(e,i){
  const kind=e.type==='boss'?'boss':e.type;
  const size=e.type==='boss'?70:52;
  const flip=(e.facingDir||'right')==='left';
- let action='idle',frame=0;
+ let action='idle',frame=animFrame(performance.now()/1000+(i||0)*.17,e.type==='bat'?8:5);
  const attacking=(e.type==='goblin'&&e.windup>0)||(e.type==='skeleton'&&(e.windup>0||e.attackAge>0))||(e.type==='bat'&&e.batAttackAge>0)||(e.type==='boss'&&(e.warningTimer>0||e.patternActive));
- const moved=e._px!==undefined?Math.hypot(x-e._px,y-e._py):0;
- e._px=x;e._py=y;
  if(e.hit>0){action='hurt';frame=timedAnimFrame(.12-e.hit,.12,18)}
  else if(attacking){action='attack';
-   const age=e.type==='bat'?Math.max(0,.34-e.batAttackAge):(e.type==='skeleton'?Math.max(0,.20-e.attackAge):(e.type==='goblin'?Math.max(0,.52-e.windup):.82-e.warningTimer));
+   const age=e.type==='bat'?e.batAttackAge:(e.type==='skeleton'?Math.max(0,.20-e.attackAge):(e.type==='goblin'?Math.max(0,.52-e.windup):.82-e.warningTimer));
    const duration=e.type==='bat'?.34:(e.type==='skeleton'?.20:(e.type==='goblin'?.52:.82));
    frame=timedAnimFrame(age,duration,12);
- }else if(moved>0.05){action='walk';frame=animFrame(performance.now()/1000+(i||0)*.17,e.type==='bat'?8:5);}
- if(drawCharacterSprite(kind,action,frame,x,y,size,flip,e.hit>0?.78:1)){
+ }else{action='walk';}
+ if(drawCharacterSprite(kind,action,frame,x,y,size,flip,e.hit>0?.78:1,e.facingDir)){
    ctx.restore();
  }else{
    ctx.restore();drawLegacyEnemy(e,i);
