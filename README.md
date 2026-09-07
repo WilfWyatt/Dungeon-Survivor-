@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.3.0**
+**Current Version: 0.3.1**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -358,3 +358,11 @@ The 0.1 releases are retained here as historical development records rather than
 - Added subtle procedural dungeon ambience: low drone, filtered air/noise, occasional distant drips, and movement footsteps.
 - Audio starts from the Play gesture to satisfy mobile browser audio restrictions.
 - Soundscape is designed to be lightweight and mobile-friendly.
+
+## 0.3.1 — Authored Gameplay Assets
+- Added a set of authored 32×32 RGBA PNG assets matching the existing chunky dungeon palette.
+- Loot now uses authored Gold, Small Health, Full Health and Weapon Drop assets.
+- Goblin arrows, fireballs and fireblasts now use authored projectile assets.
+- Enemy deaths now leave authored Skeleton, Goblin, Bat or Guardian remains, with a subtle blood-splat under non-skeletal deaths.
+- Added short-lived authored hit/impact spark effects while retaining procedural particles as a lightweight fallback.
+- Asset loading is asset-first with the previous procedural drawings retained as fallbacks, so a missing PNG cannot blank gameplay.
