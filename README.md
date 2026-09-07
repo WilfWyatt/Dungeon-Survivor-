@@ -1,6 +1,10 @@
+## 0.3.2 — Sound Upgrade
+
+Integrates the authored WAV sound library from `assets/audio/` with buffered Web Audio playback, contextual combat/loot/UI/world sounds, and lightweight ambience. The audio folders are expected to already exist in the repository; ordinary code-only build ZIPs do not duplicate them.
+
 # DUNGEON SURVIVOR
 
-**Current Version: 0.3.1a**
+**Current Version: 0.3.2**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -359,7 +363,7 @@ The 0.1 releases are retained here as historical development records rather than
 - Audio starts from the Play gesture to satisfy mobile browser audio restrictions.
 - Soundscape is designed to be lightweight and mobile-friendly.
 
-## 0.3.1a — Authored Gameplay Assets
+## 0.3.2 — Authored Gameplay Assets
 - Added a set of authored 32×32 RGBA PNG assets matching the existing chunky dungeon palette.
 - Loot now uses authored Gold, Small Health, Full Health and Weapon Drop assets.
 - Goblin arrows, fireballs and fireblasts now use authored projectile assets.

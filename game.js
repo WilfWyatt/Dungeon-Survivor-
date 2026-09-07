@@ -278,80 +278,94 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.1';
+const VERSION='0.3.2';
 
-// 0.3.1 — authored 32x32 gameplay assets layered over the 0.3.0 soundscape.
-// It is deliberately lightweight: a few long-lived ambience nodes plus short one-shot SFX.
+// 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
+// Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
+// cannot be loaded, the lightweight procedural fallback keeps gameplay audible.
 let audioCtx=null,audioMaster=null,audioSfx=null,audioAmbience=null,audioStarted=false,audioMuted=false;
-let audioDrone=[],audioNoise=null,audioDripTimer=null,audioStepTimer=0;
+let audioBuffers={},audioLoading=false,audioLoaded=false,audioDrone=[],audioDripTimer=null,audioStepTimer=0;
+const AUDIO_PATH='./assets/audio/';
+const AUDIO_FILES={
+ swingLight:'combat/sword_swing_light.wav',swingHeavy:'combat/sword_swing_heavy.wav',hit:'combat/sword_hit.wav',clang:'combat/sword_clang.wav',enemyHit:'combat/enemy_hit.wav',hurt:'combat/player_hurt.wav',death:'combat/enemy_death.wav',bossDeath:'combat/boss_death.wav',
+ projectile:'magic/projectile_launch.wav',fireball:'magic/fireball_launch.wav',fireImpact:'magic/fire_impact.wav',magicHit:'magic/magic_hit.wav',
+ coin:'loot/coin_pickup.wav',health:'loot/health_pickup.wav',weapon:'loot/weapon_pickup.wav',
+ denied:'UI/ui_denied.wav',gameOver:'UI/game_over.wav',level:'UI/level_up.wav',wave:'UI/wave_warning.wav',bossWarning:'UI/boss_warning.wav',click:'UI/ui_click.wav',confirm:'UI/ui_confirm.wav',
+ step:'world/footstep_stone.wav',doorOpen:'world/door_open.wav',doorClose:'world/door_close.wav',drip:'world/dungeon_drip.wav',torch:'world/torch_crackle.wav',clear:'world/room_clear.wav',exit:'world/exit_activate.wav',shop:'world/shop_open.wav',teleport:'world/teleport.wav'
+};
 const AUDIO={
-  ensure(){
-    if(audioCtx){if(audioCtx.state==='suspended')audioCtx.resume();return true;}
-    try{
-      const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
-      audioCtx=new AC();
-      audioMaster=audioCtx.createGain();audioMaster.gain.value=.72;audioMaster.connect(audioCtx.destination);
-      audioSfx=audioCtx.createGain();audioSfx.gain.value=.82;audioSfx.connect(audioMaster);
-      audioAmbience=audioCtx.createGain();audioAmbience.gain.value=.34;audioAmbience.connect(audioMaster);
-      audioStarted=true; return true;
-    }catch(e){return false}
-  },
-  start(){
-    if(!this.ensure())return;
-    if(audioCtx.state==='suspended')audioCtx.resume();
-    if(audioDrone.length)return;
-    const now=audioCtx.currentTime;
-    const droneGain=audioCtx.createGain();droneGain.gain.value=.055;droneGain.connect(audioAmbience);
-    [55,82.5].forEach((f,i)=>{const o=audioCtx.createOscillator();o.type=i?'triangle':'sine';o.frequency.value=f;o.detune.value=i?3:-4;o.connect(droneGain);o.start();audioDrone.push(o)});
-    const lfo=audioCtx.createOscillator(),lg=audioCtx.createGain();lfo.frequency.value=.075;lg.gain.value=.018;lfo.connect(lg);lg.connect(droneGain.gain);lfo.start();audioDrone.push(lfo,lg,droneGain);
-    const len=audioCtx.sampleRate*2,buf=audioCtx.createBuffer(1,len,audioCtx.sampleRate),data=buf.getChannelData(0);
-    for(let i=0;i<len;i++)data[i]=(Math.random()*2-1)*.55;
-    const n=audioCtx.createBufferSource(),f=audioCtx.createBiquadFilter(),ng=audioCtx.createGain();n.buffer=buf;n.loop=true;f.type='lowpass';f.frequency.value=520;f.Q.value=.35;ng.gain.value=.035;n.connect(f);f.connect(ng);ng.connect(audioAmbience);n.start(now);audioNoise=n;audioDrone.push(f,ng);
-    this.scheduleDrip();
-  },
-  stop(){
-    clearTimeout(audioDripTimer);audioDripTimer=null;
-    if(!audioCtx||!audioDrone.length)return;
-    const nodes=audioDrone.slice();audioDrone=[];audioNoise=null;
-    const now=audioCtx.currentTime;
-    nodes.forEach(n=>{try{if(n.gain){n.gain.cancelScheduledValues(now);n.gain.setTargetAtTime(0,now,.08)}else if(n.stop)n.stop(now+.2)}catch(e){}});
-  },
-  setMuted(m){audioMuted=!!m;if(audioMaster)audioMaster.gain.setTargetAtTime(audioMuted?0:.72,audioCtx.currentTime,.04)},
-  scheduleDrip(){
-    clearTimeout(audioDripTimer);
-    if(!audioStarted)return;
-    const delay=4200+Math.random()*5600;
-    audioDripTimer=setTimeout(()=>{if(audioStarted&&!audioMuted&&!gameOver&&started&&!atShop&&!roomTransition)this.drip();this.scheduleDrip()},delay);
-  },
-  tone(freq,dur,vol,type='sine',endFreq=freq,delay=0){
-    if(!audioCtx||audioMuted)return;
-    const t=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(Math.max(20,freq),t);o.frequency.exponentialRampToValueAtTime(Math.max(20,endFreq),t+dur);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0001,vol),t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(audioSfx);o.start(t);o.stop(t+dur+.02);
-  },
-  noise(dur,vol,filterFreq=1200,delay=0){
-    if(!audioCtx||audioMuted)return;
-    const t=audioCtx.currentTime+delay,len=Math.max(1,Math.floor(audioCtx.sampleRate*dur)),b=audioCtx.createBuffer(1,len,audioCtx.sampleRate),d=b.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len*.35);
-    const s=audioCtx.createBufferSource(),f=audioCtx.createBiquadFilter(),g=audioCtx.createGain();s.buffer=b;f.type='bandpass';f.frequency.value=filterFreq;f.Q.value=.65;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(f);f.connect(g);g.connect(audioSfx);s.start(t);s.stop(t+dur+.02);
-  },
-  swing(w){const base=w.id==='claymore'?150:w.id==='longSword'?220:300;this.noise(.12,.10,base);this.tone(base*.55,.10,.045,'triangle',base*.95,.015)},
-  hit(){this.noise(.055,.13,520);this.tone(95,.08,.05,'square',55)},
-  death(type='normal'){const f=type==='boss'?75:type==='skeleton'?125:type==='goblin'?180:260;this.tone(f,.22,.075,'sawtooth',42);this.noise(type==='boss'?.28:.09,type==='boss'?.12:.06,180)},
-  hurt(fire=false){this.tone(fire?125:190,.18,.09,'sawtooth',55);this.noise(.08,.08,400)},
-  spawn(type){const f=type==='bat'?520:type==='goblin'?260:150;this.tone(f,.16,.055,'triangle',f*.55);this.noise(.08,.045,800)},
-  projectile(type){const f=type==='fireball'?260:type==='fireblast'?110:480;this.tone(f,.10,.035,'triangle',f*1.8);if(type!=='arrow')this.noise(.11,.035,300)},
-  pickup(type){if(type==='Gold'){this.tone(880,.08,.065,'sine',1320);this.tone(1320,.12,.045,'sine',1760,.07)}else if(type==='Weapon'){this.tone(330,.16,.06,'triangle',660);this.tone(660,.22,.05,'triangle',990,.12)}else{this.tone(440,.12,.05,'sine',660);this.tone(660,.18,.04,'sine',880,.08)}},
-  level(){this.tone(392,.16,.06,'sine',523);this.tone(523,.18,.06,'sine',784,.12);this.tone(784,.28,.055,'sine',1046,.24)},
-  wave(){this.tone(180,.20,.055,'triangle',260);this.tone(260,.20,.05,'triangle',180,.18)},
-  clear(){this.tone(392,.18,.06,'sine',523);this.tone(523,.18,.06,'sine',659,.16);this.tone(659,.32,.06,'sine',988,.32)},
-  exit(){this.tone(196,.28,.05,'sine',294);this.tone(294,.35,.05,'sine',588,.20);this.tone(588,.45,.035,'sine',784,.35)},
-  transition(){this.noise(.30,.045,180);this.tone(110,.55,.045,'sine',48);this.tone(392,.20,.03,'triangle',196,.42)},
-  shop(){this.tone(261,.15,.05,'sine',392);this.tone(392,.22,.045,'sine',523,.12)},
-  buy(){this.tone(523,.10,.045,'sine',659);this.tone(659,.16,.045,'sine',784,.08)},
-  denied(){this.tone(100,.16,.06,'square',70)},
-  bossWarning(){this.tone(120,.28,.08,'sawtooth',70);this.tone(90,.38,.06,'sawtooth',55,.22)},
-  drip(){if(!audioCtx||audioMuted)return;const f=520+Math.random()*180;this.tone(f,.12,.025,'sine',f*.72);this.tone(f*.72,.34,.022,'sine',f*.42,.10)},
-  step(){const f=85+Math.random()*25;this.tone(f,.045,.018,'triangle',55);this.noise(.028,.012,650)},
-  gameOver(){this.tone(180,.28,.07,'sawtooth',95);this.tone(120,.50,.06,'sine',48,.25)},
-  menu(){this.tone(420,.08,.035,'triangle',560)}
+ ensure(){
+  if(audioCtx){if(audioCtx.state==='suspended')audioCtx.resume();return true}
+  try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;audioCtx=new AC();audioMaster=audioCtx.createGain();audioMaster.gain.value=.78;audioMaster.connect(audioCtx.destination);audioSfx=audioCtx.createGain();audioSfx.gain.value=.92;audioSfx.connect(audioMaster);audioAmbience=audioCtx.createGain();audioAmbience.gain.value=.42;audioAmbience.connect(audioMaster);audioStarted=true;return true}catch(e){return false}
+ },
+ async load(){
+  if(!this.ensure()||audioLoading||audioLoaded)return;
+  audioLoading=true;
+  const entries=Object.entries(AUDIO_FILES);
+  await Promise.all(entries.map(async([key,file])=>{try{const r=await fetch(AUDIO_PATH+file,{cache:'force-cache'});if(!r.ok)throw new Error('audio '+r.status);const b=await r.arrayBuffer();audioBuffers[key]=await audioCtx.decodeAudioData(b)}catch(e){}}));
+  audioLoading=false;audioLoaded=true;this.startAmbience();
+ },
+ start(){
+  if(!this.ensure())return;
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  this.load();
+ },
+ startAmbience(){
+  if(audioDrone.length||!audioCtx)return;
+  const now=audioCtx.currentTime;
+  // Keep a very quiet bed beneath the authored effects; this prevents silence if a
+  // browser blocks one of the ambience files and gives the dungeon a subtle floor.
+  const droneGain=audioCtx.createGain();droneGain.gain.value=.025;droneGain.connect(audioAmbience);
+  [55,82.5].forEach((f,i)=>{const o=audioCtx.createOscillator();o.type=i?'triangle':'sine';o.frequency.value=f;o.detune.value=i?3:-4;o.connect(droneGain);o.start(now);audioDrone.push(o)});
+  audioDrone.push(droneGain);
+  this.scheduleDrip();
+ },
+ stop(){
+  clearTimeout(audioDripTimer);audioDripTimer=null;
+  if(!audioCtx)return;
+  const nodes=audioDrone.slice();audioDrone=[];const now=audioCtx.currentTime;
+  nodes.forEach(n=>{try{if(n.gain){n.gain.cancelScheduledValues(now);n.gain.setTargetAtTime(0,now,.08)}else if(n.stop)n.stop(now+.12)}catch(e){}});
+ },
+ setMuted(m){audioMuted=!!m;if(audioMaster)audioMaster.gain.setTargetAtTime(audioMuted?0:.78,audioCtx.currentTime,.04)},
+ scheduleDrip(){
+  clearTimeout(audioDripTimer);if(!audioStarted)return;
+  audioDripTimer=setTimeout(()=>{if(audioStarted&&!audioMuted&&!gameOver&&started&&!atShop&&!roomTransition)this.drip();this.scheduleDrip()},4800+Math.random()*7200);
+ },
+ play(key,vol=1,rate=1,delay=0){
+  if(!audioCtx||audioMuted)return false;const b=audioBuffers[key];if(!b)return false;
+  try{const src=audioCtx.createBufferSource(),g=audioCtx.createGain(),t=audioCtx.currentTime+delay;src.buffer=b;src.playbackRate.value=rate;g.gain.value=vol;src.connect(g);g.connect(audioSfx);src.start(t);return true}catch(e){return false}
+ },
+ // Procedural fallback helpers — only used when the authored WAV is unavailable.
+ tone(freq,dur,vol,type='sine',endFreq=freq,delay=0){if(!audioCtx||audioMuted)return;const t=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(Math.max(20,freq),t);o.frequency.exponentialRampToValueAtTime(Math.max(20,endFreq),t+dur);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.0001,vol),t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(audioSfx);o.start(t);o.stop(t+dur+.02)},
+ noise(dur,vol,filterFreq=1200,delay=0){if(!audioCtx||audioMuted)return;const t=audioCtx.currentTime+delay,len=Math.max(1,Math.floor(audioCtx.sampleRate*dur)),b=audioCtx.createBuffer(1,len,audioCtx.sampleRate),d=b.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len*.35);const s=audioCtx.createBufferSource(),f=audioCtx.createBiquadFilter(),g=audioCtx.createGain();s.buffer=b;f.type='bandpass';f.frequency.value=filterFreq;f.Q.value=.65;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(f);f.connect(g);g.connect(audioSfx);s.start(t);s.stop(t+dur+.02)},
+ swing(w){const key=w.id==='shortSword'?'swingLight':'swingHeavy';if(!this.play(key,.72,w.id==='claymore'?.92:1))this.noise(.12,.10,w.id==='claymore'?150:260)},
+ hit(){if(!this.play('hit',.82,1))this.noise(.055,.13,520)},
+ clang(){if(!this.play('clang',.72,1))this.tone(520,.08,.04,'square',260)},
+ enemyHit(){if(!this.play('enemyHit',.70,1))this.noise(.055,.08,420)},
+ death(type='normal'){const key=type==='boss'?'bossDeath':'death';if(!this.play(key,type==='boss'?.9:.72,type==='boss'?.88:1))this.tone(type==='boss'?75:150,.22,.07,'sawtooth',42)},
+ hurt(fire=false){if(!this.play('hurt',.82,fire?.94:1))this.tone(fire?125:190,.18,.09,'sawtooth',55)},
+ spawn(type){const f=type==='bat'?520:type==='goblin'?260:150;if(!this.play(type==='bat'?'magicHit':'enemyHit',.28,type==='bat'?1.12:1))this.tone(f,.16,.055,'triangle',f*.55)},
+ projectile(type){const key=type==='fireball'?'fireball':type==='fireblast'?'fireImpact':'projectile';if(!this.play(key,type==='arrow'?.62:.70,type==='fireblast'?.88:1))this.tone(type==='fireball'?260:type==='fireblast'?110:480,.10,.035,'triangle',type==='fireblast'?180:700)},
+ fireImpact(){if(!this.play('fireImpact',.76,.96))this.noise(.11,.035,300)},
+ magicHit(){if(!this.play('magicHit',.72,1))this.tone(340,.12,.035,'triangle',180)},
+ pickup(type){const key=type==='Gold'?'coin':type==='Weapon'?'weapon':'health';if(!this.play(key,.78,1))this.tone(type==='Gold'?880:440,.12,.05,'sine',type==='Gold'?1320:660)},
+ level(){if(!this.play('level',.86,1))this.tone(392,.16,.06,'sine',523)},
+ wave(){if(!this.play('wave',.88,1))this.tone(180,.20,.055,'triangle',260)},
+ clear(){if(!this.play('clear',.90,1))this.tone(392,.18,.06,'sine',988)},
+ exit(){if(!this.play('exit',.90,1))this.tone(196,.28,.05,'sine',784)},
+ transition(){if(!this.play('teleport',.72,1))this.tone(110,.55,.045,'sine',48)},
+ shop(){if(!this.play('shop',.80,1))this.tone(261,.15,.05,'sine',523)},
+ buy(){if(!this.play('confirm',.82,1))this.tone(523,.10,.045,'sine',784)},
+ denied(){if(!this.play('denied',.82,1))this.tone(100,.16,.06,'square',70)},
+ bossWarning(){if(!this.play('bossWarning',.92,1))this.tone(120,.28,.08,'sawtooth',55)},
+ drip(){if(!this.play('drip',.45,.9+Math.random()*.18))this.tone(520,.12,.025,'sine',220)},
+ step(){if(!this.play('step',.34,.92+Math.random()*.16))this.tone(85,.045,.018,'triangle',55)},
+ torch(){this.play('torch',.20,.92+Math.random()*.16)},
+ doorOpen(){this.play('doorOpen',.72,1)},
+ doorClose(){this.play('doorClose',.64,1)},
+ gameOver(){if(!this.play('gameOver',.90,1))this.tone(180,.28,.07,'sawtooth',48)},
+ menu(){if(!this.play('click',.72,1))this.tone(420,.08,.035,'triangle',560)},
+ confirm(){if(!this.play('confirm',.78,1))this.tone(523,.10,.045,'sine',784)}
 };
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
@@ -744,11 +758,11 @@ function update(dt){
  }
  clampEnemySeparation();
 
- for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.age+=dt;q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){impactMarks.push({x:player.x,y:player.y,age:0,dur:.18,type:'impact',angle:q.a});if(damagePlayer(q.damage,q.x,q.y,q.type==='fireball'?1.0:.85,q.type==='fireball'||q.type==='fireblast'?'fire':'normal'))projectiles.splice(i,1);else projectiles.splice(i,1)}}
+ for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.age+=dt;q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){impactMarks.push({x:player.x,y:player.y,age:0,dur:.18,type:'impact',angle:q.a});if(q.type==='fireball'||q.type==='fireblast')AUDIO.fireImpact();else AUDIO.clang();if(damagePlayer(q.damage,q.x,q.y,q.type==='fireball'?1.0:.85,q.type==='fireball'||q.type==='fireblast'?'fire':'normal'))projectiles.splice(i,1);else projectiles.splice(i,1)}}
 
  for(let i=slashes.length-1;i>=0;i--){
   const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const reach=s.reach||playerWeapon().reach;const centre=s.angle+s.side*(Math.PI*.40-(Math.min(1,progress)*Math.PI*.80));
-  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){e.hp-=s.damage;s.hit.add(e);e.hit=.12;e.stagger=.12;const push=Math.max(0,1-d/(reach+e.r));const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);AUDIO.hit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.16,type:'hit',angle:Math.random()*Math.PI});burst(e.x,e.y,'hit',5);if(e.hp<=0){AUDIO.death(e.type);deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type);else{const reward=bossGoldReward();gold+=reward;totalGoldCollected+=reward;showPickup(`👑 GUARDIAN BONUS  +${reward} GOLD`)}enemies.splice(enemies.indexOf(e),1);kills++;addScore(SCORE_VALUES[e.type]||0);awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5);burst(e.x,e.y,'death',e.type==='boss'?28:12);if(e.type==='boss'){areaClearTimer=1.8;areaClearShown=true;}if(!isBossRoom())spawnTimer=.65;}}}
+  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){e.hp-=s.damage;s.hit.add(e);e.hit=.12;e.stagger=.12;const push=Math.max(0,1-d/(reach+e.r));const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);AUDIO.hit();AUDIO.enemyHit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.16,type:'hit',angle:Math.random()*Math.PI});burst(e.x,e.y,'hit',5);if(e.hp<=0){AUDIO.death(e.type);deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type);else{const reward=bossGoldReward();gold+=reward;totalGoldCollected+=reward;showPickup(`👑 GUARDIAN BONUS  +${reward} GOLD`)}enemies.splice(enemies.indexOf(e),1);kills++;addScore(SCORE_VALUES[e.type]||0);awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5);burst(e.x,e.y,'death',e.type==='boss'?28:12);if(e.type==='boss'){areaClearTimer=1.8;areaClearShown=true;}if(!isBossRoom())spawnTimer=.65;}}}
   if(progress>=1)slashes.splice(i,1);
  }
 
