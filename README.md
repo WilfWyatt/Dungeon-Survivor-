@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.2.7**
+**Current Version: 0.2.8**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -140,6 +140,12 @@ The 0.1 releases are retained here as historical development records rather than
 - Reduced character sprite scale to make the dungeon environment feel larger.
 
 ## Change Log
+
+### 0.2.8
+- Replaced the floating exit marker with a soft glow hugging the exact outer dimensions of the exit door.
+- The exit outline brightens subtly once the room is cleared, while retaining the existing door artwork and progression behaviour.
+- Version/cache updated to 0.2.8.
+
 
 ### 0.2.7
 - Replaced the legacy procedural sword indicator with a small facing-direction arrow.

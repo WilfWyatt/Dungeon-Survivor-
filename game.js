@@ -267,7 +267,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.2.7';
+const VERSION='0.2.8';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
@@ -870,12 +870,31 @@ function drawEntranceDoor(){
  text('ENTER',x+12,y+65,7,'#78918a','center');
  ctx.restore();
 }
+let exitGlowCanvas=null;
+function getExitGlowCanvas(){
+ if(exitGlowCanvas)return exitGlowCanvas;
+ const g=document.createElement('canvas');g.width=64;g.height=144;
+ const gc=g.getContext('2d');
+ // The glow is generated once from the same 21x100px outline used by the door.
+ gc.save();
+ gc.strokeStyle='rgba(104,232,211,0.9)';gc.lineWidth=3;gc.shadowColor='rgba(104,232,211,0.9)';gc.shadowBlur=13;
+ gc.strokeRect(21,22,21,100);
+ gc.restore();
+ exitGlowCanvas=g;
+ return g;
+}
 function drawExit(){
  const x=W-12,y=H/2;ctx.save();
+ // Soft light hugs the exact outer dimensions of the exit door instead of using a floating marker.
+ ctx.globalAlpha=roomCleared?1:.58;
+ ctx.drawImage(getExitGlowCanvas(),x-43,y-72);
+ ctx.globalAlpha=1;
  // Door is recessed into the right wall.
  pixelRect(x-24,y-54,24,108,'#081619');pixelRect(x-20,y-48,20,96,'#173336');pixelRect(x-17,y-44,17,88,'#0d2528');
- ctx.strokeStyle=P.teal2;ctx.lineWidth=3;ctx.strokeRect(x-21,y-50,21,100);
- text('»',x-9,y+12,38,P.teal2,'center');
+ ctx.strokeStyle=roomCleared?'#8ff3d8':P.teal2;ctx.lineWidth=3;ctx.strokeRect(x-21,y-50,21,100);
+ if(roomCleared){
+  ctx.save();ctx.globalAlpha=.32;ctx.shadowColor='#8ff3d8';ctx.shadowBlur=8;ctx.strokeStyle='#8ff3d8';ctx.lineWidth=2;ctx.strokeRect(x-21,y-50,21,100);ctx.restore();
+ }
  if(!roomCleared){
   pixelRect(x-14,y-9,18,20,'#6d5a34');pixelRect(x-11,y-13,12,10,'#b9a56b');
   ctx.strokeStyle='#172124';ctx.lineWidth=3;ctx.strokeRect(x-9,y-10,8,10);pixelRect(x-7,y-3,4,5,'#172124');
