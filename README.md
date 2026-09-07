@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.2.6**
+**Current Version: 0.2.7**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -140,6 +140,13 @@ The 0.1 releases are retained here as historical development records rather than
 - Reduced character sprite scale to make the dungeon environment feel larger.
 
 ## Change Log
+
+### 0.2.7
+- Replaced the legacy procedural sword indicator with a small facing-direction arrow.
+- Removed the old procedural sword from the swing trail; the authored player attack animation now carries the sword, while the swoosh remains.
+- Standardised left/right side-facing character presentation by mirroring the canonical right-facing pose for left-facing movement.
+- Version/cache updated to 0.2.7.
+
 
 ### 0.2.6 — Major Performance Optimisation
 - Added an off-screen room cache so the static floor, walls and props are rendered once per room instead of every frame.

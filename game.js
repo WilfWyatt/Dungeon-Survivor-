@@ -57,11 +57,16 @@ function drawCharacterSprite(kind,action,frame,x,y,size,flip=false,alpha=1,direc
  if(!img||!spriteReady[kind])return false;
  const row=SPRITE_ROWS[action]??SPRITE_ROWS.idle;
  let f=((frame%SPRITE_COLS)+SPRITE_COLS)%SPRITE_COLS;
+ let mirror=flip;
  if(DIRECTIONAL_POSE_SPRITES.has(kind)&&(action==='idle'||action==='walk')){
-   f=directionFrame(direction||'right');
-   flip=false;
+   const dir=direction||'right';
+   // Use the clean right-facing pose as the canonical side view and mirror it for left.
+   // This keeps side-facing characters consistent instead of relying on two subtly
+   // different side cells in the authored sheets.
+   if(dir==='left'){f=DIRECTION_FRAME.right;mirror=true;}
+   else {f=directionFrame(dir);mirror=false;}
  }
- return drawSpriteFrame(img,f*SPRITE_FRAME,row*SPRITE_FRAME,SPRITE_FRAME,SPRITE_FRAME,x,y,size,size,flip,alpha);
+ return drawSpriteFrame(img,f*SPRITE_FRAME,row*SPRITE_FRAME,SPRITE_FRAME,SPRITE_FRAME,x,y,size,size,mirror,alpha);
 }
 function animFrame(time,rate=8){return Math.floor(time*rate)%SPRITE_COLS;}
 function timedAnimFrame(age,duration,rate=12){return Math.min(SPRITE_COLS-1,Math.floor(Math.max(0,Math.min(1,age/Math.max(.001,duration)))*SPRITE_COLS));}
@@ -262,7 +267,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.2.6';
+const VERSION='0.2.7';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
@@ -739,7 +744,20 @@ function drawSlash(s){
  const centre=s.angle+s.side*(Math.PI*.40-eased*Math.PI*.80);
  const trail=Math.sin(p*Math.PI);
  ctx.save();ctx.globalAlpha=.18*trail;ctx.strokeStyle=P.teal2;ctx.lineWidth=5;ctx.beginPath();ctx.arc(player.x,player.y,(s.reach||58)-2, s.angle-s.side*Math.PI*.40, s.angle+s.side*Math.PI*.40, s.side<0);ctx.stroke();ctx.restore();
- drawSwordAt(player.x,player.y,s.weapon||playerWeapon(),centre,0.98,1);
+ // The old procedural sword is intentionally gone. The actual sword is now part of
+ // the player's attack animation; this function supplies only the swoosh/trail.
+}
+function drawFacingArrow(){
+ const a=facing;
+ const d=20;
+ const x=player.x+Math.cos(a)*d;
+ const y=player.y+Math.sin(a)*d;
+ ctx.save();
+ ctx.translate(x,y);ctx.rotate(a);ctx.globalAlpha=.82;
+ ctx.fillStyle=P.gold2;
+ ctx.beginPath();ctx.moveTo(7,0);ctx.lineTo(-4,-4);ctx.lineTo(-1,0);ctx.lineTo(-4,4);ctx.closePath();ctx.fill();
+ ctx.globalAlpha=.5;ctx.fillStyle=P.cream;ctx.fillRect(-1,-1,6,2);
+ ctx.restore();
 }
 function drawSpriteFrame(img,sx,sy,sw,sh,x,y,dw,dh,flip=false,alpha=1){
  if(!img.complete||img.naturalWidth===0)return false;
@@ -922,6 +940,7 @@ function draw(){
  projectiles.forEach(drawProjectile);
  entrances.forEach(drawEntrance);
  enemies.forEach((e,i)=>drawEnemy(e,i));drawPlayer();
+ drawFacingArrow();
  slashes.forEach(drawSlash);
  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);let col=p.type==='coin'?P.gold2:(p.type==='heal'?P.teal2:(p.type==='weapon'?P.gold2:(p.type==='hit'?P.cream:(p.type==='spawn'?(p.spawnType==='goblin'?P.green:p.spawnType==='skeleton'?'#a57b4c':P.cream):P.gold))));pixelRect(p.x,p.y,4,4,col);ctx.globalAlpha=1});
  if(atShop)drawShop();
