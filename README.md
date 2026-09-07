@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.2.9**
+**Current Version: 0.3.0**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -350,3 +350,11 @@ The 0.1 releases are retained here as historical development records rather than
 - Added a Fortune shop upgrade for 125 gold; each level shifts weapon drops towards better rarities.
 - Existing health upgrade retained unchanged.
 - Retained the optimised exit smoke/spark effect from 0.2.8c.
+
+
+## 0.3.0 — Soundscape
+- Added a fully procedural Web Audio soundscape with no external audio files.
+- Added sword swings, impacts, enemy deaths, player damage, projectiles, pickups, level-ups, wave warnings, room clear, exit activation, transitions, shop/UI feedback and game-over sounds.
+- Added subtle procedural dungeon ambience: low drone, filtered air/noise, occasional distant drips, and movement footsteps.
+- Audio starts from the Play gesture to satisfy mobile browser audio restrictions.
+- Soundscape is designed to be lightweight and mobile-friendly.
