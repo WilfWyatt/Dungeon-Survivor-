@@ -730,14 +730,16 @@ function drawEnemy(e,i){
  const kind=e.type==='boss'?'boss':e.type;
  const size=e.type==='boss'?70:52;
  const flip=(e.facingDir||'right')==='left';
- let action='idle',frame=animFrame(performance.now()/1000+(i||0)*.17,e.type==='bat'?8:5);
+ let action='idle',frame=0;
  const attacking=(e.type==='goblin'&&e.windup>0)||(e.type==='skeleton'&&(e.windup>0||e.attackAge>0))||(e.type==='bat'&&e.batAttackAge>0)||(e.type==='boss'&&(e.warningTimer>0||e.patternActive));
+ const moved=e._px!==undefined?Math.hypot(x-e._px,y-e._py):0;
+ e._px=x;e._py=y;
  if(e.hit>0){action='hurt';frame=timedAnimFrame(.12-e.hit,.12,18)}
  else if(attacking){action='attack';
-   const age=e.type==='bat'?e.batAttackAge:(e.type==='skeleton'?Math.max(0,.20-e.attackAge):(e.type==='goblin'?Math.max(0,.52-e.windup):.82-e.warningTimer));
+   const age=e.type==='bat'?Math.max(0,.34-e.batAttackAge):(e.type==='skeleton'?Math.max(0,.20-e.attackAge):(e.type==='goblin'?Math.max(0,.52-e.windup):.82-e.warningTimer));
    const duration=e.type==='bat'?.34:(e.type==='skeleton'?.20:(e.type==='goblin'?.52:.82));
    frame=timedAnimFrame(age,duration,12);
- }else{action='walk';}
+ }else if(moved>0.05){action='walk';frame=animFrame(performance.now()/1000+(i||0)*.17,e.type==='bat'?8:5);}
  if(drawCharacterSprite(kind,action,frame,x,y,size,flip,e.hit>0?.78:1)){
    ctx.restore();
  }else{
