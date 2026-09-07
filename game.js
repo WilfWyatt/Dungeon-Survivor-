@@ -267,7 +267,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.2.8b';
+const VERSION='0.2.8c';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
@@ -654,7 +654,7 @@ function update(dt){
  if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){roomCleared=true;roomsCleared++;msg('ROOM CLEARED  •  WALK TO EXIT »');burst(W/2,H/2,'clear',18)}
  if(isBossRoom()&&enemies.length===0&&!roomCleared){roomCleared=true;msg(`AREA ${area} COMPLETE  •  WALK TO EXIT »`)}
  if(roomCleared&&!atShop&&!weaponPromptOpen){
-  // 0.2.8b: the exit trigger now matches the actual wooden doorway in the right-wall asset.
+  // 0.2.8c: the exit trigger now matches the actual wooden doorway in the right-wall asset.
   const door=exitDoorRect();
   const cx=clamp(player.x,door.x,door.x+door.w),cy=clamp(player.y,door.y,door.y+door.h);
   if(Math.hypot(player.x-cx,player.y-cy)<=player.r){
@@ -879,9 +879,9 @@ function drawEntranceDoor(){
  text('ENTER',x+12,y+65,7,'#78918a','center');
  ctx.restore();
 }
-// 0.2.8b: the right-wall asset is 160x1536 and is drawn at 50x(H-66).
-// These source bounds tightly frame the wooden doorway inside that asset.
-const EXIT_DOOR_SOURCE={x:47,y:642,w:85,h:216};
+// 0.2.8c: the right-wall asset is 160x1536. The wooden doorway itself is
+// tightly bounded here so the escape trigger matches the visible doorway, not the wall.
+const EXIT_DOOR_SOURCE={x:91,y:642,w:42,h:216};
 function exitDoorRect(){
  const wallX=W-50,wallY=16,wallW=50,wallH=H-66;
  return {
@@ -891,63 +891,75 @@ function exitDoorRect(){
    h:(EXIT_DOOR_SOURCE.h/1536)*wallH
  };
 }
+
+// 0.2.8c performance optimisation:
+// Build the animated doorway effect once as a small sprite-sheet-like set of frames.
+// During gameplay the effect is just one drawImage() per frame — no per-frame gradients,
+// bezier paths, shadowBlur or particle geometry.
+const EXIT_EFFECT_FRAME_COUNT=10;
+const EXIT_EFFECT_FPS=12;
+let exitEffectFrames=[];
+function buildExitEffectFrames(){
+ if(exitEffectFrames.length)return;
+ const size=128,frames=[];
+ for(let f=0;f<EXIT_EFFECT_FRAME_COUNT;f++){
+   const oc=document.createElement('canvas');oc.width=size;oc.height=size;
+   const o=oc.getContext('2d');
+   const t=f/EXIT_EFFECT_FRAME_COUNT*Math.PI*2;
+   o.save();o.globalCompositeOperation='screen';o.lineCap='round';o.lineJoin='round';
+   // Soft, pre-rendered teal smoke. The blur is paid once during setup, not 60 times/sec.
+   for(let side=-1;side<=1;side+=2){
+     for(let i=0;i<3;i++){
+       const phase=t*(.8+i*.12)+i*1.7+side*.8;
+       const y0=64+side*0;
+       const x0=64+side*(11+i*3);
+       const x1=64+side*(27+i*4);
+       const y1=64+(Math.sin(phase*.7+i)*5);
+       o.beginPath();o.moveTo(x0,y0);
+       const sway1=Math.sin(phase)*5+side*i;
+       const sway2=Math.sin(phase+1.7)*8-side*i;
+       o.bezierCurveTo(x0+side*(9+sway1),43,x1-side*(9-sway2),83,x1,y1);
+       o.strokeStyle=`rgba(38,220,196,${.035+i*.014})`;
+       o.lineWidth=6-i*1.1;o.shadowColor='rgba(24,220,197,.26)';o.shadowBlur=8+i*2;o.stroke();
+     }
+   }
+   // Small pre-rendered haze patches around the threshold.
+   for(let i=0;i<3;i++){
+     const x=64+Math.sin(t*1.2+i*2.1)*5;
+     const y=64+(i-1)*30+Math.cos(t+i)*3;
+     const g=o.createRadialGradient(x,y,1,x,y,25+i*8);
+     g.addColorStop(0,`rgba(43,228,204,${.10-i*.018})`);g.addColorStop(1,'rgba(43,228,204,0)');
+     o.fillStyle=g;o.fillRect(x-35,y-25,70,50);
+   }
+   // Golden sparks are also baked into each frame.
+   const sparks=[[-40,-24,0],[-29,11,.8],[-20,35,1.7],[-7,45,2.6],[18,38,1.1],[29,20,2.1],[38,1,.4],[31,-27,2.9],[15,-44,1.8],[-14,-41,.7],[-32,-36,2.3]];
+   sparks.forEach(([sx,sy,phase],i)=>{
+     const driftX=Math.sin(t*(.9+(i%3)*.12)+phase)*4;
+     const driftY=Math.cos(t*(.8+(i%2)*.14)+phase)*3;
+     const x=64+sx+driftX,y=64+sy+driftY;
+     const twinkle=.35+.65*(.5+.5*Math.sin(t*2.7+phase));
+     const r=1.15+(i%3)*.38;
+     o.globalAlpha=twinkle;o.fillStyle='#e7bd3b';o.shadowColor='rgba(255,202,61,.85)';o.shadowBlur=5;
+     o.beginPath();o.arc(x,y,r,0,Math.PI*2);o.fill();
+     if(i%3===0){o.globalAlpha=twinkle*.65;o.fillRect(x-.5,y-4,x+1-(x),8);o.fillRect(x-4,y-.5,8,1)}
+   });
+   o.restore();frames.push(oc);
+ }
+ exitEffectFrames=frames;
+}
 function drawExitSmoke(){
  if(!roomCleared)return;
- const d=exitDoorRect(),now=performance.now()/1000;
- const cx=d.x+d.w*.5, cy=d.y+d.h*.5;
- ctx.save();
- ctx.globalCompositeOperation='screen';
- ctx.lineCap='round';ctx.lineJoin='round';
- // Soft teal haze hugging the doorway. The layered sine-wave strokes make it feel smoky
- // rather than like a hard outline or rectangle.
- for(let side=-1;side<=1;side+=2){
-   for(let i=0;i<4;i++){
-     const phase=now*(.72+i*.09)+i*1.7+side*.8;
-     const span=d.h*(.72+i*.045);
-     const x0=cx+side*(d.w*.38+i*1.2), y0=cy+span*.5;
-     const x1=cx+side*(d.w*.75+7+i*2), y1=cy-span*.5;
-     ctx.beginPath();
-     ctx.moveTo(x0,y0);
-     const sway1=Math.sin(phase)*4+side*i*.7;
-     const sway2=Math.sin(phase+1.9)*7-side*i*.6;
-     ctx.bezierCurveTo(x0+side*(8+sway1),cy+d.h*.12,x1-side*(10-sway2),cy-d.h*.16,x1,y1);
-     ctx.strokeStyle=`rgba(38,220,196,${.035+i*.010})`;
-     ctx.lineWidth=7-i*.8;
-     ctx.shadowColor='rgba(24,220,197,.22)';ctx.shadowBlur=10+i*2;
-     ctx.stroke();
-   }
- }
- // Small diffuse pools of mist at the top and bottom of the threshold.
- for(let i=0;i<3;i++){
-   const yy=cy+(i-1)*d.h*.36+Math.sin(now*1.1+i)*2;
-   const g=ctx.createRadialGradient(cx,yy,1,cx,yy,d.w*(1.1+i*.45));
-   g.addColorStop(0,`rgba(43,228,204,${.12-i*.025})`);
-   g.addColorStop(1,'rgba(43,228,204,0)');
-   ctx.fillStyle=g;ctx.fillRect(cx-d.w*2.2,yy-d.w*1.4,d.w*4.4,d.w*2.8);
- }
- // Golden magical sparks, drifting and twinkling around the doorway.
- const sparks=[
-   [-1.55,-.42,.0],[-1.18,.18,.8],[-.92,.66,1.7],[-.38,.98,2.6],
-   [.72,.83,1.1],[1.14,.45,2.1],[1.48,.02,.4],[1.22,-.55,2.9],
-   [.58,-.92,1.8],[-.55,-.86,.7],[-1.28,-.76,2.3]
- ];
- sparks.forEach(([sx,sy,phase],i)=>{
-   const drift=Math.sin(now*(.75+(i%3)*.17)+phase)*3;
-   const x=cx+sx*(d.w*.72)+drift;
-   const y=cy+sy*(d.h*.68)+Math.cos(now*(.65+(i%2)*.13)+phase)*3;
-   const twinkle=.35+.65*(.5+.5*Math.sin(now*2.7+phase));
-   const r=1.2+(i%3)*.45;
-   ctx.globalAlpha=twinkle;
-   ctx.fillStyle='#e7bd3b';
-   ctx.shadowColor='rgba(255,202,61,.9)';ctx.shadowBlur=6;
-   ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
-   if(i%3===0){ctx.globalAlpha=twinkle*.7;ctx.fillRect(x-.6,y-4,x+1.2-(x),8);ctx.fillRect(x-4,y-.6,8,.1);}
- });
+ if(!exitEffectFrames.length)buildExitEffectFrames();
+ const d=exitDoorRect();
+ const frame=Math.floor(frameNow/1000*EXIT_EFFECT_FPS)%EXIT_EFFECT_FRAME_COUNT;
+ // Effect extends beyond the doorway while remaining centred on the actual door.
+ const ew=Math.max(64,d.w*3.6),eh=Math.max(88,d.h*1.55);
+ ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=.92;
+ ctx.drawImage(exitEffectFrames[frame],d.x+d.w*.5-ew*.5,d.y+d.h*.5-eh*.5,ew,eh);
  ctx.restore();
 }
 function drawExit(){
- // 0.2.8b: absolutely invisible until the room is cleared. The doorway itself is
- // supplied by the right-wall PNG; only the animated magical effect is drawn here.
+ // Invisible until the room is cleared. The right-wall PNG supplies the actual doorway.
  if(!roomCleared)return;
  drawExitSmoke();
 }
@@ -1022,6 +1034,7 @@ function loop(t){frameNow=t;const dt=Math.min(.033,(t-last)/1000||0);last=t;upda
 
 player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;
 resetRoom();
+buildExitEffectFrames();
 const startScreen=document.getElementById('startScreen');
 const splashScreen=document.getElementById('splashScreen');
 const playButton=document.getElementById('playButton');
