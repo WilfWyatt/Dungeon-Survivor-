@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.2.8aa**
+**Current Version: 0.2.8b**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -10,10 +10,12 @@ Fight your way through dangerous dungeon rooms, survive waves of enemies, collec
 
 The game is built as a lightweight HTML, CSS and JavaScript project with a portrait mobile layout, virtual controls and a deliberately chunky pixel-art presentation.
 
-## 0.2.8aa Update
+## 0.2.8b Update
 
-- Removed the old procedural exit marker/door.
-- The right-hand wall doorway is now the actual PNG doorway, with the exit glow drawn around it.
+- The exit is completely invisible until the room is cleared.
+- Cleared exits now emit animated teal spectral smoke and drifting golden sparkles around the actual right-wall PNG doorway.
+- The exit activation area is tightly matched to the wooden doorway instead of using an oversized rectangle.
+- Removed the old hard-edged exit glow/marker and EXIT label.
 - No changes to the Swing control or core combat loop.
 
 ## Gameplay

@@ -267,7 +267,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.2.8aa';
+const VERSION='0.2.8b';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
@@ -653,7 +653,16 @@ function update(dt){
  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0);
  if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){roomCleared=true;roomsCleared++;msg('ROOM CLEARED  •  WALK TO EXIT »');burst(W/2,H/2,'clear',18)}
  if(isBossRoom()&&enemies.length===0&&!roomCleared){roomCleared=true;msg(`AREA ${area} COMPLETE  •  WALK TO EXIT »`)}
- if(roomCleared&&!atShop&&!weaponPromptOpen){const ex={x:W-22,y:H/2};if(Math.abs(player.x-ex.x)<30&&Math.abs(player.y-ex.y)<66){if(isBossRoom())beginAreaShop();else if(weaponFinds.length){pendingWeaponIndex=0;weaponPromptOpen=true;openWeaponPrompt();}else{room++;resetRoom();showPickup(`Entering room ${room}`)}}}
+ if(roomCleared&&!atShop&&!weaponPromptOpen){
+  // 0.2.8b: the exit trigger now matches the actual wooden doorway in the right-wall asset.
+  const door=exitDoorRect();
+  const cx=clamp(player.x,door.x,door.x+door.w),cy=clamp(player.y,door.y,door.y+door.h);
+  if(Math.hypot(player.x-cx,player.y-cy)<=player.r){
+    if(isBossRoom())beginAreaShop();
+    else if(weaponFinds.length){pendingWeaponIndex=0;weaponPromptOpen=true;openWeaponPrompt();}
+    else{room++;resetRoom();showPickup(`Entering room ${room}`)}
+  }
+}
  updateHud();
 }
 function shootProjectile(x,y,a,speed,damage,type){projectiles.push({x,y,a,speed,damage,r:type==='arrow'?4:7,life:type==='arrow'?2.6:3.2,type,age:0})}
@@ -870,29 +879,77 @@ function drawEntranceDoor(){
  text('ENTER',x+12,y+65,7,'#78918a','center');
  ctx.restore();
 }
-let exitGlowCanvas=null;
-function getExitGlowCanvas(){
- if(exitGlowCanvas)return exitGlowCanvas;
- const g=document.createElement('canvas');g.width=64;g.height=144;
- const gc=g.getContext('2d');
- // 0.2.8aa: glow only. The actual exit doorway is supplied by the right-wall PNG.
- gc.save();
- gc.strokeStyle='rgba(104,232,211,0.9)';gc.lineWidth=3;gc.shadowColor='rgba(104,232,211,0.9)';gc.shadowBlur=13;
- gc.strokeRect(21,22,21,100);
- gc.restore();
- exitGlowCanvas=g;
- return g;
+// 0.2.8b: the right-wall asset is 160x1536 and is drawn at 50x(H-66).
+// These source bounds tightly frame the wooden doorway inside that asset.
+const EXIT_DOOR_SOURCE={x:47,y:642,w:85,h:216};
+function exitDoorRect(){
+ const wallX=W-50,wallY=16,wallW=50,wallH=H-66;
+ return {
+   x:wallX+(EXIT_DOOR_SOURCE.x/160)*wallW,
+   y:wallY+(EXIT_DOOR_SOURCE.y/1536)*wallH,
+   w:(EXIT_DOOR_SOURCE.w/160)*wallW,
+   h:(EXIT_DOOR_SOURCE.h/1536)*wallH
+ };
+}
+function drawExitSmoke(){
+ if(!roomCleared)return;
+ const d=exitDoorRect(),now=performance.now()/1000;
+ const cx=d.x+d.w*.5, cy=d.y+d.h*.5;
+ ctx.save();
+ ctx.globalCompositeOperation='screen';
+ ctx.lineCap='round';ctx.lineJoin='round';
+ // Soft teal haze hugging the doorway. The layered sine-wave strokes make it feel smoky
+ // rather than like a hard outline or rectangle.
+ for(let side=-1;side<=1;side+=2){
+   for(let i=0;i<4;i++){
+     const phase=now*(.72+i*.09)+i*1.7+side*.8;
+     const span=d.h*(.72+i*.045);
+     const x0=cx+side*(d.w*.38+i*1.2), y0=cy+span*.5;
+     const x1=cx+side*(d.w*.75+7+i*2), y1=cy-span*.5;
+     ctx.beginPath();
+     ctx.moveTo(x0,y0);
+     const sway1=Math.sin(phase)*4+side*i*.7;
+     const sway2=Math.sin(phase+1.9)*7-side*i*.6;
+     ctx.bezierCurveTo(x0+side*(8+sway1),cy+d.h*.12,x1-side*(10-sway2),cy-d.h*.16,x1,y1);
+     ctx.strokeStyle=`rgba(38,220,196,${.035+i*.010})`;
+     ctx.lineWidth=7-i*.8;
+     ctx.shadowColor='rgba(24,220,197,.22)';ctx.shadowBlur=10+i*2;
+     ctx.stroke();
+   }
+ }
+ // Small diffuse pools of mist at the top and bottom of the threshold.
+ for(let i=0;i<3;i++){
+   const yy=cy+(i-1)*d.h*.36+Math.sin(now*1.1+i)*2;
+   const g=ctx.createRadialGradient(cx,yy,1,cx,yy,d.w*(1.1+i*.45));
+   g.addColorStop(0,`rgba(43,228,204,${.12-i*.025})`);
+   g.addColorStop(1,'rgba(43,228,204,0)');
+   ctx.fillStyle=g;ctx.fillRect(cx-d.w*2.2,yy-d.w*1.4,d.w*4.4,d.w*2.8);
+ }
+ // Golden magical sparks, drifting and twinkling around the doorway.
+ const sparks=[
+   [-1.55,-.42,.0],[-1.18,.18,.8],[-.92,.66,1.7],[-.38,.98,2.6],
+   [.72,.83,1.1],[1.14,.45,2.1],[1.48,.02,.4],[1.22,-.55,2.9],
+   [.58,-.92,1.8],[-.55,-.86,.7],[-1.28,-.76,2.3]
+ ];
+ sparks.forEach(([sx,sy,phase],i)=>{
+   const drift=Math.sin(now*(.75+(i%3)*.17)+phase)*3;
+   const x=cx+sx*(d.w*.72)+drift;
+   const y=cy+sy*(d.h*.68)+Math.cos(now*(.65+(i%2)*.13)+phase)*3;
+   const twinkle=.35+.65*(.5+.5*Math.sin(now*2.7+phase));
+   const r=1.2+(i%3)*.45;
+   ctx.globalAlpha=twinkle;
+   ctx.fillStyle='#e7bd3b';
+   ctx.shadowColor='rgba(255,202,61,.9)';ctx.shadowBlur=6;
+   ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+   if(i%3===0){ctx.globalAlpha=twinkle*.7;ctx.fillRect(x-.6,y-4,x+1.2-(x),8);ctx.fillRect(x-4,y-.6,8,.1);}
+ });
+ ctx.restore();
 }
 function drawExit(){
- const x=W-12,y=H/2;ctx.save();
- // 0.2.8aa: remove the old procedural coloured exit marker/door. Keep only a glow
- // around the doorway already present in the right-wall PNG.
- const pulse=roomCleared ? (0.78+0.22*Math.sin(performance.now()/240)) : 0.52;
- ctx.globalAlpha=pulse;
- ctx.drawImage(getExitGlowCanvas(),x-43,y-72);
- ctx.globalAlpha=1;
- if(roomCleared) text('EXIT',x-9,y+65,8,P.cream,'center');
- ctx.restore();
+ // 0.2.8b: absolutely invisible until the room is cleared. The doorway itself is
+ // supplied by the right-wall PNG; only the animated magical effect is drawn here.
+ if(!roomCleared)return;
+ drawExitSmoke();
 }
 function drawShop(){
  ctx.fillStyle='#02090ae8';ctx.fillRect(10,55,W-20,H-110);
