@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.2.5i**
+**Current Version: 0.2.5j**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -140,7 +140,7 @@ The 0.1 releases are retained here as historical development records rather than
 - Reduced character sprite scale to make the dungeon environment feel larger.
 
 ## Change Log
-### 0.2.5i — Sprite Direction & Torch Placement Fixes
+### 0.2.5j — Sprite Direction & Torch Placement Fixes
 
 - Corrected directional idle/walk frame selection for the Player, Goblin, Skeleton and Guardian sheets instead of cycling through direction columns as animation frames.
 - Corrected Goblin frame selection so the intended 32×32 cell is used consistently, eliminating the apparent half-sprite/adjacent-frame selection caused by treating directional poses as an animation.
@@ -297,3 +297,10 @@ The 0.1 releases are retained here as historical development records rather than
 - Added the requested Game Over **MAIN MENU** button.
 - Updated the start-menu visual language, splash presentation and PWA artwork.
 
+
+### 0.2.5j — Sprite, Combat & Torch Lighting Fixes
+
+- Fixed player walking presentation by alternating the directional idle and stepping poses instead of treating the directional walk row as a four-frame loop.
+- Rebuilt the Goblin sprite sheet into clean 32×32 frame cells so adjacent artwork can no longer bleed into the selected frame.
+- Reduced Bat damage to **1 HP per hit**, including its dive/contact hit, to make swarms more manageable.
+- Added a softer, warmer flickering torch glow with gradual falloff around the mandatory room torches.

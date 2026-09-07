@@ -234,13 +234,15 @@ function drawModularDungeon(){
   // Warm light around the mandatory torches, without drawing the old procedural torch sprites.
   const now=performance.now()/1000;
   for(const d of roomDecor) if(d.torch){
-    const g=ctx.createRadialGradient(d.x,d.y-10,2,d.x,d.y-10,42);
-    g.addColorStop(0,`rgba(255,154,58,${.16+.04*Math.sin(now*4+d.x)})`);
-    g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(d.x-44,d.y-54,88,88);
+    const flicker=.15+.035*Math.sin(now*4+d.x)+.018*Math.sin(now*9+d.y);
+    const g=ctx.createRadialGradient(d.x,d.y-10,1,d.x,d.y-10,46);
+    g.addColorStop(0,`rgba(255,178,78,${flicker})`);
+    g.addColorStop(.28,`rgba(255,140,48,${flicker*.42})`);
+    g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(d.x-48,d.y-58,96,96);
   }
 }
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
-const VERSION='0.2.5i';
+const VERSION='0.2.5j';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
@@ -551,7 +553,7 @@ function update(dt){
     e.batAttackAge-=dt;
     const diveA=Math.atan2(player.y-e.y,player.x-e.x);
     e.x+=Math.cos(diveA)*e.speed*1.35*dt*moveScale;e.y+=Math.sin(diveA)*e.speed*1.35*dt*moveScale;
-    if(!e.batAttackHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+10){damagePlayer(Math.round(11*enemyDamageScale()),e.x,e.y,.45,'normal');e.batAttackHit=true}
+    if(!e.batAttackHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+10){damagePlayer(1,e.x,e.y,.45,'normal');e.batAttackHit=true}
     if(e.batAttackAge<=0){e.batAttackCooldown=1.25+Math.random()*.7;e.batAttackHit=false}
    }else if(d>92){
     const weave=Math.sin(performance.now()/240+e.orbitAngle)*.28;
@@ -599,7 +601,7 @@ function update(dt){
    }
   }
   e.x=clamp(e.x,32,W-32);e.y=clamp(e.y,72,H-72);
-  if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){damagePlayer(e.type==='boss'?Math.round(30*enemyDamageScale()):Math.round(22*enemyDamageScale()),e.x,e.y,e.type==='boss'?1.2:.55,'normal')}
+  if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){damagePlayer(e.type==='boss'?Math.round(30*enemyDamageScale()):e.type==='bat'?1:Math.round(22*enemyDamageScale()),e.x,e.y,e.type==='boss'?1.2:.55,'normal')}
   if(player.hp<=0){player.hp=0;finishGameOver()}
  }
  clampEnemySeparation();
@@ -730,7 +732,13 @@ function drawPlayer(){
  let action='idle',frame=animFrame(performance.now()/1000,3.5);
  if(hurt){action='hurt';frame=timedAnimFrame(.24-player.hitTimer,.24,16)}
  else if(slashes.length){const s=slashes[slashes.length-1];action='attack';frame=timedAnimFrame(s.age,s.duration,18)}
- else if(moving){action='walk';frame=animFrame(walkTime/10,8)}
+ else if(moving){
+   // The Codex player walk row is a directional stepping pose, not a 4-frame cycle.
+   // Alternate it with the matching idle pose to create a clean two-pose walk.
+   const step=Math.floor(walkTime*5)%2;
+   action=step?'walk':'idle';
+   frame=directionFrame(facingDir);
+ }
  const flip=facingDir==='left';
  if(drawCharacterSprite('player',action,frame,x,y,48,flip,hurt?.78:1,facingDir)){
    ctx.restore();
