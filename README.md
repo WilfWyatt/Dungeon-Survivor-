@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.2.8c**
+**Current Version: 0.2.9**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -10,7 +10,7 @@ Fight your way through dangerous dungeon rooms, survive waves of enemies, collec
 
 The game is built as a lightweight HTML, CSS and JavaScript project with a portrait mobile layout, virtual controls and a deliberately chunky pixel-art presentation.
 
-## 0.2.8c Update
+## 0.2.9 Update
 - Optimised the cleared-room exit effect by pre-rendering the teal smoke and golden sparks into a small set of animation frames.
 - Gameplay now reuses those frames with a single `drawImage()` instead of rebuilding gradients, bezier smoke and blurred sparks every frame.
 - Tightened the escape trigger to the actual wooden doorway bounds in the supplied 160×1536 right-wall asset.
@@ -341,3 +341,12 @@ The 0.1 releases are retained here as historical development records rather than
 - Rebuilt the Goblin sprite sheet into clean 32×32 frame cells so adjacent artwork can no longer bleed into the selected frame.
 - Reduced Bat damage to **1 HP per hit**, including its dive/contact hit, to make swarms more manageable.
 - Added a softer, warmer flickering torch glow with gradual falloff around the mandatory room torches.
+
+
+## 0.2.9 Update
+
+- Added paced enemy waves: rooms now arrive in 2–3 distinct waves rather than one continuous spawn stream.
+- Added a short room-to-room fade transition showing the next room name and number.
+- Added a Fortune shop upgrade for 125 gold; each level shifts weapon drops towards better rarities.
+- Existing health upgrade retained unchanged.
+- Retained the optimised exit smoke/spark effect from 0.2.8c.

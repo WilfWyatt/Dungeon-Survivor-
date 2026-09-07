@@ -267,7 +267,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.2.8c';
+const VERSION='0.2.9';
 let area=1,areaName='CASTLE',areaRooms=6,bossRoom=7,atShop=false,areaComplete=false;
 const SPRITE_SCALE=0.82;
 const WEAPONS={
@@ -288,14 +288,24 @@ function rarityData(name){return RARITIES.find(r=>r.name===name)||RARITIES[0]}
 function weaponInstance(id,rarityName='Common'){const base=WEAPONS[id]||WEAPONS.shortSword,r=rarityData(rarityName);return {id:base.id,name:base.name,rarity:r.name,baseDamage:base.baseDamage,damage:Math.round(base.baseDamage*r.mult),cooldown:base.cooldown*r.cooldown,reach:Math.round(base.reach*r.reach),swingDuration:base.swingDuration,knockback:base.knockback*r.knockback,icon:base.icon}}
 function playerWeapon(){return player.weapon||weaponInstance('shortSword','Common')}
 function currentWeaponStats(){const w=playerWeapon();return {damage:w.damage+(player.damageBonus||0),cooldown:w.cooldown,reach:w.reach,knockback:w.knockback}}
-function weightedRarity(){let total=RARITIES.reduce((a,r)=>a+r.weight,0),roll=Math.random()*total;for(const r of RARITIES){roll-=r.weight;if(roll<0)return r.name}return 'Common'}
+function weightedRarity(){
+ const luck=fortuneLevel||0;
+ const bonuses=[-8,3,3,1.5,.5];
+ const weights=RARITIES.map((r,i)=>luck?Math.max(i===0?10:0,r.weight+bonuses[i]*luck):r.weight);
+ const total=weights.reduce((a,w)=>a+w,0);let roll=Math.random()*total;
+ for(let i=0;i<RARITIES.length;i++){roll-=weights[i];if(roll<0)return RARITIES[i].name}
+ return 'Common';
+}
 function randomWeaponDrop(){const ids=['shortSword','longSword','claymore'];return weaponInstance(ids[Math.floor(Math.random()*ids.length)],weightedRarity())}
 function rarityClass(r){return String(r||'Common').toLowerCase()}
 function weaponStatLines(w){return {damage:w.damage,reach:w.reach,cooldown:w.cooldown,knockback:w.knockback}}
 let enemies=[],loot=[],slashes=[],deathMarks=[],particles=[],projectiles=[],entrances=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
 let spawnQueue=[],spawnTimer=0,totalSpawned=0,totalQuota=0,activeCap=0,activeGoblinCap=0,bossPatternTimer=0,bossPatternStep=0,bossPatternMode='burst';
+let spawnWaves=[],spawnWaveIndex=0,waveTransitionTimer=0;
 const ROOM_PLAN={1:{cap:5,total:10,weights:[['bat',.80],['goblin',.10],['skeleton',.10]]},2:{cap:6,total:12,weights:[['bat',.70],['goblin',.15],['skeleton',.15]]},3:{cap:7,total:14,weights:[['bat',.60],['goblin',.20],['skeleton',.20]]},4:{cap:8,total:17,weights:[['bat',.50],['goblin',.25],['skeleton',.25]]},5:{cap:10,total:20,weights:[['bat',.40],['goblin',.30],['skeleton',.30]]},6:{cap:12,total:22,weights:[['bat',1/3],['goblin',1/3],['skeleton',1/3]]}};
 let shopMessage='',bossWarningType='',bossWarningTimer=0,paused=false;
+let fortuneLevel=0;
+let roomTransition=null;
 const ROOM_ARCHETYPES=['GREAT HALL','PILLARED HALL','RUINED CHAMBER','CHAPEL','GUARD ROOM','CROSS HALL'];
 function roomArchetype(){return ROOM_ARCHETYPES[(roomVariation+room*3+area)%ROOM_ARCHETYPES.length]}
 function clampEnemySeparation(){
@@ -367,7 +377,7 @@ function resetRoom(){
  roomCacheDirty=true;
  player.x=58;player.y=H/2;player.hp=clamp(player.hp,0,player.maxHp);roomVariation=(room*37+area*101)%997;makeRoomLayout();player.flash=0;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;
  enemies=[];loot=[];slashes=[];deathMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=false;atShop=false;areaComplete=false;areaClearTimer=0;areaClearShown=false;bossWarningTimer=0;setBossWarning('');
- spawnQueue=[];spawnTimer=.35;totalSpawned=0;bossPatternTimer=1.1;bossPatternStep=0;bossPatternMode='burst';
+ spawnQueue=[];spawnTimer=.35;totalSpawned=0;bossPatternTimer=1.1;bossPatternStep=0;bossPatternMode='burst';spawnWaveIndex=0;spawnWaves=[];waveTransitionTimer=0;
  const isBoss=room===bossRoom;
  if(isBoss){
   totalQuota=1;activeCap=1;
@@ -376,8 +386,13 @@ function resetRoom(){
   msg('BOSS ROOM — DEFEAT THE GUARDIAN');
  }else{
   const plan=ROOM_PLAN[room]||ROOM_PLAN[6];activeCap=plan.cap;activeGoblinCap=GOBLIN_CAPS[room]||6;totalQuota=plan.total;
-  for(let i=0;i<totalQuota;i++)spawnQueue.push(chooseEnemyType(plan.weights));
-  msg(`AREA ${area} • ${areaName} — ROOM ${room} • CLEAR THE ROOM`);
+  const waveCount=room<=2?2:3;
+  const allSpawns=Array.from({length:totalQuota},()=>chooseEnemyType(plan.weights));
+  const baseWave=Math.floor(totalQuota/waveCount),remainder=totalQuota%waveCount;
+  let offset=0;spawnWaves=[];
+  for(let w=0;w<waveCount;w++){const size=baseWave+(w<remainder?1:0);spawnWaves.push(allSpawns.slice(offset,offset+size));offset+=size;}
+  spawnQueue=spawnWaves[0].slice();
+  msg(`AREA ${area} • ${areaName} — ROOM ${room} • WAVE 1/${waveCount}`);
   trySpawnEnemy(.2);
  }
  updateHud();
@@ -434,6 +449,10 @@ function buyUpgrade(type){
   const cost=75;
   if(gold<cost){showPickup('Not enough gold for +10 MAX HP');return}
   gold-=cost;player.maxHp+=10;player.hp=player.maxHp;showPickup('+10 MAX HP — fully healed');
+ }else if(type==='fortune'){
+  const cost=125;
+  if(gold<cost){showPickup('Not enough gold for FORTUNE');return}
+  gold-=cost;fortuneLevel++;showPickup('FORTUNE +1 — BETTER WEAPON RARITIES');
  }
  updateHud();
 }
@@ -505,6 +524,13 @@ function update(dt){
  if(!started)return;
  if(gameOver)return;
  if(paused){updateHud();return;}
+ if(roomTransition){
+  roomTransition.timer+=dt;
+  if(roomTransition.timer>=roomTransition.switchAt&&!roomTransition.switched){room=roomTransition.nextRoom;resetRoom();roomTransition.switched=true;}
+  if(roomTransition.timer>=roomTransition.duration)roomTransition=null;
+  updateHud();return;
+ }
+ if(waveTransitionTimer>0)waveTransitionTimer=Math.max(0,waveTransitionTimer-dt);
  if(atShop||weaponPromptOpen){updateHud();return;}
  if(areaClearTimer>0)areaClearTimer=Math.max(0,areaClearTimer-dt);
  player.fire=Math.max(0,player.fire-dt);player.flash=Math.max(0,player.flash-dt);player.hitTimer=Math.max(0,player.hitTimer-dt);player.hitCooldown=Math.max(0,player.hitCooldown-dt);swingCooldown=Math.max(0,swingCooldown-dt);
@@ -651,7 +677,10 @@ function update(dt){
  });
  for(let i=loot.length-1;i>=0;i--){const l=loot[i];const pickupRadius=l.type==='Gold'?player.r+5:player.r+l.r+9;if(dist(player,l)<pickupRadius){if(l.type==='Gold'){gold+=l.amount;totalGoldCollected+=l.amount;showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;player.hp=clamp(player.hp+scaledPotionHeal(),0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}if(l.type==='Weapon'){weaponFinds.push(l.weapon);showPickup(`⚔ ${l.weapon.name} — ${l.weapon.rarity}  •  take it to the exit`)}burst(l.x,l.y,l.type==='Gold'?'coin':l.type==='Weapon'?'weapon':'heal',8);loot.splice(i,1);updateHud()}}
  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0);
- if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){roomCleared=true;roomsCleared++;msg('ROOM CLEARED  •  WALK TO EXIT »');burst(W/2,H/2,'clear',18)}
+ if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){
+   if(spawnWaveIndex<spawnWaves.length-1){spawnWaveIndex++;spawnQueue=spawnWaves[spawnWaveIndex].slice();spawnTimer=1.0;waveTransitionTimer=.9;msg(`WAVE ${spawnWaveIndex+1}/${spawnWaves.length} — INCOMING`);}
+   else{roomCleared=true;roomsCleared++;msg('ROOM CLEARED  •  WALK TO EXIT »');burst(W/2,H/2,'clear',18)}
+ }
  if(isBossRoom()&&enemies.length===0&&!roomCleared){roomCleared=true;msg(`AREA ${area} COMPLETE  •  WALK TO EXIT »`)}
  if(roomCleared&&!atShop&&!weaponPromptOpen){
   // 0.2.8c: the exit trigger now matches the actual wooden doorway in the right-wall asset.
@@ -660,7 +689,7 @@ function update(dt){
   if(Math.hypot(player.x-cx,player.y-cy)<=player.r){
     if(isBossRoom())beginAreaShop();
     else if(weaponFinds.length){pendingWeaponIndex=0;weaponPromptOpen=true;openWeaponPrompt();}
-    else{room++;resetRoom();showPickup(`Entering room ${room}`)}
+    else{startRoomTransition(room+1)}
   }
 }
  updateHud();
@@ -963,23 +992,30 @@ function drawExit(){
  if(!roomCleared)return;
  drawExitSmoke();
 }
+function startRoomTransition(nextRoom){
+ if(roomTransition)return;
+ const nextVariation=(nextRoom*37+area*101)%997;
+ const nextName=ROOM_ARCHETYPES[(nextVariation+nextRoom*3+area)%ROOM_ARCHETYPES.length];
+ roomTransition={timer:0,duration:.95,switchAt:.38,nextRoom,roomName:nextName,switched:false};
+ msg(`ENTERING ${nextName}`);
+}
+
 function drawShop(){
- ctx.fillStyle='#02090ae8';ctx.fillRect(10,55,W-20,H-110);
- panel(25,75,W-50,330);
- text(`${areaName} COMPLETE`,W/2,105,18,P.teal2,'center');
- text(`PURSE  ${gold} GOLD`,W/2,128,10,P.gold2,'center');
- text('SPEND GOLD ON PERMANENT UPGRADES',W/2,150,8,P.cream,'center');
- panel(48,172,264,58);text('SWORD DAMAGE',60,192,9,P.cream);text('+5',60,211,13,P.teal2);text('100 G',292,207,10,P.gold2,'right');
- panel(48,242,264,58);text('MAX HEALTH',60,262,9,P.cream);text('+10  •  FULL HEAL',60,281,11,P.teal2);text('75 G',292,277,10,P.gold2,'right');
- panel(48,318,264,50);text('CONTINUE',W/2,349,12,P.teal2,'center');
- text('TAP AN UPGRADE • TAP CONTINUE WHEN READY',W/2,390,7,'#78918a','center');
+ ctx.fillStyle='#02090ae8';ctx.fillRect(10,45,W-20,H-70);
+ panel(25,62,W-50,370);
+ text(`${areaName} COMPLETE`,W/2,92,18,P.teal2,'center');text(`PURSE  ${gold} GOLD`,W/2,115,10,P.gold2,'center');text('PERMANENT UPGRADES',W/2,136,8,P.cream,'center');
+ panel(48,150,264,54);text('SWORD DAMAGE',60,170,9,P.cream);text('+5',60,190,13,P.teal2);text('100 G',292,186,10,P.gold2,'right');
+ panel(48,212,264,54);text('MAX HEALTH',60,232,9,P.cream);text('+10  •  FULL HEAL',60,251,10,P.teal2);text('75 G',292,248,10,P.gold2,'right');
+ panel(48,274,264,54);text('FORTUNE',60,294,9,P.cream);text(`BETTER LOOT  •  LV ${fortuneLevel}`,60,313,9,P.teal2);text('125 G',292,310,10,P.gold2,'right');
+ panel(48,342,264,50);text('CONTINUE',W/2,373,12,P.teal2,'center');text('TAP AN UPGRADE • TAP CONTINUE WHEN READY',W/2,418,7,'#78918a','center');
+ const guardian=enemies.find(e=>e.type==='boss');if(guardian){const minD=guardian.r+player.r+6,dx=player.x-guardian.x,dy=player.y-guardian.y,d=Math.hypot(dx,dy);if(d>0&&d<minD){player.x=guardian.x+dx/d*minD;player.y=guardian.y+dy/d*minD;}}if(fireHeld)performSwing();
 }
 
 function formatSpeed(cooldown){return `${(1/cooldown).toFixed(1)}/s`}
 function compareArrow(a,b,lowerBetter=false){const d=a-b;const good=lowerBetter?-d:d;if(Math.abs(d)<.005)return '—';return good>0?'▲':'▼'}
 function weaponCardHTML(w){const cur=playerWeapon();const cs=currentWeaponStats();const ws=weaponStatLines(w);const damageDiff=ws.damage+player.damageBonus-cs.damage;const reachDiff=ws.reach-cs.reach;const speedDiff=(1/ws.cooldown)-(1/cs.cooldown);const knockDiff=ws.knockback-cs.knockback;return `<div class="weaponCompare"><div class="weaponCol current"><div class="smallTitle">CURRENT</div><div class="weaponName">${cur.icon} ${cur.name}</div><div class="rarity ${rarityClass(cur.rarity)}">${cur.rarity}</div><div class="weaponStat">DAMAGE <b>${cs.damage}</b></div><div class="weaponStat">REACH <b>${cs.reach}</b></div><div class="weaponStat">SPEED <b>${formatSpeed(cs.cooldown)}</b></div><div class="weaponStat">KNOCKBACK <b>${cs.knockback.toFixed(2)}×</b></div></div><div class="compareMid"><div>${compareArrow(damageDiff,0)} </div><div>${compareArrow(reachDiff,0)} </div><div>${compareArrow(speedDiff,0)} </div><div>${compareArrow(knockDiff,0)} </div></div><div class="weaponCol found"><div class="smallTitle">FOUND</div><div class="weaponName">${w.icon} ${w.name}</div><div class="rarity ${rarityClass(w.rarity)}">${w.rarity}</div><div class="weaponStat">DAMAGE <b>${w.damage+player.damageBonus}</b></div><div class="weaponStat">REACH <b>${w.reach}</b></div><div class="weaponStat">SPEED <b>${formatSpeed(w.cooldown)}</b></div><div class="weaponStat">KNOCKBACK <b>${w.knockback.toFixed(2)}×</b></div></div></div>`}
 function openWeaponPrompt(){const overlay=document.getElementById('weaponScreen');if(!overlay)return;overlay.classList.remove('burning');const w=weaponFinds[pendingWeaponIndex];if(!w){finishWeaponFinds();return;}document.getElementById('weaponTitle').textContent='WEAPON FOUND';document.getElementById('weaponSub').textContent=`You found this on your adventure — ${pendingWeaponIndex+1} of ${weaponFinds.length}`;document.getElementById('weaponCard').innerHTML=weaponCardHTML(w);document.getElementById('equipWeapon').textContent=`EQUIP ${w.name.toUpperCase()}`;document.getElementById('keepWeapon').textContent='KEEP CURRENT';overlay.classList.add('show');}
-function finishWeaponFinds(){weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;const overlay=document.getElementById('weaponScreen');if(overlay)overlay.classList.remove('show');room++;resetRoom();showPickup(`Entering room ${room}`);}
+function finishWeaponFinds(){weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;const overlay=document.getElementById('weaponScreen');if(overlay)overlay.classList.remove('show');startRoomTransition(room+1);}
 function advanceWeaponFind(){pendingWeaponIndex++;if(pendingWeaponIndex>=weaponFinds.length)finishWeaponFinds();else openWeaponPrompt()}
 function discardCurrentFind(){weaponBurning=true;const w=weaponFinds[pendingWeaponIndex];const overlay=document.getElementById('weaponScreen');if(overlay){overlay.classList.add('burning');document.getElementById('weaponTitle').textContent='THROWN INTO THE FIRE';}showPickup(`🔥 ${w.name} thrown into the fire`);setTimeout(()=>{weaponBurning=false;advanceWeaponFind()},240)}
 function equipFoundWeapon(){const w=weaponFinds[pendingWeaponIndex];player.weapon=w;player.damage=currentWeaponStats().damage;swingCooldown=0;weaponBurning=true;const overlay=document.getElementById('weaponScreen');if(overlay){overlay.classList.add('burning');document.getElementById('weaponTitle').textContent='OLD WEAPON BURNED';}showPickup(`⚔ ${w.name} equipped — old weapon to the fire`);setTimeout(()=>{weaponBurning=false;advanceWeaponFind()},240)}
@@ -1026,6 +1062,12 @@ function draw(){
  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);let col=p.type==='coin'?P.gold2:(p.type==='heal'?P.teal2:(p.type==='weapon'?P.gold2:(p.type==='hit'?P.cream:(p.type==='spawn'?(p.spawnType==='goblin'?P.green:p.spawnType==='skeleton'?'#a57b4c':P.cream):P.gold))));pixelRect(p.x,p.y,4,4,col);ctx.globalAlpha=1});
  if(atShop)drawShop();
  if(player.hp>0&&player.hp/player.maxHp<=.25&&!gameOver){const p=.12+.08*(.5+.5*Math.sin(frameNow/180));ctx.fillStyle='#8f3036';ctx.globalAlpha=p;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;}
+ if(roomTransition){
+  const t=roomTransition.timer,fadeOut=Math.min(1,t/.38),fadeIn=Math.min(1,Math.max(0,(t-.38)/.57));
+  const alpha=roomTransition.switched?1-fadeIn:fadeOut;
+  ctx.fillStyle='#02090af2';ctx.globalAlpha=Math.max(0,Math.min(1,alpha));ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;
+  if(roomTransition.switched&&fadeIn>.15){ctx.globalAlpha=Math.min(1,(fadeIn-.15)/.45);text(roomTransition.roomName,W/2,215,17,P.teal2,'center');text(`ROOM ${roomTransition.nextRoom}`,W/2,240,9,P.cream,'center');ctx.globalAlpha=1;}
+ }
  if(gameOver){ctx.fillStyle='#02090af2';ctx.fillRect(0,0,W,H);panel(24,74,W-48,320);text('GAME OVER',W/2,106,27,P.cream,'center');text(`FINAL SCORE  ${score}`,W/2,134,16,P.gold2,'center');const rank=scoreRank();text(rank===1?'NEW HIGH SCORE!':rank?`HIGH SCORE RANK  #${rank}`:'',W/2,154,8,P.red2,'center');text(`REACHED  ${isBossRoom()?'GUARDIAN':`ROOM ${room}`}`,W/2,181,9,P.teal2,'center');text(`LEVEL ${level}  •  GOLD ${totalGoldCollected}`,W/2,202,9,P.gold2,'center');text(`ENEMIES DEFEATED  ${kills}`,W/2,223,9,P.cream,'center');text(`ROOMS CLEARED  ${roomsCleared}`,W/2,244,9,P.cream,'center');text('BEST RUNS',W/2,272,9,P.teal2,'center');for(let i=0;i<Math.min(3,highScores.length);i++){const r=highScores[i];text(`${i+1}.  ${r.score}`,W/2,291+i*16,8,P.cream,'center')}panel(W/2-82,340,164,34);text('MAIN MENU',W/2,362,10,P.teal2,'center')}
  if(shake)ctx.restore();
 }
@@ -1064,7 +1106,7 @@ inventoryCloseBottom.addEventListener('pointerdown',e=>{e.preventDefault();close
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function startNewRun(){started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;roomTransition=null;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
 function returnToTitle(){gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
@@ -1075,7 +1117,7 @@ c.addEventListener('pointerdown',e=>{
  const r=c.getBoundingClientRect(),x=(e.clientX-r.left)*(W/r.width),y=(e.clientY-r.top)*(H/r.height);
  if(gameOver){if(x>=W/2-90&&x<=W/2+90&&y>=334&&y<=378)returnToTitle();return;}
  if(!atShop||weaponPromptOpen)return;
- if(x>=48&&x<=312&&y>=172&&y<=230)buyUpgrade('damage');else if(x>=48&&x<=312&&y>=242&&y<=300)buyUpgrade('health');else if(x>=48&&x<=312&&y>=318&&y<=368)continueFromShop();
+ if(x>=48&&x<=312&&y>=150&&y<=204)buyUpgrade('damage');else if(x>=48&&x<=312&&y>=212&&y<=266)buyUpgrade('health');else if(x>=48&&x<=312&&y>=274&&y<=328)buyUpgrade('fortune');else if(x>=48&&x<=312&&y>=342&&y<=392)continueFromShop();
 });
 if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('portrait').catch(()=>{});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
