@@ -961,7 +961,7 @@ function drawProjectile(q){
  ctx.save();
  const key=q.type==='arrow'?'goblinArrow':q.type==='fireblast'?'fireblast':'fireball';
  const size=q.type==='arrow'?30:(q.type==='fireblast'?36:32);
- if(drawGameAsset(key,q.x,q.y,size,.96,q.a)){ctx.restore();return}
+ if(drawGameAsset(key,q.x,q.y,size,.96,q.type==='arrow'?q.a:0)){ctx.restore();return}
  ctx.translate(q.x,q.y);ctx.rotate(q.a);
  if(q.type==='arrow'){ctx.shadowBlur=8;ctx.shadowColor=P.gold;pixelRect(-7,-2,14,4,P.cream);pixelRect(5,-1,5,2,P.gold2);ctx.restore();return}
  const blast=q.type==='fireblast';const pulse=.85+.18*Math.sin(q.age*18);ctx.globalAlpha=.95;
