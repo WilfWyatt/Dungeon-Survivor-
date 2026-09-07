@@ -1,6 +1,6 @@
 # DUNGEON SURVIVOR
 
-**Current Version: 0.2.5j**
+**Current Version: 0.2.6**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
@@ -140,6 +140,15 @@ The 0.1 releases are retained here as historical development records rather than
 - Reduced character sprite scale to make the dungeon environment feel larger.
 
 ## Change Log
+
+### 0.2.6 — Major Performance Optimisation
+- Added an off-screen room cache so the static floor, walls and props are rendered once per room instead of every frame.
+- Replaced per-frame torch radial-gradient creation with a pre-rendered glow texture and lightweight flicker.
+- Reduced expensive dynamic canvas shadow-blur usage on frequently rendered actors, loot, weapons and projectiles.
+- Reduced the maximum canvas backing-device pixel ratio from 2× to 1.5× to lower mobile GPU fill cost while retaining crisp pixel rendering.
+- Cached the current animation clock once per frame instead of repeatedly querying `performance.now()`.
+- Preserved enemy counts and gameplay behaviour; the optimisation targets rendering and repeated per-frame work rather than reducing the swarm.
+
 ### 0.2.5j — Sprite Direction & Torch Placement Fixes
 
 - Corrected directional idle/walk frame selection for the Player, Goblin, Skeleton and Guardian sheets instead of cycling through direction columns as animation frames.
