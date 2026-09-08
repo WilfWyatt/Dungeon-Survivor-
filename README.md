@@ -397,3 +397,9 @@ The 0.1 releases are retained here as historical development records rather than
 - Added placeholder Leather Armour drops and automatic equipping, currently providing 8% damage reduction.
 - Added Bosses Killed and Stages Cleared to saved scoreboard records.
 - Added the new progression and armour information to the inventory/player card.
+
+
+## v0.3.5a — Hit Stability Fix
+- Hardened the player damage path against invalid damage/position values.
+- Isolated player-hurt audio failures from gameplay updates.
+- Bumped cache/version to 0.3.5a.

@@ -279,7 +279,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.5';
+const VERSION='0.3.5a';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -636,10 +636,22 @@ function performSwing(){
 
 function damagePlayer(amount,sourceX,sourceY,knockbackScale=1,hitType='normal'){
  if(gameOver||player.hitCooldown>0)return false;
+ // Keep the hit path deliberately defensive: damage can come from several enemy/projectile
+ // systems, and a malformed value must never poison the animation loop with NaN/Infinity.
+ amount=Number.isFinite(amount)?Math.max(0,amount):0;
+ sourceX=Number.isFinite(sourceX)?sourceX:player.x;
+ sourceY=Number.isFinite(sourceY)?sourceY:player.y;
+ knockbackScale=Number.isFinite(knockbackScale)?Math.max(0,knockbackScale):1;
+ const reduction=clamp(Number.isFinite(armourReduction())?armourReduction():0,0,.75);
  const dx=player.x-sourceX,dy=player.y-sourceY,d=Math.hypot(dx,dy)||1;
  const strength=(18+amount*0.95)*knockbackScale;
  player.knockX=dx/d*strength;player.knockY=dy/d*strength;
- const reduced=Math.max(1,Math.round(amount*(1-armourReduction())));player.hp-=reduced;player.flash=.16;AUDIO.hurt(hitType==='fire');player.hitTimer=.24;player.hitCooldown=.28;
+ const reduced=Math.max(1,Math.round(amount*(1-reduction)));
+ player.hp=clamp(player.hp-reduced,0,player.maxHp);
+ player.flash=.16;player.hitTimer=.24;player.hitCooldown=.28;
+ // Audio is deliberately isolated from gameplay state changes so an Android/Web Audio
+ // hiccup cannot interrupt the damage/update path.
+ try{AUDIO.hurt(hitType==='fire')}catch(e){}
  addScore(-(hitType==='fire'?100:5));
  burst(player.x,player.y,'hit',7);
  if(player.hp<=0){player.hp=0;finishGameOver();}
