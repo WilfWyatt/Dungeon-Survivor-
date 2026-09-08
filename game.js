@@ -382,7 +382,7 @@ const RARITIES=[
  {name:'Epic',weight:5,mult:1.30,cooldown:.88,reach:1.12,knockback:1.25,label:'EPIC'},
  {name:'Legendary',weight:1,mult:1.45,cooldown:.84,reach:1.16,knockback:1.35,label:'LEGENDARY'}
 ];
-const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:185,fire:0,damage:25,damageBonus:0,moveSpeedBonus:0,critBonus:0,attackSpeedBonus:0,knockbackBonus:0,armour:null,flash:0,hitTimer:0,hitCooldown:0,knockX:0,knockY:0,weapon:null};
+const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:185,fire:0,damage:25,damageBonus:0,critBonus:0,attackSpeedBonus:0,knockbackBonus:0,armour:null,flash:0,hitTimer:0,hitCooldown:0,knockX:0,knockY:0,weapon:null};
 let weaponFinds=[],pendingWeaponIndex=0,weaponPromptOpen=false,weaponBurning=false,doorSequenceActive=false,roomRewardOpen=false;
 function rarityData(name){return RARITIES.find(r=>r.name===name)||RARITIES[0]}
 function weaponInstance(id,rarityName='Common'){const base=WEAPONS[id]||WEAPONS.shortSword,r=rarityData(rarityName);return {id:base.id,name:base.name,rarity:r.name,baseDamage:base.baseDamage,damage:Math.round(base.baseDamage*r.mult),cooldown:base.cooldown*r.cooldown,reach:Math.round(base.reach*r.reach),swingDuration:base.swingDuration,knockback:base.knockback*r.knockback,moveSpeed:base.moveSpeed,swingMoveSpeed:base.swingMoveSpeed,critChance:base.critChance,icon:base.icon}}
@@ -439,7 +439,6 @@ function armourReduction(){return player.armour?.damageReduction||0}
 const LEVEL_UP_POOL=[
  {id:'damage',title:'+5 DAMAGE',desc:'Every swing hits harder.'},
  {id:'health',title:'+10 MAX HP',desc:'Increase maximum health and heal 10 HP.'},
- {id:'speed',title:'+5% MOVE SPEED',desc:'Move faster through the dungeon.'},
  {id:'crit',title:'+3% CRITICAL',desc:'More chance to land a critical hit.'},
  {id:'attack',title:'+5% ATTACK SPEED',desc:'Swing more often.'},
  {id:'knockback',title:'+10% KNOCKBACK',desc:'Push enemies back further.'}
@@ -448,7 +447,6 @@ function rollLevelChoices(){const pool=[...LEVEL_UP_POOL],out=[];while(out.lengt
 function applyLevelChoice(id){
  if(id==='damage'){player.damageBonus+=5;player.damage=currentWeaponStats().damage}
  else if(id==='health'){player.maxHp+=10;player.hp=Math.min(player.maxHp,player.hp+10)}
- else if(id==='speed'){player.moveSpeedBonus+=.05}
  else if(id==='crit'){player.critBonus+=.03}
  else if(id==='attack'){player.attackSpeedBonus+=.05;swingCooldown=0}
  else if(id==='knockback'){player.knockbackBonus+=.10}
@@ -680,12 +678,12 @@ function update(dt){
  player.x+=player.knockX*dt;player.y+=player.knockY*dt;const knockDrag=Math.pow(.025,dt);player.knockX*=knockDrag;player.knockY*=knockDrag;
  let mx=(keys.d?1:0)-(keys.a?1:0),my=(keys.s?1:0)-(keys.w?1:0);
  const movingInput=joy.active||Math.hypot(mx,my)>.12;
- if(movingInput){walkTime+=dt*10;audioStepTimer-=dt;if(started&&!paused&&!atShop&&!roomTransition&&audioStepTimer<=0){AUDIO.step();audioStepTimer=.24+Math.random()*.08}}else audioStepTimer=0;
+ if(movingInput){walkTime+=dt;audioStepTimer-=dt;if(started&&!paused&&!atShop&&!roomTransition&&audioStepTimer<=0){AUDIO.step();audioStepTimer=.24+Math.random()*.08}}else audioStepTimer=0;
  if(joy.active){mx=joy.x;my=joy.y}
  const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l}
  const swinging=slashes.length>0;const moveSpeed=player.speed*weaponMoveSpeed(playerWeapon(),swinging);
  if(l>.12){facing=Math.atan2(my,mx);facingDir=dirFromAngle(facing)}
- const effectiveMoveSpeed=moveSpeed*(1+(player.moveSpeedBonus||0));player.x=clamp(player.x+mx*effectiveMoveSpeed*dt,30,W-30);player.y=clamp(player.y+my*effectiveMoveSpeed*dt,70,H-70);
+ const effectiveMoveSpeed=moveSpeed;player.x=clamp(player.x+mx*effectiveMoveSpeed*dt,30,W-30);player.y=clamp(player.y+my*effectiveMoveSpeed*dt,70,H-70);
  player.x=clamp(player.x,30,W-30);player.y=clamp(player.y,70,H-70);
  // Keep the player outside the Guardian's body, while leaving enough overlap-free distance for sword reach to connect.
  const guardian=enemies.find(e=>e.type==='boss');
@@ -957,7 +955,7 @@ function drawPlayer(){
  const bob=moving?Math.sin(walkTime)*1.2:0;
  const x=player.x,y=player.y+bob,hurt=player.hitTimer>0;
  ctx.save();
- let action='idle',frame=animFrame(frameNow/1000,3.5);
+ let action='idle',frame=animFrame(frameNow/1000,3.5,4);
  if(hurt){action='hurt';frame=timedAnimFrame(.24-player.hitTimer,.24,16)}
  else if(slashes.length){const s=slashes[slashes.length-1];action='attack';frame=timedAnimFrame(s.age,s.duration,18)}
  else if(moving){
@@ -965,7 +963,7 @@ function drawPlayer(){
    // between idle and walk frames: that was causing the player's movement
    // animation to jump/flicker between poses.
    action='walk';
-   frame=animFrame(walkTime,7,4);
+   frame=animFrame(walkTime,8,4);
  }
  const flip=facingDir==='left';
  if(drawCharacterSprite('player',action,frame,x,y,48,flip,hurt?.78:1,facingDir)){
@@ -1291,7 +1289,7 @@ if(inventoryCloseBottom)inventoryCloseBottom.addEventListener('pointerdown',e=>{
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
 function returnToTitle(){AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];doorSequenceActive=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
