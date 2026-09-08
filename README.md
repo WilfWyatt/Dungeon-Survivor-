@@ -376,3 +376,10 @@ The 0.1 releases are retained here as historical development records rather than
 - Enemy deaths now leave authored Skeleton, Goblin, Bat or Guardian remains, with a subtle blood-splat under non-skeletal deaths.
 - Added short-lived authored hit/impact spark effects while retaining procedural particles as a lightweight fallback.
 - Asset loading is asset-first with the previous procedural drawings retained as fallbacks, so a missing PNG cannot blank gameplay.
+
+
+## v0.3.4 — Polish & Atmosphere
+- Gold and weapon pickups now use a subtle animated sparkle instead of the old wobble.
+- Health pickups retain their wobble animation.
+- Expanded dungeon soundscape with periodic torch crackle and room-archetype ambience.
+- Exit/room transitions now include door close/open sounds alongside the transition effect.

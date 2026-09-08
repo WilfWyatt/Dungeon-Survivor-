@@ -278,13 +278,13 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.3';
+const VERSION='0.3.4';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
 // cannot be loaded, the lightweight procedural fallback keeps gameplay audible.
 let audioCtx=null,audioMaster=null,audioSfx=null,audioAmbience=null,audioStarted=false,audioMuted=false;
-let audioBuffers={},audioLoading=false,audioLoaded=false,audioDrone=[],audioDripTimer=null,audioStepTimer=0;
+let audioBuffers={},audioLoading=false,audioLoaded=false,audioDrone=[],audioDripTimer=null,audioTorchTimer=null,audioRoomTimer=null,audioStepTimer=0;
 const AUDIO_PATH='./assets/audio/';
 const AUDIO_FILES={
  swingLight:'combat/sword_swing_light.wav',swingHeavy:'combat/sword_swing_heavy.wav',hit:'combat/sword_hit.wav',clang:'combat/sword_clang.wav',enemyHit:'combat/enemy_hit.wav',hurt:'combat/player_hurt.wav',death:'combat/enemy_death.wav',bossDeath:'combat/boss_death.wav',
@@ -318,10 +318,10 @@ const AUDIO={
   const droneGain=audioCtx.createGain();droneGain.gain.value=.025;droneGain.connect(audioAmbience);
   [55,82.5].forEach((f,i)=>{const o=audioCtx.createOscillator();o.type=i?'triangle':'sine';o.frequency.value=f;o.detune.value=i?3:-4;o.connect(droneGain);o.start(now);audioDrone.push(o)});
   audioDrone.push(droneGain);
-  this.scheduleDrip();
+  this.scheduleDrip();this.scheduleTorch();this.scheduleRoomAmbience();
  },
  stop(){
-  clearTimeout(audioDripTimer);audioDripTimer=null;
+  clearTimeout(audioDripTimer);audioDripTimer=null;clearTimeout(audioTorchTimer);audioTorchTimer=null;clearTimeout(audioRoomTimer);audioRoomTimer=null;
   if(!audioCtx)return;
   const nodes=audioDrone.slice();audioDrone=[];const now=audioCtx.currentTime;
   nodes.forEach(n=>{try{if(n.gain){n.gain.cancelScheduledValues(now);n.gain.setTargetAtTime(0,now,.08)}else if(n.stop)n.stop(now+.12)}catch(e){}});
@@ -573,7 +573,7 @@ function spawnLoot(x,y,enemyType){
  else if(roll<0.110) type='Heart';
  else if(roll<0.185) type='Potion';
  const kick=Math.random()*Math.PI*2;const kickSpeed=type==='Gold'?35+Math.random()*35:0;
- loot.push({x,y,r:type==='Weapon'?13:11,type,amount,weapon,bob:Math.random()*6.28,spin:Math.random()*6.28,vx:Math.cos(kick)*kickSpeed,vy:Math.sin(kick)*kickSpeed});
+ loot.push({x,y,r:type==='Weapon'?13:11,type,amount,weapon,bob:Math.random()*6.28,spin:Math.random()*6.28,age:0,vx:Math.cos(kick)*kickSpeed,vy:Math.sin(kick)*kickSpeed});
  if(type==='Gold') AUDIO.pickup('Gold'),showPickup(`🪙 ${amount} gold dropped — nearby gold is attracted to you`);
  else if(type==='Heart') AUDIO.pickup('Heart'),showPickup('♥ RARE HEART — full heal!');
  else if(type==='Potion') AUDIO.pickup('Potion'),showPickup('✚ RARE POTION — small heal');
@@ -628,7 +628,7 @@ function update(dt){
  if(paused){updateHud();return;}
  if(roomTransition){
   roomTransition.timer+=dt;
-  if(roomTransition.timer>=roomTransition.switchAt&&!roomTransition.switched){room=roomTransition.nextRoom;resetRoom();roomTransition.switched=true;}
+  if(roomTransition.timer>=roomTransition.switchAt&&!roomTransition.switched){room=roomTransition.nextRoom;resetRoom();AUDIO.doorOpen();roomTransition.switched=true;}
   if(roomTransition.timer>=roomTransition.duration)roomTransition=null;
   updateHud();return;
  }
@@ -989,10 +989,10 @@ function drawProjectile(q){
 }
 
 function drawLoot(l){
- const y=l.y+Math.sin(l.bob)*3,x=l.x;ctx.save();ctx.translate(x,y);
+ const wobble=l.type==='Heart'||l.type==='Potion';const y=l.y+(wobble?Math.sin(l.bob)*3:0),x=l.x;ctx.save();ctx.translate(x,y);
  const key=l.type==='Gold'?'gold':l.type==='Heart'?'healthFull':l.type==='Potion'?'healthSmall':'weaponDrop';
  if(drawGameAsset(key,0,0,32,1,0)){
-   if(l.type==='Gold'&&Math.sin(l.bob*2.1)>.55){ctx.fillStyle=P.cream;ctx.globalAlpha=.7;pixelRect(-2,-13,4,2,P.cream);pixelRect(-1,-15,2,6,P.cream);pixelRect(-4,-12,8,2,P.cream);ctx.globalAlpha=1}
+   if(l.type==='Gold'||l.type==='Weapon'){const pulse=.45+.55*(.5+.5*Math.sin((l.spin||0)+frameNow*.008));const len=3+4*pulse;ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=.18+.38*pulse;ctx.strokeStyle=l.type==='Gold'?P.gold2:P.teal2;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-len,0);ctx.lineTo(len,0);ctx.moveTo(0,-len);ctx.lineTo(0,len);ctx.stroke();ctx.globalAlpha=.8*pulse;pixelRect(-1,-1,2,2,P.cream);ctx.restore()}
    if(l.type==='Weapon'){const r=rarityData(l.weapon?.rarity);text(l.weapon?.rarity?.slice(0,1)||'C',0,25,7,r.name==='Legendary'?P.gold2:r.name==='Epic'?P.red2:r.name==='Rare'?P.teal2:P.cream,'center')}
    ctx.restore();return;
  }
@@ -1098,7 +1098,7 @@ function drawExit(){
  drawExitSmoke();
 }
 function startRoomTransition(nextRoom){
- if(roomTransition)return; AUDIO.transition();
+ if(roomTransition)return; AUDIO.exit();AUDIO.doorClose();AUDIO.transition();
  const nextVariation=(nextRoom*37+area*101)%997;
  const nextName=ROOM_ARCHETYPES[(nextVariation+nextRoom*3+area)%ROOM_ARCHETYPES.length];
  roomTransition={timer:0,duration:.95,switchAt:.38,nextRoom,roomName:nextName,switched:false};
