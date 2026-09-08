@@ -274,12 +274,13 @@ function drawTorchLightOptimized(){
   ctx.restore();
 }
 let W=360,H=480,dpr=1,last=0,room=1,kills=0,bossesKilled=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
+let hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};
 let pendingLevelUps=0,levelChoiceOpen=false,levelChoices=[];
 const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.height=480;const roomCacheCtx=roomCache.getContext('2d');
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.6b';
+const VERSION='0.3.6c';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -478,22 +479,22 @@ function setBossWarning(type=''){
  el.classList.toggle('fireblast',type==='blast');
 }
 function updateHud(){
- const roomEl=document.getElementById('room');
- if(roomEl)roomEl.textContent=isBossRoom()?'BOSS':`${room}`;
- const areaEl=document.getElementById('areaText');
- if(areaEl)areaEl.textContent=`${areaName} • R${room}`;
- const hpEl=document.getElementById('hp');
- if(hpEl)hpEl.style.width=Math.max(0,player.hp/player.maxHp*100)+'%';
- const hpText=document.getElementById('hpText');
- if(hpText)hpText.textContent=`${Math.ceil(player.hp)} / ${player.maxHp}`;
- const goldEl=document.getElementById('gold');
- if(goldEl)goldEl.textContent=gold;
- const xpEl=document.getElementById('xp');
- if(xpEl)xpEl.style.width=Math.max(0,Math.min(100,xp/xpNeed*100))+'%';
- const levelEl=document.getElementById('levelText');
- if(levelEl)levelEl.textContent=`LV ${level}`;
- const xpTop=document.getElementById('xpTextTop');
- if(xpTop)xpTop.textContent=`${xp} XP`;
+ const roomValue=isBossRoom()?'BOSS':`${room}`;
+ const areaValue=`${areaName} • R${room}`;
+ const hpValue=Math.max(0,player.hp/player.maxHp*100)+'%';
+ const hpTextValue=`${Math.ceil(player.hp)} / ${player.maxHp}`;
+ const goldValue=`${gold}`;
+ const xpValue=Math.max(0,Math.min(100,xp/xpNeed*100))+'%';
+ const levelValue=`LV ${level}`;
+ const xpTopValue=`${xp} XP`;
+ if(roomValue!==hudCache.room){const el=document.getElementById('room');if(el)el.textContent=roomValue;hudCache.room=roomValue}
+ if(areaValue!==hudCache.area){const el=document.getElementById('areaText');if(el)el.textContent=areaValue;hudCache.area=areaValue}
+ if(hpValue!==hudCache.hp){const el=document.getElementById('hp');if(el)el.style.width=hpValue;hudCache.hp=hpValue}
+ if(hpTextValue!==hudCache.hpText){const el=document.getElementById('hpText');if(el)el.textContent=hpTextValue;hudCache.hpText=hpTextValue}
+ if(goldValue!==hudCache.gold){const el=document.getElementById('gold');if(el)el.textContent=goldValue;hudCache.gold=goldValue}
+ if(xpValue!==hudCache.xp){const el=document.getElementById('xp');if(el)el.style.width=xpValue;hudCache.xp=xpValue}
+ if(levelValue!==hudCache.level){const el=document.getElementById('levelText');if(el)el.textContent=levelValue;hudCache.level=levelValue}
+ if(xpTopValue!==hudCache.xpTop){const el=document.getElementById('xpTextTop');if(el)el.textContent=xpTopValue;hudCache.xpTop=xpTopValue}
 }
 
 
@@ -1269,7 +1270,7 @@ if(inventoryCloseBottom)inventoryCloseBottom.addEventListener('pointerdown',e=>{
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){AUDIO.start();started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
 function returnToTitle(){AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];doorSequenceActive=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
