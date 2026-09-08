@@ -1,10 +1,16 @@
+## 0.3.3 — Combat Feel & Scoreboard
+
+- Added end-of-run local date/time to scoreboard records and display. Existing older records without timestamps remain valid and show `—`.
+- Added weapon weight movement profiles: Short Sword 100%/80% normal/swinging, Long Sword 90%/70%, Claymore 80%/60%. Movement is hard-capped at 100%.
+- Added weapon-dependent critical hits with stronger impact, knockback, stagger, audio and `CRITICAL!` feedback.
+
 ## 0.3.2 — Sound Upgrade
 
 Integrates the authored WAV sound library from `assets/audio/` with buffered Web Audio playback, contextual combat/loot/UI/world sounds, and lightweight ambience. The audio folders are expected to already exist in the repository; ordinary code-only build ZIPs do not duplicate them.
 
 # DUNGEON SURVIVOR
 
-**Current Version: 0.3.2**
+**Current Version: 0.3.3**
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
 
