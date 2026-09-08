@@ -279,7 +279,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.6a';
+const VERSION='0.3.6b';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -494,8 +494,8 @@ function updateHud(){
  if(levelEl)levelEl.textContent=`LV ${level}`;
  const xpTop=document.getElementById('xpTextTop');
  if(xpTop)xpTop.textContent=`${xp} XP`;
- updateInventoryPanel();
 }
+
 
 function chooseEnemyType(weights){
  const r=Math.random();let acc=0;for(const [type,w] of weights){acc+=w;if(r<=acc)return type}return weights[weights.length-1][0];
@@ -734,7 +734,7 @@ function update(dt){
    if(e.windup>0){e.windup-=dt;if(e.windup<=0){e.attackAge=.20;e.swingHit=false;e.swingAngle=a}}
    if(e.attackAge>0){
     e.attackAge=Math.max(0,e.attackAge-dt);
-    if(!e.swingHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+18){const goblinSupport=enemies.filter(o=>o.type==='goblin'&&dist(o,e)<120).length;damagePlayer(Math.round(14*eliteDamageScale(e)*(1+Math.min(2,goblinSupport)*.08)),e.x,e.y,1.0,'normal');e.swingHit=true}
+    if(!e.swingHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+18){const goblinSupport=enemies.filter(o=>o.type==='goblin'&&dist(o,e)<120).length;damagePlayer(Math.round(14*eliteDamageScale(e)*(1+Math.min(2,goblinSupport)*.08)),e.x,e.y,1.0,'normal');if(gameOver)return;e.swingHit=true}
     if(e.attackAge<=0){e.attackCooldown=1.2;e.vulnerable=.35;}
    e.vulnerable=Math.max(0,(e.vulnerable||0)-dt);
    }
@@ -745,7 +745,7 @@ function update(dt){
     e.batAttackAge-=dt;
     const diveA=Math.atan2(player.y-e.y,player.x-e.x);
     e.x+=Math.cos(diveA)*e.speed*1.35*dt*moveScale;e.y+=Math.sin(diveA)*e.speed*1.35*dt*moveScale;
-    if(!e.batAttackHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+10){damagePlayer(1,e.x,e.y,.45,'normal');e.batAttackHit=true}
+    if(!e.batAttackHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+10){damagePlayer(1,e.x,e.y,.45,'normal');if(gameOver)return;e.batAttackHit=true}
     if(e.batAttackAge<=0){e.batAttackCooldown=1.25+Math.random()*.7;e.batAttackHit=false}
    }else if(d>92){
     const weave=Math.sin(frameNow/240+e.orbitAngle)*.28;
@@ -793,12 +793,12 @@ function update(dt){
    }
   }
   e.x=clamp(e.x,32,W-32);e.y=clamp(e.y,72,H-72);
-  if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){damagePlayer(e.type==='boss'?Math.round(30*eliteDamageScale(e)):e.type==='bat'?1:Math.round(22*eliteDamageScale(e)),e.x,e.y,e.type==='boss'?1.2:.55,'normal')}
+  if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){damagePlayer(e.type==='boss'?Math.round(30*eliteDamageScale(e)):e.type==='bat'?1:Math.round(22*eliteDamageScale(e)),e.x,e.y,e.type==='boss'?1.2:.55,'normal');if(gameOver)return}
   if(player.hp<=0){player.hp=0;finishGameOver()}
  }
  clampEnemySeparation();
 
- for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.age+=dt;q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){impactMarks.push({x:player.x,y:player.y,age:0,dur:.18,type:'impact',angle:q.a});if(q.type==='fireball'||q.type==='fireblast')AUDIO.fireImpact();else AUDIO.clang();if(damagePlayer(q.damage,q.x,q.y,q.type==='fireball'?1.0:.85,q.type==='fireball'||q.type==='fireblast'?'fire':'normal'))projectiles.splice(i,1);else projectiles.splice(i,1)}}
+ for(let i=projectiles.length-1;i>=0;i--){const q=projectiles[i];q.age+=dt;q.x+=Math.cos(q.a)*q.speed*dt;q.y+=Math.sin(q.a)*q.speed*dt;q.life-=dt;if(q.life<=0||q.x<15||q.x>W-15||q.y<60||q.y>H-60){projectiles.splice(i,1);continue}if(Math.hypot(q.x-player.x,q.y-player.y)<q.r+player.r){impactMarks.push({x:player.x,y:player.y,age:0,dur:.18,type:'impact',angle:q.a});if(q.type==='fireball'||q.type==='fireblast')AUDIO.fireImpact();else AUDIO.clang();damagePlayer(q.damage,q.x,q.y,q.type==='fireball'?1.0:.85,q.type==='fireball'||q.type==='fireblast'?'fire':'normal');projectiles.splice(i,1);if(gameOver)return}}
 
  for(let i=slashes.length-1;i>=0;i--){
   const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const reach=s.reach||playerWeapon().reach;const centre=s.angle+s.side*(Math.PI*.40-(Math.min(1,progress)*Math.PI*.80));
