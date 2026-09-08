@@ -378,8 +378,13 @@ The 0.1 releases are retained here as historical development records rather than
 - Asset loading is asset-first with the previous procedural drawings retained as fallbacks, so a missing PNG cannot blank gameplay.
 
 
-## v0.3.4 — Polish & Atmosphere
+## v0.3.4a — Polish & Atmosphere
 - Gold and weapon pickups now use a subtle animated sparkle instead of the old wobble.
 - Health pickups retain their wobble animation.
 - Expanded dungeon soundscape with periodic torch crackle and room-archetype ambience.
 - Exit/room transitions now include door close/open sounds alongside the transition effect.
+
+## v0.3.4a — Scoreboard controls
+- Added a **CLEAR SCOREBOARD** button to the local scoreboard.
+- Clearing requires confirmation with **“Are you sure?”**.
+- Confirming removes all locally stored high scores and refreshes the scoreboard immediately.
