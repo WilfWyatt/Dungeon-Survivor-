@@ -403,3 +403,9 @@ The 0.1 releases are retained here as historical development records rather than
 - Hardened the player damage path against invalid damage/position values.
 - Isolated player-hurt audio failures from gameplay updates.
 - Bumped cache/version to 0.3.5a.
+
+
+## v0.3.5b
+- Level-up reward choices now open when the player activates the cleared-room exit, alongside the end-of-room weapon reward flow.
+- Level-up rewards no longer interrupt the final enemy death/combat moment.
+- Door reward flow resolves weapon rewards, then pending level rewards, before transitioning to the next room (or the area shop after a boss).
