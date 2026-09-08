@@ -279,7 +279,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.6';
+const VERSION='0.3.6a';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -1206,9 +1206,9 @@ function closeInventory(){document.getElementById('inventoryScreen').classList.r
 function formatScoreDate(ts){if(!ts)return '—';try{return new Date(ts).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return '—'}}
 function renderScoreboard(){const list=document.getElementById('scoreList');if(!list)return;const rows=highScores.length?highScores.map((r,i)=>`<div class="scoreRow"><span>#${i+1}</span><b>${r.score}</b><span>R${r.room} • LV${r.level}</span><span>${r.kills}K • ${r.stagesCleared??Math.max(0,(r.room||1)-1)}S • ${r.bossesKilled??0}B • ${formatScoreDate(r.endedAt)}</span></div>`).join(''):`<div class="emptyScores">NO RUNS RECORDED YET</div>`;list.innerHTML=rows;}
 function clearScoreboard(){if(!highScores.length)return;if(!window.confirm('Are you sure?'))return;highScores=[];try{localStorage.removeItem('dungeonSurvivorHighScores')}catch(e){}renderScoreboard();AUDIO.confirm();}
-function openScoreboard(){if(started)return;renderScoreboard();document.getElementById('scoreboardScreen').classList.add('show');startScreen.classList.add('menuHidden');}
-function closeScoreboard(){document.getElementById('scoreboardScreen').classList.remove('show');startScreen.classList.remove('menuHidden');}
-function exitApp(){try{window.close()}catch(e){};setTimeout(()=>{try{history.back()}catch(e){}},80);setTimeout(()=>{if(document.visibilityState==='visible')msg('EXIT — close the app from Android to leave the game')},180);}
+function openScoreboard(){if(started)return;renderScoreboard();const screen=document.getElementById('scoreboardScreen');if(screen)screen.classList.add('show');if(startScreen)startScreen.classList.add('menuHidden');}
+function closeScoreboard(){const screen=document.getElementById('scoreboardScreen');if(screen)screen.classList.remove('show');if(startScreen)startScreen.classList.remove('menuHidden');}
+function exitApp(){try{window.close()}catch(e){};setTimeout(()=>{try{history.back()}catch(e){}},80);setTimeout(()=>{if(document.visibilityState==='visible'){returnToTitle();msg('GAME CLOSED — BACK TO START SCREEN')}} ,180);}
 function draw(){
  ctx.clearRect(0,0,W,H);
  const shake=!gameOver&&player.hitTimer>0?(player.hitTimer/.24)*2.2:0; if(shake){ctx.save();ctx.translate((Math.random()*2-1)*shake,(Math.random()*2-1)*shake)}
@@ -1259,13 +1259,13 @@ startScreen.style.display='none';
 // Keep the menu underneath the splash during its fade so there is never a frame of the dungeon showing between them.
 setTimeout(()=>{startScreen.style.display='flex';splashScreen.classList.add('done');setTimeout(()=>{splashScreen.style.display='none';msg('PRESS PLAY TO ENTER THE DUNGEON')},220)},1800);
 playButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();if(started)return;closeScoreboard();startNewRun();msg('AREA 1 • CASTLE — ROOM 1 • CLEAR THE ROOM')});
-scoreboardButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();openScoreboard()});
-scoreboardBack.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeScoreboard()});
-clearScoreboardButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();clearScoreboard()});
-exitAppButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();exitApp()});
-inventoryButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();openInventory()});
-inventoryClose.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeInventory()});
-inventoryCloseBottom.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeInventory()});
+if(scoreboardButton)scoreboardButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();openScoreboard()});
+if(scoreboardBack)scoreboardBack.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeScoreboard()});
+if(clearScoreboardButton)clearScoreboardButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();clearScoreboard()});
+if(exitAppButton)exitAppButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();exitApp()});
+if(inventoryButton)inventoryButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();openInventory()});
+if(inventoryClose)inventoryClose.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeInventory()});
+if(inventoryCloseBottom)inventoryCloseBottom.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeInventory()});
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
