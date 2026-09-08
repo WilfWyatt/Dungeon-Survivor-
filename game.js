@@ -279,7 +279,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.5b';
+const VERSION='0.3.6';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -384,7 +384,7 @@ const RARITIES=[
  {name:'Legendary',weight:1,mult:1.45,cooldown:.84,reach:1.16,knockback:1.35,label:'LEGENDARY'}
 ];
 const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:185,fire:0,damage:25,damageBonus:0,moveSpeedBonus:0,critBonus:0,attackSpeedBonus:0,knockbackBonus:0,armour:null,flash:0,hitTimer:0,hitCooldown:0,knockX:0,knockY:0,weapon:null};
-let weaponFinds=[],pendingWeaponIndex=0,weaponPromptOpen=false,weaponBurning=false,doorSequenceActive=false;
+let weaponFinds=[],pendingWeaponIndex=0,weaponPromptOpen=false,weaponBurning=false,doorSequenceActive=false,roomRewardOpen=false;
 function rarityData(name){return RARITIES.find(r=>r.name===name)||RARITIES[0]}
 function weaponInstance(id,rarityName='Common'){const base=WEAPONS[id]||WEAPONS.shortSword,r=rarityData(rarityName);return {id:base.id,name:base.name,rarity:r.name,baseDamage:base.baseDamage,damage:Math.round(base.baseDamage*r.mult),cooldown:base.cooldown*r.cooldown,reach:Math.round(base.reach*r.reach),swingDuration:base.swingDuration,knockback:base.knockback*r.knockback,moveSpeed:base.moveSpeed,swingMoveSpeed:base.swingMoveSpeed,critChance:base.critChance,icon:base.icon}}
 function weaponMoveSpeed(w,swinging=false){const raw=(swinging?w.swingMoveSpeed:w.moveSpeed)||1;return Math.min(1,Math.max(0,raw))}
@@ -451,8 +451,8 @@ function applyLevelChoice(id){
  else if(id==='knockback'){player.knockbackBonus+=.10}
  AUDIO.confirm();
 }
-function openLevelChoice(){if(levelChoiceOpen||pendingLevelUps<=0)return;levelChoiceOpen=true;paused=true;levelChoices=rollLevelChoices();const el=document.getElementById('levelChoiceScreen');if(el){el.classList.add('show');const sub=document.getElementById('levelChoiceSub');if(sub)sub.textContent=`LEVEL ${level - pendingLevelUps + 1} REWARD • CHOOSE ONE`;const list=document.getElementById('levelChoiceList');if(list)list.innerHTML=levelChoices.map(c=>`<button type="button" class="levelChoice" data-choice="${c.id}"><b>${c.title}</b><small>${c.desc}</small></button>`).join('')}}
-function chooseLevelChoice(id){if(!levelChoiceOpen)return;const c=levelChoices.find(x=>x.id===id);if(!c)return;applyLevelChoice(id);pendingLevelUps=Math.max(0,pendingLevelUps-1);levelChoiceOpen=false;paused=false;document.getElementById('levelChoiceScreen')?.classList.remove('show');levelChoices=[];showPickup(`★ ${c.title} chosen`);if(pendingLevelUps>0){msg('ANOTHER LEVEL REWARD AWAITS');setTimeout(openLevelChoice,80)}else{msg('LEVEL UP COMPLETE  •  CONTINUING');setTimeout(continueDoorSequence,80)}updateHud()}
+function openLevelChoice(){if(pendingLevelUps<=0)return;levelChoices=rollLevelChoices();renderRoomRewards()}
+function chooseLevelChoice(id){if(!roomRewardOpen||pendingLevelUps<=0)return;const c=levelChoices.find(x=>x.id===id);if(!c)return;applyLevelChoice(id);pendingLevelUps=Math.max(0,pendingLevelUps-1);levelChoices=[];showPickup(`★ ${c.title} chosen`);renderRoomRewards();updateHud()}
 
 function scaledPotionHeal(){return Math.min(player.maxHp,18+(area-1)*3+Math.floor((level-1)*1.5))}
 function scaledGoldAmount(enemyType){const typeBonus=enemyType==='skeleton'?2:enemyType==='goblin'?1:0;const base=1+Math.floor(Math.random()*5);return Math.min(14,base+Math.max(0,area-1)+Math.floor((level-1)/3)+typeBonus)}
@@ -823,16 +823,12 @@ function update(dt){
    else{roomCleared=true;roomsCleared++;AUDIO.clear();msg('ROOM CLEARED  •  WALK TO EXIT »');burst(W/2,H/2,'clear',18)}
  }
  if(isBossRoom()&&enemies.length===0&&!roomCleared){roomCleared=true;AUDIO.clear();msg('AREA COMPLETE  •  WALK TO EXIT »')}
- if(roomCleared&&!atShop&&!doorSequenceActive&&!weaponPromptOpen&&!levelChoiceOpen&&!pendingLevelUps){
-  // 0.2.8c: the exit trigger now matches the actual wooden doorway in the right-wall asset.
+ if(roomCleared&&!atShop&&!roomRewardOpen&&!doorSequenceActive){
+  // The reward screen opens only when the player physically reaches the real exit doorway.
   const door=exitDoorRect();
   const cx=clamp(player.x,door.x,door.x+door.w),cy=clamp(player.y,door.y,door.y+door.h);
-  if(Math.hypot(player.x-cx,player.y-cy)<=player.r){
-    if(isBossRoom())beginAreaShop();
-    else if(weaponFinds.length){pendingWeaponIndex=0;weaponPromptOpen=true;openWeaponPrompt();}
-    else{AUDIO.exit();startRoomTransition(room+1)}
-  }
-}
+  if(Math.hypot(player.x-cx,player.y-cy)<=player.r)openRoomRewards();
+ }
  updateHud();
 }
 function shootProjectile(x,y,a,speed,damage,type){projectiles.push({x,y,a,speed,damage,r:type==='arrow'?4:7,life:type==='arrow'?2.6:3.2,type,age:0})}
@@ -1160,12 +1156,30 @@ function drawShop(){
 function formatSpeed(cooldown){return `${(1/cooldown).toFixed(1)}/s`}
 function compareArrow(a,b,lowerBetter=false){const d=a-b;const good=lowerBetter?-d:d;if(Math.abs(d)<.005)return '—';return good>0?'▲':'▼'}
 function weaponCardHTML(w){const cur=playerWeapon();const cs=currentWeaponStats();const ws=weaponStatLines(w);const damageDiff=ws.damage+player.damageBonus-cs.damage;const reachDiff=ws.reach-cs.reach;const speedDiff=(1/ws.cooldown)-(1/cs.cooldown);const knockDiff=ws.knockback-cs.knockback;return `<div class="weaponCompare"><div class="weaponCol current"><div class="smallTitle">CURRENT</div><div class="weaponName">${cur.icon} ${cur.name}</div><div class="rarity ${rarityClass(cur.rarity)}">${cur.rarity}</div><div class="weaponStat">DAMAGE <b>${cs.damage}</b></div><div class="weaponStat">REACH <b>${cs.reach}</b></div><div class="weaponStat">SPEED <b>${formatSpeed(cs.cooldown)}</b></div><div class="weaponStat">KNOCKBACK <b>${cs.knockback.toFixed(2)}×</b></div></div><div class="compareMid"><div>${compareArrow(damageDiff,0)} </div><div>${compareArrow(reachDiff,0)} </div><div>${compareArrow(speedDiff,0)} </div><div>${compareArrow(knockDiff,0)} </div></div><div class="weaponCol found"><div class="smallTitle">FOUND</div><div class="weaponName">${w.icon} ${w.name}</div><div class="rarity ${rarityClass(w.rarity)}">${w.rarity}</div><div class="weaponStat">DAMAGE <b>${w.damage+player.damageBonus}</b></div><div class="weaponStat">REACH <b>${w.reach}</b></div><div class="weaponStat">SPEED <b>${formatSpeed(w.cooldown)}</b></div><div class="weaponStat">KNOCKBACK <b>${w.knockback.toFixed(2)}×</b></div></div></div>`}
-function openWeaponPrompt(){const overlay=document.getElementById('weaponScreen');if(!overlay)return;overlay.classList.remove('burning');const w=weaponFinds[pendingWeaponIndex];if(!w){finishWeaponFinds();return;}document.getElementById('weaponTitle').textContent='WEAPON FOUND';document.getElementById('weaponSub').textContent=`You found this on your adventure — ${pendingWeaponIndex+1} of ${weaponFinds.length}`;document.getElementById('weaponCard').innerHTML=weaponCardHTML(w);document.getElementById('equipWeapon').textContent=`EQUIP ${w.name.toUpperCase()}`;document.getElementById('keepWeapon').textContent='KEEP CURRENT';overlay.classList.add('show');}
-function finishWeaponFinds(){weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;const overlay=document.getElementById('weaponScreen');if(overlay)overlay.classList.remove('show');continueDoorSequence();}
-function advanceWeaponFind(){pendingWeaponIndex++;if(pendingWeaponIndex>=weaponFinds.length)finishWeaponFinds();else openWeaponPrompt()}
-function discardCurrentFind(){weaponBurning=true;const w=weaponFinds[pendingWeaponIndex];const overlay=document.getElementById('weaponScreen');if(overlay){overlay.classList.add('burning');document.getElementById('weaponTitle').textContent='THROWN INTO THE FIRE';}showPickup(`🔥 ${w.name} thrown into the fire`);setTimeout(()=>{weaponBurning=false;advanceWeaponFind()},240)}
-function equipFoundWeapon(){const w=weaponFinds[pendingWeaponIndex];player.weapon=w;player.damage=currentWeaponStats().damage;swingCooldown=0;weaponBurning=true;const overlay=document.getElementById('weaponScreen');if(overlay){overlay.classList.add('burning');document.getElementById('weaponTitle').textContent='OLD WEAPON BURNED';}showPickup(`⚔ ${w.name} equipped — old weapon to the fire`);setTimeout(()=>{weaponBurning=false;advanceWeaponFind()},240)}
-function handleWeaponDecision(equip){if(!weaponPromptOpen||weaponBurning)return;if(equip)equipFoundWeapon();else discardCurrentFind();}
+function rewardWeaponHTML(){
+ const w=weaponFinds[pendingWeaponIndex];if(!w)return '';
+ return `<div class="rewardWeaponWrap"><div class="rewardMiniTitle">WEAPON FOUND ${weaponFinds.length>1?`• ${pendingWeaponIndex+1}/${weaponFinds.length}`:''}</div><div id="weaponCard">${weaponCardHTML(w)}</div><div class="weaponButtons"><button id="equipWeapon" type="button" class="menuButton primary">EQUIP ${w.name.toUpperCase()}</button><button id="keepWeapon" type="button" class="menuButton">KEEP CURRENT</button></div></div>`;
+}
+function renderRoomRewards(){
+ const overlay=document.getElementById('roomRewardScreen');if(!overlay)return;
+ const weaponPending=weaponFinds.length>0,levelPending=pendingLevelUps>0;
+ const title=document.getElementById('roomRewardTitle'),sub=document.getElementById('roomRewardSub'),weaponPanel=document.getElementById('rewardWeaponPanel'),levelPanel=document.getElementById('rewardLevelPanel'),continueBtn=document.getElementById('roomRewardContinue');
+ if(title)title.textContent=isBossRoom()?'AREA REWARD':'ROOM REWARD';
+ if(sub)sub.textContent=weaponPending&&levelPending?'CHOOSE YOUR LOOT AND LEVEL-UP REWARD':weaponPending?'CHOOSE YOUR WEAPON':levelPending?'CHOOSE YOUR LEVEL-UP REWARD':'ALL REWARDS COLLECTED';
+ if(weaponPanel)weaponPanel.innerHTML=weaponPending?rewardWeaponHTML():`<div class="rewardEmpty"><div class="rewardMiniTitle">WEAPON</div><b>NO WEAPON FOUND</b><small>Your weapon remains equipped.</small></div>`;
+ if(levelPanel){if(levelPending){if(!levelChoices.length)levelChoices=rollLevelChoices();const levelNo=level-pendingLevelUps+1;levelPanel.innerHTML=`<div class="rewardMiniTitle">LEVEL UP • LEVEL ${levelNo}</div><div class="rewardLevelList">${levelChoices.map(c=>`<button type="button" class="levelChoice" data-choice="${c.id}"><b>${c.title}</b><small>${c.desc}</small></button>`).join('')}</div>`}else levelPanel.innerHTML=`<div class="rewardEmpty"><div class="rewardMiniTitle">LEVEL UP</div><b>NO LEVEL REWARD</b><small>No unspent level-ups.</small></div>`}
+ if(continueBtn){const ready=!weaponPending&&!levelPending;continueBtn.disabled=!ready;continueBtn.textContent=isBossRoom()?(ready?'CONTINUE TO SHOP':'MAKE ALL CHOICES'):(ready?'ENTER NEXT ROOM':'MAKE ALL CHOICES')}
+ overlay.classList.add('show');
+}
+function openRoomRewards(){if(roomRewardOpen||atShop)return;if(!weaponFinds.length&&!pendingLevelUps){if(isBossRoom())beginAreaShop();else{AUDIO.exit();startRoomTransition(room+1)}return}roomRewardOpen=true;doorSequenceActive=true;weaponPromptOpen=weaponFinds.length>0;pendingWeaponIndex=0;levelChoiceOpen=pendingLevelUps>0;levelChoices=[];paused=true;AUDIO.exit();renderRoomRewards();msg('REWARD CACHE OPEN • CHOOSE YOUR REWARDS')}
+function closeRoomRewards(){roomRewardOpen=false;doorSequenceActive=false;weaponPromptOpen=false;weaponBurning=false;levelChoiceOpen=false;levelChoices=[];paused=false;document.getElementById('roomRewardScreen')?.classList.remove('show')}
+function continueDoorSequence(){if(!roomRewardOpen)return;if(weaponFinds.length||pendingLevelUps>0){renderRoomRewards();return}closeRoomRewards();if(isBossRoom())beginAreaShop();else{AUDIO.transition();startRoomTransition(room+1)}}
+function advanceWeaponFind(){pendingWeaponIndex++;if(pendingWeaponIndex>=weaponFinds.length){weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;renderRoomRewards()}else renderRoomRewards()}
+function discardCurrentFind(){if(!roomRewardOpen||weaponBurning)return;weaponBurning=true;const w=weaponFinds[pendingWeaponIndex];const panel=document.getElementById('rewardWeaponPanel');if(panel){panel.classList.add('burning');const title=panel.querySelector('.rewardMiniTitle');if(title)title.textContent='THROWN INTO THE FIRE'}showPickup(`🔥 ${w.name} thrown into the fire`);setTimeout(()=>{weaponBurning=false;advanceWeaponFind()},240)}
+function equipFoundWeapon(){if(!roomRewardOpen||weaponBurning)return;const w=weaponFinds[pendingWeaponIndex];player.weapon=w;player.damage=currentWeaponStats().damage;swingCooldown=0;weaponBurning=true;const panel=document.getElementById('rewardWeaponPanel');if(panel){panel.classList.add('burning');const title=panel.querySelector('.rewardMiniTitle');if(title)title.textContent='OLD WEAPON BURNED'}showPickup(`⚔ ${w.name} equipped — old weapon to the fire`);setTimeout(()=>{weaponBurning=false;advanceWeaponFind()},240)}
+function handleWeaponDecision(equip){if(!roomRewardOpen||weaponBurning)return;if(equip)equipFoundWeapon();else discardCurrentFind()}
+function handleRewardPointer(e){const t=e.target.closest('button');if(!t||t.disabled)return;e.preventDefault();AUDIO.menu();if(t.id==='roomRewardContinue'){continueDoorSequence();return}if(t.dataset.choice){chooseLevelChoice(t.dataset.choice);return}if(t.id==='equipWeapon'){handleWeaponDecision(true);return}if(t.id==='keepWeapon'){handleWeaponDecision(false)}}
+
 function inventoryStatsHTML(){
  const w=playerWeapon(),s=currentWeaponStats();
  const hpPct=Math.max(0,Math.min(100,player.hp/player.maxHp*100));
@@ -1235,16 +1249,12 @@ const scoreboardBack=document.getElementById('scoreboardBack');
 const clearScoreboardButton=document.getElementById('clearScoreboard');
 const exitAppButton=document.getElementById('exitAppButton');
 const versionLabel=document.getElementById('versionLabel'); if(versionLabel)versionLabel.textContent='v'+VERSION;
-const weaponScreen=document.getElementById('weaponScreen');
-const equipWeapon=document.getElementById('equipWeapon');
-const keepWeapon=document.getElementById('keepWeapon');
 const inventoryButton=document.getElementById('inventoryButton');
 const inventoryScreen=document.getElementById('inventoryScreen');
 const inventoryClose=document.getElementById('inventoryClose');
 const inventoryCloseBottom=document.getElementById('inventoryCloseBottom');
-const levelChoiceScreen=document.getElementById('levelChoiceScreen');
-const levelChoiceList=document.getElementById('levelChoiceList');
-if(levelChoiceList)levelChoiceList.addEventListener('pointerdown',e=>{const btn=e.target.closest('.levelChoice');if(!btn)return;e.preventDefault();AUDIO.menu();chooseLevelChoice(btn.dataset.choice)});
+const roomRewardScreen=document.getElementById('roomRewardScreen');
+if(roomRewardScreen)roomRewardScreen.addEventListener('pointerdown',handleRewardPointer);
 startScreen.style.display='none';
 // Keep the menu underneath the splash during its fade so there is never a frame of the dungeon showing between them.
 setTimeout(()=>{startScreen.style.display='flex';splashScreen.classList.add('done');setTimeout(()=>{splashScreen.style.display='none';msg('PRESS PLAY TO ENTER THE DUNGEON')},220)},1800);
@@ -1253,15 +1263,13 @@ scoreboardButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.men
 scoreboardBack.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeScoreboard()});
 clearScoreboardButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();clearScoreboard()});
 exitAppButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();exitApp()});
-equipWeapon.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();handleWeaponDecision(true)});
-keepWeapon.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();handleWeaponDecision(false)});
 inventoryButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();openInventory()});
 inventoryClose.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeInventory()});
 inventoryCloseBottom.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeInventory()});
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){AUDIO.start();started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function startNewRun(){AUDIO.start();started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
 function returnToTitle(){AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];doorSequenceActive=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');

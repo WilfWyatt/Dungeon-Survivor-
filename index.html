@@ -11,14 +11,33 @@
   <link rel="stylesheet" href="style.css">
   <title>Dungeon Survivor</title>
   <style>
-    #levelChoiceScreen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:50;background:rgba(2,9,10,.88)}
-    #levelChoiceScreen.show{display:flex}
-    .levelChoicePanel{width:min(310px,calc(100% - 34px));padding:18px;box-sizing:border-box}
-    #levelChoiceList{display:flex;flex-direction:column;gap:10px;margin-top:14px}
-    .levelChoice{appearance:none;border:1px solid rgba(131,240,215,.45);background:rgba(23,45,49,.92);color:#d8d4bd;border-radius:5px;padding:12px;text-align:left;font:inherit;min-height:58px;touch-action:manipulation}
-    .levelChoice:active{transform:scale(.985)}
-    .levelChoice b{display:block;color:#83f0d7;font-size:12px;letter-spacing:.5px}
-    .levelChoice small{display:block;margin-top:5px;color:#9ab0aa;font-size:9px;line-height:1.35}
+    #roomRewardScreen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:50;background:rgba(2,9,10,.9);padding:12px;box-sizing:border-box}
+    #roomRewardScreen.show{display:flex}
+    .roomRewardPanel{width:min(680px,100%);max-height:100%;overflow:auto;padding:16px;box-sizing:border-box}
+    .roomRewardHeader{text-align:center;margin-bottom:12px}
+    .roomRewardGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .rewardPanel{min-width:0;padding:11px;background:rgba(6,22,25,.72);border:1px solid rgba(55,101,102,.9);border-radius:5px;box-sizing:border-box}
+    .rewardPanel.burning{animation:rewardBurn .24s ease}
+    @keyframes rewardBurn{50%{transform:scale(.985);filter:brightness(1.5)}}
+    .rewardMiniTitle{color:#83f0d7;font-size:10px;font-weight:700;letter-spacing:.7px;margin-bottom:8px;text-align:center}
+    .rewardEmpty{text-align:center;min-height:160px;display:flex;flex-direction:column;justify-content:center;gap:7px;color:#9ab0aa}
+    .rewardEmpty b{color:#d8d4bd;font-size:11px}
+    .rewardEmpty small{font-size:9px;line-height:1.35}
+    .rewardLevelList{display:flex;flex-direction:column;gap:7px}
+    .levelChoice{appearance:none;border:1px solid rgba(131,240,215,.45);background:rgba(23,45,49,.92);color:#d8d4bd;border-radius:5px;padding:10px;text-align:left;font:inherit;min-height:54px;touch-action:manipulation}
+    .levelChoice:active,.menuButton:active{transform:scale(.985)}
+    .levelChoice b{display:block;color:#83f0d7;font-size:11px;letter-spacing:.4px}
+    .levelChoice small{display:block;margin-top:4px;color:#9ab0aa;font-size:8.5px;line-height:1.35}
+    .rewardWeaponWrap .weaponCompare{font-size:9px}
+    .roomRewardActions{margin-top:10px}
+    #roomRewardContinue{width:100%}
+    #roomRewardContinue:disabled{opacity:.42;filter:grayscale(.35)}
+    @media (max-width:560px){
+      .roomRewardPanel{padding:13px}
+      .roomRewardGrid{grid-template-columns:1fr}
+      .rewardPanel{padding:10px}
+      .rewardEmpty{min-height:80px}
+    }
   </style>
 </head>
 <body>
@@ -41,31 +60,19 @@
           <button id="scoreboardButton" type="button">LOCAL SCOREBOARD</button>
           <button id="exitAppButton" type="button">EXIT APP</button>
         </div>
-        <div id="versionLabel">v0.3.5b</div>
+        <div id="versionLabel">v0.3.6</div>
       </div>
-      <div id="levelChoiceScreen" aria-label="Level up reward choices">
-        <div class="menuPanel levelChoicePanel">
-          <div class="menuTitle">LEVEL UP!</div>
-          <div id="levelChoiceSub" class="menuSub">CHOOSE YOUR REWARD</div>
-          <div id="levelChoiceList"></div>
-        </div>
-      </div>
-      <div id="scoreboardScreen" aria-label="Local scoreboard">
-        <div class="menuPanel scoreboardPanel">
-          <div class="menuTitle">DUNGEON RECORDS</div>
-          <div id="scoreList"></div>
-          <div class="scoreboardActions"><button id="clearScoreboard" type="button" class="menuButton">CLEAR SCOREBOARD</button><button id="scoreboardBack" type="button" class="menuButton">BACK TO START</button></div>
-        </div>
-      </div>
-      <div id="weaponScreen" aria-label="Weapon discovery screen">
-        <div class="menuPanel weaponPanel">
-          <div id="weaponTitle" class="menuTitle">WEAPON FOUND</div>
-          <div id="weaponSub" class="menuSub"></div>
-          <div id="weaponCard"></div>
-          <div class="weaponButtons">
-            <button id="equipWeapon" type="button" class="menuButton primary">EQUIP</button>
-            <button id="keepWeapon" type="button" class="menuButton">KEEP CURRENT</button>
+      <div id="roomRewardScreen" aria-label="Room reward screen">
+        <div class="menuPanel roomRewardPanel">
+          <div class="roomRewardHeader">
+            <div id="roomRewardTitle" class="menuTitle">ROOM REWARD</div>
+            <div id="roomRewardSub" class="menuSub">CHOOSE YOUR REWARDS</div>
           </div>
+          <div class="roomRewardGrid">
+            <div id="rewardWeaponPanel" class="rewardPanel"></div>
+            <div id="rewardLevelPanel" class="rewardPanel"></div>
+          </div>
+          <div class="roomRewardActions"><button id="roomRewardContinue" type="button" class="menuButton primary" disabled>MAKE ALL CHOICES</button></div>
         </div>
       </div>
       <div id="inventoryScreen" aria-label="Inventory and player card">
@@ -87,6 +94,6 @@
       <div id="fire" role="button" aria-label="Swing sword">⚔<span>SWING</span></div>
     </section>
   </main>
-  <script src="game.js?v=0.3.5b"></script>
+  <script src="game.js?v=0.3.6"></script>
 </body>
 </html>
