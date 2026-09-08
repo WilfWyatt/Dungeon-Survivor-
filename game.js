@@ -56,31 +56,29 @@ const spriteImages={};
 const spriteReady={};
 Object.entries(SPRITE_SHEET_FILES).forEach(([key,src])=>{const img=new Image();img.decoding='async';img.onload=()=>{spriteReady[key]=true};img.onerror=()=>{spriteReady[key]=false};img.src=src;spriteImages[key]=img;spriteReady[key]=false});
 const SPRITE_FRAME=32;
+// v0.3.8 sprite sheets are authored as 32x32 cells. Character sheets use animated
+// rows rather than directional cells: 4 frames for normal states and 6 for death.
+// The player has an additional ranged-attack row.
 const SPRITE_COLS=4;
 const SPRITE_ROWS={idle:0,walk:1,attack:2,hurt:3,death:4};
-// Codex sheets use the four columns differently by state: idle/walk are directional poses,
-// while attack/hurt/death are four-frame animations. Bats are the exception: all states are animated.
-const DIRECTIONAL_POSE_SPRITES=new Set(['player','goblin','skeleton','boss']);
-const DIRECTION_FRAME={down:0,up:1,right:2,left:3};
-function directionFrame(dir){return DIRECTION_FRAME[dir]??DIRECTION_FRAME.right;}
+const PLAYER_SPRITE_ROWS={idle:0,walk:1,attack:2,ranged:3,hurt:4,death:5};
+const SPRITE_FRAME_COUNTS={idle:4,walk:4,attack:4,ranged:4,hurt:4,death:6};
+function spriteFrameCount(kind,action){
+  return action==='death'?6:4;
+}
 function drawCharacterSprite(kind,action,frame,x,y,size,flip=false,alpha=1,direction=null){
  const img=spriteImages[kind];
  if(!img||!spriteReady[kind])return false;
- const row=SPRITE_ROWS[action]??SPRITE_ROWS.idle;
- let f=((frame%SPRITE_COLS)+SPRITE_COLS)%SPRITE_COLS;
- let mirror=flip;
- if(DIRECTIONAL_POSE_SPRITES.has(kind)&&(action==='idle'||action==='walk')){
-   const dir=direction||'right';
-   // Use the clean right-facing pose as the canonical side view and mirror it for left.
-   // This keeps side-facing characters consistent instead of relying on two subtly
-   // different side cells in the authored sheets.
-   if(dir==='left'){f=DIRECTION_FRAME.right;mirror=true;}
-   else {f=directionFrame(dir);mirror=false;}
- }
- return drawSpriteFrame(img,f*SPRITE_FRAME,row*SPRITE_FRAME,SPRITE_FRAME,SPRITE_FRAME,x,y,size,size,mirror,alpha);
+ const isPlayer=kind==='player';
+ const row=(isPlayer?PLAYER_SPRITE_ROWS:SPRITE_ROWS)[action]??0;
+ const count=spriteFrameCount(kind,action);
+ const f=((frame%count)+count)%count;
+ // These sheets are animation strips, not directional sheets. Keep the supplied
+ // artwork orientation intact; only mirror when the caller explicitly requests it.
+ return drawSpriteFrame(img,f*SPRITE_FRAME,row*SPRITE_FRAME,SPRITE_FRAME,SPRITE_FRAME,x,y,size,size,flip,alpha);
 }
-function animFrame(time,rate=8){return Math.floor(time*rate)%SPRITE_COLS;}
-function timedAnimFrame(age,duration,rate=12){return Math.min(SPRITE_COLS-1,Math.floor(Math.max(0,Math.min(1,age/Math.max(.001,duration)))*SPRITE_COLS));}
+function animFrame(time,rate=8,count=4){return Math.floor(time*rate)%count;}
+function timedAnimFrame(age,duration,rate=12,count=4){return Math.min(count-1,Math.floor(Math.max(0,Math.min(1,age/Math.max(.001,duration)))*count));}
 
 let roomTiles=[],roomDecor=[];
 const TILE=32, COLS=8, ROWS=12;
@@ -280,7 +278,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.6e';
+const VERSION='0.3.8';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -668,6 +666,7 @@ function update(dt){
  if(!started)return;
  if(gameOver)return;
  if(paused){updateHud();return;}
+ deathMarks.forEach(m=>m.age=(m.age||0)+dt);
  if(roomTransition){
   roomTransition.timer+=dt;
   if(roomTransition.timer>=roomTransition.switchAt&&!roomTransition.switched){room=roomTransition.nextRoom;resetRoom();AUDIO.doorOpen();roomTransition.switched=true;}
@@ -807,7 +806,7 @@ function update(dt){
 
  for(let i=slashes.length-1;i>=0;i--){
   const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const reach=s.reach||playerWeapon().reach;const centre=s.angle+s.side*(Math.PI*.40-(Math.min(1,progress)*Math.PI*.80));
-  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){const crit=Math.random()<(currentWeaponStats().critChance||.10);const damage=crit?Math.round(s.damage*1.75):s.damage;e.hp-=damage;s.hit.add(e);e.hit=crit?.16:.12;e.stagger=crit?.20:.12;const push=Math.max(0,1-d/(reach+e.r))*(crit?1.18:1);const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);if(crit){AUDIO.crit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.22,type:'crit',angle:Math.random()*Math.PI});capTransient(impactMarks,MAX_IMPACTS);burst(e.x,e.y,'crit',9);criticalMarks.push({x:e.x,y:e.y-22,age:0,dur:.55});capTransient(criticalMarks,MAX_CRITICALS);}else{AUDIO.hit();AUDIO.enemyHit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.16,type:'hit',angle:Math.random()*Math.PI});capTransient(impactMarks,MAX_IMPACTS);burst(e.x,e.y,'hit',5);}if(e.hp<=0){AUDIO.death(e.type);deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type,e.elite);else{const reward=bossGoldReward();gold+=reward;totalGoldCollected+=reward;bossesKilled++;showPickup(`👑 GUARDIAN BONUS  +${reward} GOLD`)}enemies.splice(enemies.indexOf(e),1);kills++;addScore((SCORE_VALUES[e.type]||0)*(e.elite?2:1));awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5+(e.elite?4:0));if(e.elite)showPickup('★ ELITE SLAIN!  DOUBLE SCORE');burst(e.x,e.y,'death',e.type==='boss'?28:e.elite?20:12);if(e.type==='boss'){areaClearTimer=1.8;areaClearShown=true;}if(!isBossRoom())spawnTimer=.65;}}}
+  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){const crit=Math.random()<(currentWeaponStats().critChance||.10);const damage=crit?Math.round(s.damage*1.75):s.damage;e.hp-=damage;s.hit.add(e);e.hit=crit?.16:.12;e.stagger=crit?.20:.12;const push=Math.max(0,1-d/(reach+e.r))*(crit?1.18:1);const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);if(crit){AUDIO.crit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.22,type:'crit',angle:Math.random()*Math.PI});capTransient(impactMarks,MAX_IMPACTS);burst(e.x,e.y,'crit',9);criticalMarks.push({x:e.x,y:e.y-22,age:0,dur:.55});capTransient(criticalMarks,MAX_CRITICALS);}else{AUDIO.hit();AUDIO.enemyHit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.16,type:'hit',angle:Math.random()*Math.PI});capTransient(impactMarks,MAX_IMPACTS);burst(e.x,e.y,'hit',5);}if(e.hp<=0){AUDIO.death(e.type);deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000,age:0,facingDir:e.facingDir||'left'});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type,e.elite);else{const reward=bossGoldReward();gold+=reward;totalGoldCollected+=reward;bossesKilled++;showPickup(`👑 GUARDIAN BONUS  +${reward} GOLD`)}enemies.splice(enemies.indexOf(e),1);kills++;addScore((SCORE_VALUES[e.type]||0)*(e.elite?2:1));awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5+(e.elite?4:0));if(e.elite)showPickup('★ ELITE SLAIN!  DOUBLE SCORE');burst(e.x,e.y,'death',e.type==='boss'?28:e.elite?20:12);if(e.type==='boss'){areaClearTimer=1.8;areaClearShown=true;}if(!isBossRoom())spawnTimer=.65;}}}
   if(progress>=1)slashes.splice(i,1);
  }
 
@@ -904,7 +903,14 @@ function drawSkullShrine(x,y){ctx.save();ctx.shadowBlur=10;ctx.shadowColor='#142
 function drawBone(x,y,r){ctx.save();ctx.translate(x,y);ctx.rotate(r);pixelRect(-18,-2,36,4,'#9c9a85');pixelRect(-17,-6,5,5,P.cream);pixelRect(12,1,5,5,P.cream);ctx.restore()}
 function drawBlood(x,y,col){ctx.fillStyle=col;for(let i=0;i<8;i++){const a=i*1.7;const rr=6+((i*13)%17);pixelRect(x+Math.cos(a)*rr,y+Math.sin(a)*rr*.55,2+(i%3),2+(i%2),ctx.fillStyle)}}
 function drawBonePile(x,y){drawBone(x-5,y-2,-.65);drawBone(x+6,y+3,.7)}
-function drawDeathMarks(){for(const m of deathMarks){const remainKey=m.type==='skeleton'?'skeletonRemains':m.type==='goblin'?'goblinRemains':m.type==='bat'?'batRemains':'bossRemains';if(!drawGameAsset(remainKey,m.x,m.y,34,.88)){if(m.type==='skeleton')drawBonePile(m.x,m.y);else if(m.type==='bat'||m.type==='boss')drawBlood(m.x,m.y,'#7a3035');else drawBlood(m.x,m.y,'#3b7b45')}if(m.type!=='skeleton')drawGameAsset('bloodSplat',m.x,m.y,30,.45)}}
+function drawDeathMarks(){for(const m of deathMarks){const remainKey=m.type==='skeleton'?'skeletonRemains':m.type==='goblin'?'goblinRemains':m.type==='bat'?'batRemains':'bossRemains';const deathDuration=.72;
+  if(m.age<deathDuration){
+   const frame=timedAnimFrame(m.age,deathDuration,10,6);
+   const kind=m.type==='boss'?'boss':m.type;
+   const size=m.type==='boss'?70:52;
+   if(drawCharacterSprite(kind,'death',frame,m.x,m.y,size,m.facingDir==='left',Math.max(.2,1-m.age/deathDuration),m.facingDir))continue;
+  }
+  if(!drawGameAsset(remainKey,m.x,m.y,34,.88)){if(m.type==='skeleton')drawBonePile(m.x,m.y);else if(m.type==='bat'||m.type==='boss')drawBlood(m.x,m.y,'#7a3035');else drawBlood(m.x,m.y,'#3b7b45')}if(m.type!=='skeleton')drawGameAsset('bloodSplat',m.x,m.y,30,.45)}}
 function drawImpactMarks(){for(const m of impactMarks){const p=Math.min(1,m.age/m.dur);drawGameAsset(m.type==='hit'?'hitSpark':'impactSpark',m.x,m.y,m.type==='crit'?38+Math.round(p*10):30+Math.round(p*8),1-p,m.angle)}}
 function drawCriticalMarks(){for(const m of criticalMarks){const p=Math.min(1,m.age/m.dur);ctx.globalAlpha=1-p;text('CRITICAL!',m.x,m.y-p*18,9,P.gold2,'center');ctx.globalAlpha=1}}
 function drawTorch(x,y){const t=frameNow/115+x*.04;const wobble=Math.sin(t)*2;ctx.save();ctx.shadowBlur=24+Math.sin(t*.7)*5;ctx.shadowColor=P.teal;pixelRect(x-8,y,16,28,'#5b655d');pixelRect(x-5,y+5,10,19,'#2b4543');ctx.fillStyle=P.teal2;ctx.beginPath();ctx.moveTo(x+wobble,y-21-Math.sin(t)*2);ctx.lineTo(x+9,y-5);ctx.lineTo(x+Math.sin(t*1.3)*2,y+4);ctx.lineTo(x-9,y-5);ctx.closePath();ctx.fill();ctx.fillStyle=P.teal;ctx.beginPath();ctx.moveTo(x+wobble*.5,y-15);ctx.lineTo(x+4,y-5);ctx.lineTo(x,y);ctx.lineTo(x-4,y-5);ctx.closePath();ctx.fill();ctx.restore()}
@@ -959,7 +965,7 @@ function drawPlayer(){
    // Alternate it with the matching idle pose to create a clean two-pose walk.
    const step=Math.floor(walkTime*5)%2;
    action=step?'walk':'idle';
-   frame=directionFrame(facingDir);
+   frame=animFrame(frameNow/1000,5,4);
  }
  const flip=facingDir==='left';
  if(drawCharacterSprite('player',action,frame,x,y,48,flip,hurt?.78:1,facingDir)){
@@ -977,15 +983,15 @@ function drawEnemy(e,i){
  ctx.save();
  const kind=e.type==='boss'?'boss':e.type;
  const size=e.type==='boss'?70:52;
- const flip=(e.facingDir||'right')==='left';
- let action='idle',frame=animFrame(frameNow/1000+(i||0)*.17,e.type==='bat'?8:5);
+ const flip=e.facingDir==='left';
+ let action='idle',frame=animFrame(frameNow/1000+(i||0)*.17,e.type==='bat'?8:5,4);
  const attacking=(e.type==='goblin'&&e.windup>0)||(e.type==='skeleton'&&(e.windup>0||e.attackAge>0))||(e.type==='bat'&&e.batAttackAge>0)||(e.type==='boss'&&(e.warningTimer>0||e.patternActive));
  if(e.hit>0){action='hurt';frame=timedAnimFrame(.12-e.hit,.12,18)}
  else if(attacking){action='attack';
    const age=e.type==='bat'?e.batAttackAge:(e.type==='skeleton'?Math.max(0,.20-e.attackAge):(e.type==='goblin'?Math.max(0,.52-e.windup):.82-e.warningTimer));
    const duration=e.type==='bat'?.34:(e.type==='skeleton'?.20:(e.type==='goblin'?.52:.82));
    frame=timedAnimFrame(age,duration,12);
- }else{action='walk';}
+ }else{action=e.type==='bat'?'walk':'walk';}
  if(drawCharacterSprite(kind,action,frame,x,y,size,flip,e.hit>0?.78:1,e.facingDir)){
    ctx.restore();
  }else{
@@ -1021,7 +1027,10 @@ function drawProjectile(q){
  ctx.save();
  const key=q.type==='arrow'?'goblinArrow':q.type==='fireblast'?'fireblast':'fireball';
  const size=q.type==='arrow'?30:(q.type==='fireblast'?36:32);
- if(drawGameAsset(key,q.x,q.y,size,.96,q.type==='arrow'?q.a:0)){ctx.restore();return}
+ // New projectile artwork is authored pointing North. Canvas 0 radians points East,
+ // so rotate the sprite by +90 degrees to align its North-facing art with travel angle q.a.
+ const spriteAngle=q.a+Math.PI/2;
+ if(drawGameAsset(key,q.x,q.y,size,.96,spriteAngle)){ctx.restore();return}
  ctx.translate(q.x,q.y);ctx.rotate(q.a);
  if(q.type==='arrow'){ctx.shadowBlur=8;ctx.shadowColor=P.gold;pixelRect(-7,-2,14,4,P.cream);pixelRect(5,-1,5,2,P.gold2);ctx.restore();return}
  const blast=q.type==='fireblast';const pulse=.85+.18*Math.sin(q.age*18);ctx.globalAlpha=.95;
