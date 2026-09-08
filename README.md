@@ -388,3 +388,12 @@ The 0.1 releases are retained here as historical development records rather than
 - Added a **CLEAR SCOREBOARD** button to the local scoreboard.
 - Clearing requires confirmation with **“Are you sure?”**.
 - Confirming removes all locally stored high scores and refreshes the scoreboard immediately.
+
+## v0.3.5 — Player Progression
+- Added between-room level-up choices: choose 1 of 3 upgrades whenever a level is earned.
+- Added progressive player build stats for damage, max HP, movement speed, critical chance, attack speed and knockback.
+- Enemy difficulty continues to scale with area and player level.
+- Added occasional solo Elite enemies with a clear warning, distinctive gold aura/label, increased toughness and damage, and bonus score/XP.
+- Added placeholder Leather Armour drops and automatic equipping, currently providing 8% damage reduction.
+- Added Bosses Killed and Stages Cleared to saved scoreboard records.
+- Added the new progression and armour information to the inventory/player card.

@@ -10,6 +10,16 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
   <title>Dungeon Survivor</title>
+  <style>
+    #levelChoiceScreen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:50;background:rgba(2,9,10,.88)}
+    #levelChoiceScreen.show{display:flex}
+    .levelChoicePanel{width:min(310px,calc(100% - 34px));padding:18px;box-sizing:border-box}
+    #levelChoiceList{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+    .levelChoice{appearance:none;border:1px solid rgba(131,240,215,.45);background:rgba(23,45,49,.92);color:#d8d4bd;border-radius:5px;padding:12px;text-align:left;font:inherit;min-height:58px;touch-action:manipulation}
+    .levelChoice:active{transform:scale(.985)}
+    .levelChoice b{display:block;color:#83f0d7;font-size:12px;letter-spacing:.5px}
+    .levelChoice small{display:block;margin-top:5px;color:#9ab0aa;font-size:9px;line-height:1.35}
+  </style>
 </head>
 <body>
   <main id="app">
@@ -32,6 +42,13 @@
           <button id="exitAppButton" type="button">EXIT APP</button>
         </div>
         <div id="versionLabel">v0.3.4</div>
+      </div>
+      <div id="levelChoiceScreen" aria-label="Level up reward choices">
+        <div class="menuPanel levelChoicePanel">
+          <div class="menuTitle">LEVEL UP!</div>
+          <div id="levelChoiceSub" class="menuSub">CHOOSE YOUR REWARD</div>
+          <div id="levelChoiceList"></div>
+        </div>
       </div>
       <div id="scoreboardScreen" aria-label="Local scoreboard">
         <div class="menuPanel scoreboardPanel">
@@ -70,6 +87,6 @@
       <div id="fire" role="button" aria-label="Swing sword">⚔<span>SWING</span></div>
     </section>
   </main>
-  <script src="game.js?v=0.3.4a"></script>
+  <script src="game.js?v=0.3.5"></script>
 </body>
 </html>

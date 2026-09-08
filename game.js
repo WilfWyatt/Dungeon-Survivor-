@@ -273,12 +273,13 @@ function drawTorchLightOptimized(){
   }
   ctx.restore();
 }
-let W=360,H=480,dpr=1,last=0,room=1,kills=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
+let W=360,H=480,dpr=1,last=0,room=1,kills=0,bossesKilled=0,gold=0,score=0,gameOver=false,roomCleared=false,xp=0,level=1,xpNeed=12,started=false,roomsCleared=0,totalGoldCollected=0,walkTime=0,scoreSaved=false,areaClearTimer=0,areaClearShown=false,roomVariation=0;
+let pendingLevelUps=0,levelChoiceOpen=false,levelChoices=[];
 const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.height=480;const roomCacheCtx=roomCache.getContext('2d');
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.4a';
+const VERSION='0.3.5';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -382,13 +383,13 @@ const RARITIES=[
  {name:'Epic',weight:5,mult:1.30,cooldown:.88,reach:1.12,knockback:1.25,label:'EPIC'},
  {name:'Legendary',weight:1,mult:1.45,cooldown:.84,reach:1.16,knockback:1.35,label:'LEGENDARY'}
 ];
-const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:185,fire:0,damage:25,damageBonus:0,flash:0,hitTimer:0,hitCooldown:0,knockX:0,knockY:0,weapon:null};
+const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:185,fire:0,damage:25,damageBonus:0,moveSpeedBonus:0,critBonus:0,attackSpeedBonus:0,knockbackBonus:0,armour:null,flash:0,hitTimer:0,hitCooldown:0,knockX:0,knockY:0,weapon:null};
 let weaponFinds=[],pendingWeaponIndex=0,weaponPromptOpen=false,weaponBurning=false;
 function rarityData(name){return RARITIES.find(r=>r.name===name)||RARITIES[0]}
 function weaponInstance(id,rarityName='Common'){const base=WEAPONS[id]||WEAPONS.shortSword,r=rarityData(rarityName);return {id:base.id,name:base.name,rarity:r.name,baseDamage:base.baseDamage,damage:Math.round(base.baseDamage*r.mult),cooldown:base.cooldown*r.cooldown,reach:Math.round(base.reach*r.reach),swingDuration:base.swingDuration,knockback:base.knockback*r.knockback,moveSpeed:base.moveSpeed,swingMoveSpeed:base.swingMoveSpeed,critChance:base.critChance,icon:base.icon}}
 function weaponMoveSpeed(w,swinging=false){const raw=(swinging?w.swingMoveSpeed:w.moveSpeed)||1;return Math.min(1,Math.max(0,raw))}
 function playerWeapon(){return player.weapon||weaponInstance('shortSword','Common')}
-function currentWeaponStats(){const w=playerWeapon();return {damage:w.damage+(player.damageBonus||0),cooldown:w.cooldown,reach:w.reach,knockback:w.knockback}}
+function currentWeaponStats(){const w=playerWeapon();return {damage:w.damage+(player.damageBonus||0),cooldown:Math.max(.12,w.cooldown*(1-(player.attackSpeedBonus||0))),reach:w.reach,knockback:w.knockback*(1+(player.knockbackBonus||0)),critChance:Math.min(.50,w.critChance+(player.critBonus||0))}}
 function weightedRarity(){
  const luck=fortuneLevel||0;
  const bonuses=[-8,3,3,1.5,.5];
@@ -423,11 +424,36 @@ const SCORE_VALUES={bat:50,goblin:75,skeleton:100,boss:1000};
 let highScores=[];
 try{highScores=JSON.parse(localStorage.getItem('dungeonSurvivorHighScores')||'[]');if(!Array.isArray(highScores))highScores=[]}catch(e){highScores=[]}
 function addScore(amount){score=Math.max(0,score+amount)}
-function saveHighScore(){if(scoreSaved)return;scoreSaved=true;const endedAt=Date.now();highScores.push({score,room,level,gold:totalGoldCollected,kills,area,endedAt});highScores.sort((a,b)=>b.score-a.score);highScores=highScores.slice(0,5);try{localStorage.setItem('dungeonSurvivorHighScores',JSON.stringify(highScores))}catch(e){}}
+function saveHighScore(){if(scoreSaved)return;scoreSaved=true;const endedAt=Date.now();highScores.push({score,room,level,gold:totalGoldCollected,kills,bossesKilled,stagesCleared:roomsCleared,area,endedAt});highScores.sort((a,b)=>b.score-a.score);highScores=highScores.slice(0,5);try{localStorage.setItem('dungeonSurvivorHighScores',JSON.stringify(highScores))}catch(e){}}
 function scoreRank(){const i=highScores.findIndex(r=>r.score===score&&r.level===level&&r.kills===kills&&r.gold===totalGoldCollected);return i>=0?i+1:0}
 function finishGameOver(){if(gameOver)return;gameOver=true;AUDIO.gameOver();AUDIO.stop();player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;saveHighScore();msg('RUN ENDED — choose an option')}
 function enemyScale(){return (1+(area-1)*.18)*(1+(level-1)*.075)}
 function enemyDamageScale(){return 1+(area-1)*.12+(level-1)*.045}
+function eliteDamageScale(e){return enemyDamageScale()*(e?.elite?1.38:1)}
+const ARMOURS=[{id:'leather',name:'Leather Armour',damageReduction:.08,icon:'🛡'}];
+function armourInstance(id='leather'){const a=ARMOURS.find(x=>x.id===id)||ARMOURS[0];return {...a}}
+function armourReduction(){return player.armour?.damageReduction||0}
+const LEVEL_UP_POOL=[
+ {id:'damage',title:'+5 DAMAGE',desc:'Every swing hits harder.'},
+ {id:'health',title:'+10 MAX HP',desc:'Increase maximum health and heal 10 HP.'},
+ {id:'speed',title:'+5% MOVE SPEED',desc:'Move faster through the dungeon.'},
+ {id:'crit',title:'+3% CRITICAL',desc:'More chance to land a critical hit.'},
+ {id:'attack',title:'+5% ATTACK SPEED',desc:'Swing more often.'},
+ {id:'knockback',title:'+10% KNOCKBACK',desc:'Push enemies back further.'}
+];
+function rollLevelChoices(){const pool=[...LEVEL_UP_POOL],out=[];while(out.length<3&&pool.length){const i=Math.floor(Math.random()*pool.length);out.push(pool.splice(i,1)[0])}return out}
+function applyLevelChoice(id){
+ if(id==='damage'){player.damageBonus+=5;player.damage=currentWeaponStats().damage}
+ else if(id==='health'){player.maxHp+=10;player.hp=Math.min(player.maxHp,player.hp+10)}
+ else if(id==='speed'){player.moveSpeedBonus+=.05}
+ else if(id==='crit'){player.critBonus+=.03}
+ else if(id==='attack'){player.attackSpeedBonus+=.05;swingCooldown=0}
+ else if(id==='knockback'){player.knockbackBonus+=.10}
+ AUDIO.confirm();
+}
+function openLevelChoice(){if(levelChoiceOpen||pendingLevelUps<=0)return;levelChoiceOpen=true;paused=true;levelChoices=rollLevelChoices();const el=document.getElementById('levelChoiceScreen');if(el){el.classList.add('show');const sub=document.getElementById('levelChoiceSub');if(sub)sub.textContent=`LEVEL ${level - pendingLevelUps + 1} REWARD • CHOOSE ONE`;const list=document.getElementById('levelChoiceList');if(list)list.innerHTML=levelChoices.map(c=>`<button type="button" class="levelChoice" data-choice="${c.id}"><b>${c.title}</b><small>${c.desc}</small></button>`).join('')}}
+function chooseLevelChoice(id){if(!levelChoiceOpen)return;const c=levelChoices.find(x=>x.id===id);if(!c)return;applyLevelChoice(id);pendingLevelUps=Math.max(0,pendingLevelUps-1);levelChoiceOpen=false;paused=false;document.getElementById('levelChoiceScreen')?.classList.remove('show');levelChoices=[];showPickup(`★ ${c.title} chosen`);msg(pendingLevelUps>0?'ANOTHER LEVEL REWARD AWAITS':'LEVEL UP COMPLETE  •  WALK TO EXIT »');if(pendingLevelUps>0)setTimeout(openLevelChoice,80);updateHud()}
+
 function scaledPotionHeal(){return Math.min(player.maxHp,18+(area-1)*3+Math.floor((level-1)*1.5))}
 function scaledGoldAmount(enemyType){const typeBonus=enemyType==='skeleton'?2:enemyType==='goblin'?1:0;const base=1+Math.floor(Math.random()*5);return Math.min(14,base+Math.max(0,area-1)+Math.floor((level-1)/3)+typeBonus)}
 function bossGoldReward(){return 30+area*12+level*3}
@@ -488,7 +514,8 @@ function resetRoom(){
  }else{
   const plan=ROOM_PLAN[room]||ROOM_PLAN[6];activeCap=plan.cap;activeGoblinCap=GOBLIN_CAPS[room]||6;totalQuota=plan.total;
   const waveCount=room<=2?2:3;
-  const allSpawns=Array.from({length:totalQuota},()=>chooseEnemyType(plan.weights));
+  const allSpawns=Array.from({length:totalQuota},()=>({type:chooseEnemyType(plan.weights),elite:false}));
+  if(room>=2&&Math.random()<(0.14+Math.min(.10,(area-1)*.03))){const eliteIndex=2+Math.floor(Math.random()*Math.max(1,totalQuota-2));allSpawns[eliteIndex].elite=true;}
   const baseWave=Math.floor(totalQuota/waveCount),remainder=totalQuota%waveCount;
   let offset=0;spawnWaves=[];
   for(let w=0;w<waveCount;w++){const size=baseWave+(w<remainder?1:0);spawnWaves.push(allSpawns.slice(offset,offset+size));offset+=size;}
@@ -507,9 +534,10 @@ function getFurthestSpawnPoint(){
  const topBand=scored.slice(0,Math.max(4,Math.ceil(scored.length*.22)));
  return topBand[Math.floor(Math.random()*topBand.length)].p;
 }
-function startEntrance(type){
+function startEntrance(type,elite=false){
  const p=getFurthestSpawnPoint();
- entrances.push({x:p.x,y:p.y,type,age:0,duration:type==='bat'?.58:.68,active:false,shadow:type==='bat'});
+ if(elite){showPickup('⚠ ELITE ENEMY APPROACHING!');msg('⚠ ELITE ENEMY APPROACHING — DEFEAT IT FOR A BIG REWARD');AUDIO.wave()}
+ entrances.push({x:p.x,y:p.y,type,elite,age:0,duration:elite?.95:(type==='bat'?.58:.68),active:false,shadow:type==='bat'});
 }
 function countActiveType(type){return enemies.filter(e=>e.type===type).length+entrances.filter(e=>e.type===type).length}
 function trySpawnEnemy(delay=0){
@@ -518,20 +546,21 @@ function trySpawnEnemy(delay=0){
  if(spawnTimer>0){spawnTimer=Math.max(spawnTimer,delay);return}
  let pick=-1;
  for(let i=0;i<spawnQueue.length;i++){
-  const type=spawnQueue[i];
+  const type=spawnQueue[i].type;
   if(type==='goblin'&&countActiveType('goblin')>=activeGoblinCap)continue;
   pick=i;break;
  }
  if(pick<0)return;
- const type=spawnQueue.splice(pick,1)[0];totalSpawned++;AUDIO.spawn(type);
- startEntrance(type);spawnTimer=.65;
+ const entry=spawnQueue.splice(pick,1)[0];const type=entry.type,elite=!!entry.elite;totalSpawned++;AUDIO.spawn(type);
+ startEntrance(type,elite);spawnTimer=elite?1.05:.65;
 }
 function activateEntrance(ent){
  const base=ent.type==='bat'?34:ent.type==='goblin'?48:58;
  const speed=ent.type==='bat'?205:ent.type==='goblin'?135:105;
  const r=ent.type==='bat'?11:15;
- const hp=Math.round((base+room*7)*enemyScale());
- enemies.push({x:ent.x,y:ent.y,r:r*SPRITE_SCALE,type:ent.type,hp,max:hp,speed:speed+(ent.type==='bat'?2:ent.type==='goblin'?1:1),hit:0,attackCooldown:.8+Math.random()*.5,windup:0,attackAge:0,swingHit:false,swingAngle:0,swingSide:1,reposition:0,vulnerable:0,active:true,facingDir:'left',orbitAngle:Math.random()*Math.PI*2,orbitRadius:55+Math.random()*28,batAttackCooldown:1.0+Math.random()*.8,batAttackAge:0,batAttackHit:false,edgeTarget:null});
+ const eliteMult=ent.elite?2.35:1;
+ const hp=Math.round((base+room*7)*enemyScale()*eliteMult);
+ enemies.push({x:ent.x,y:ent.y,r:r*SPRITE_SCALE*(ent.elite?1.08:1),type:ent.type,elite:!!ent.elite,hp,max:hp,speed:(speed+(ent.type==='bat'?2:ent.type==='goblin'?1:1))*(ent.elite?1.08:1),hit:0,attackCooldown:.8+Math.random()*.5,windup:0,attackAge:0,swingHit:false,swingAngle:0,swingSide:1,reposition:0,vulnerable:0,active:true,facingDir:'left',orbitAngle:Math.random()*Math.PI*2,orbitRadius:55+Math.random()*28,batAttackCooldown:1.0+Math.random()*.8,batAttackAge:0,batAttackHit:false,edgeTarget:null});
 }
 
 function isBossRoom(){return room===bossRoom}
@@ -565,15 +594,17 @@ function continueFromShop(){
  resetRoom();
 }
 
-function spawnLoot(x,y,enemyType){
+function spawnLoot(x,y,enemyType,isElite=false){
  // Gold remains common, healing is rare, and weapons are occasional physical finds.
  const roll=Math.random();
  let type='Gold',amount=scaledGoldAmount(enemyType),weapon=null;
- if(roll<0.075){type='Weapon';weapon=randomWeaponDrop()}
- else if(roll<0.110) type='Heart';
- else if(roll<0.185) type='Potion';
+ if(roll<(isElite?.10:.075)){type='Weapon';weapon=randomWeaponDrop()}
+ else if(roll<(isElite?.14:.110)) type='Heart';
+ else if(roll<(isElite?.23:.185)) type='Potion';
+ else if(roll<(isElite?.29:.225)) type='Armour';
  const kick=Math.random()*Math.PI*2;const kickSpeed=type==='Gold'?35+Math.random()*35:0;
- loot.push({x,y,r:type==='Weapon'?13:11,type,amount,weapon,bob:Math.random()*6.28,spin:Math.random()*6.28,age:0,vx:Math.cos(kick)*kickSpeed,vy:Math.sin(kick)*kickSpeed});
+ const armour=type==='Armour'?armourInstance():null;
+ loot.push({x,y,r:type==='Weapon'?13:type==='Armour'?13:11,type,amount,weapon,armour,bob:Math.random()*6.28,spin:Math.random()*6.28,age:0,vx:Math.cos(kick)*kickSpeed,vy:Math.sin(kick)*kickSpeed});
  if(type==='Gold') AUDIO.pickup('Gold'),showPickup(`🪙 ${amount} gold dropped — nearby gold is attracted to you`);
  else if(type==='Heart') AUDIO.pickup('Heart'),showPickup('♥ RARE HEART — full heal!');
  else if(type==='Potion') AUDIO.pickup('Potion'),showPickup('✚ RARE POTION — small heal');
@@ -582,15 +613,9 @@ function spawnLoot(x,y,enemyType){
 
 function awardXP(amount){
  xp+=amount;
- let levelled=false,bonusTotal=0;
- while(xp>=xpNeed){
-  xp-=xpNeed; level++; levelled=true;
-  xpNeed=12+(level-1)*6;
-  player.maxHp+=5; player.hp=clamp(player.hp+5,0,player.maxHp);
-  const bonus=10+Math.floor(Math.random()*11); gold+=bonus; bonusTotal+=bonus;
-  player.damageBonus+=2;player.damage=currentWeaponStats().damage;
- }
- if(levelled){AUDIO.level();showPickup(`★ LEVEL ${level}!  +5 MAX HP  +${bonusTotal} GOLD  +2 DAMAGE`);msg(`LEVEL UP!  You feel stronger.`);}
+ let levelled=0;
+ while(xp>=xpNeed){xp-=xpNeed;level++;levelled++;xpNeed=12+(level-1)*6;}
+ if(levelled){pendingLevelUps+=levelled;AUDIO.level();showPickup(`★ LEVEL ${level}!  CHOOSE YOUR REWARD BETWEEN ROOMS`);msg('LEVEL UP EARNED  •  REWARD WILL BE CHOSEN BETWEEN ROOMS');}
  updateHud();
 }
 
@@ -614,7 +639,7 @@ function damagePlayer(amount,sourceX,sourceY,knockbackScale=1,hitType='normal'){
  const dx=player.x-sourceX,dy=player.y-sourceY,d=Math.hypot(dx,dy)||1;
  const strength=(18+amount*0.95)*knockbackScale;
  player.knockX=dx/d*strength;player.knockY=dy/d*strength;
- player.hp-=amount;player.flash=.16;AUDIO.hurt(hitType==='fire');player.hitTimer=.24;player.hitCooldown=.28;
+ const reduced=Math.max(1,Math.round(amount*(1-armourReduction())));player.hp-=reduced;player.flash=.16;AUDIO.hurt(hitType==='fire');player.hitTimer=.24;player.hitCooldown=.28;
  addScore(-(hitType==='fire'?100:5));
  burst(player.x,player.y,'hit',7);
  if(player.hp<=0){player.hp=0;finishGameOver();}
@@ -644,7 +669,7 @@ function update(dt){
  const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l}
  const swinging=slashes.length>0;const moveSpeed=player.speed*weaponMoveSpeed(playerWeapon(),swinging);
  if(l>.12){facing=Math.atan2(my,mx);facingDir=dirFromAngle(facing)}
- player.x=clamp(player.x+mx*moveSpeed*dt,30,W-30);player.y=clamp(player.y+my*moveSpeed*dt,70,H-70);
+ const effectiveMoveSpeed=moveSpeed*(1+(player.moveSpeedBonus||0));player.x=clamp(player.x+mx*effectiveMoveSpeed*dt,30,W-30);player.y=clamp(player.y+my*effectiveMoveSpeed*dt,70,H-70);
  player.x=clamp(player.x,30,W-30);player.y=clamp(player.y,70,H-70);
  // Keep the player outside the Guardian's body, while leaving enough overlap-free distance for sword reach to connect.
  const guardian=enemies.find(e=>e.type==='boss');
@@ -684,7 +709,7 @@ function update(dt){
    const ml=Math.hypot(moveX,moveY)||1;e.x+=moveX/ml*e.speed*dt*moveScale;e.y+=moveY/ml*e.speed*dt*moveScale;
    e.attackCooldown-=dt;
    if(d<285&&e.attackCooldown<=0&&e.windup<=0){e.windup=.52;e.attackCooldown=1.7+Math.random()*.35}
-   if(e.windup>0){e.windup-=dt;if(e.windup<=0){shootProjectile(e.x,e.y,a,115,Math.round(10*enemyDamageScale()),'arrow');e.reposition=.38}}
+   if(e.windup>0){e.windup-=dt;if(e.windup<=0){shootProjectile(e.x,e.y,a,115,Math.round(10*eliteDamageScale(e)),'arrow');e.reposition=.38}}
    if(e.reposition>0){e.reposition-=dt;const back=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(back)*e.speed*dt*1.15*moveScale;e.y+=Math.sin(back)*e.speed*dt*1.15*moveScale}
   }else if(e.type==='skeleton'){
    const a=Math.atan2(player.y-e.y,player.x-e.x);
@@ -697,7 +722,7 @@ function update(dt){
    if(e.windup>0){e.windup-=dt;if(e.windup<=0){e.attackAge=.20;e.swingHit=false;e.swingAngle=a}}
    if(e.attackAge>0){
     e.attackAge=Math.max(0,e.attackAge-dt);
-    if(!e.swingHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+18){const goblinSupport=enemies.filter(o=>o.type==='goblin'&&dist(o,e)<120).length;damagePlayer(Math.round(14*enemyDamageScale()*(1+Math.min(2,goblinSupport)*.08)),e.x,e.y,1.0,'normal');e.swingHit=true}
+    if(!e.swingHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+18){const goblinSupport=enemies.filter(o=>o.type==='goblin'&&dist(o,e)<120).length;damagePlayer(Math.round(14*eliteDamageScale(e)*(1+Math.min(2,goblinSupport)*.08)),e.x,e.y,1.0,'normal');e.swingHit=true}
     if(e.attackAge<=0){e.attackCooldown=1.2;e.vulnerable=.35;}
    e.vulnerable=Math.max(0,(e.vulnerable||0)-dt);
    }
@@ -745,7 +770,7 @@ function update(dt){
    }
    if(e.patternActive&&bossPatternMode==='burst'&&bossPatternTimer<1.0){
     const n=5,gap=.16,idx=Math.floor(bossPatternTimer/gap);
-    if(idx<n&&Math.abs(bossPatternTimer-idx*gap)<dt*1.2){AUDIO.projectile('fireball');const base=Math.atan2(player.y-e.y,player.x-e.x);shootProjectile(e.x,e.y,base+(idx-2)*.11,122,Math.round(14*enemyDamageScale()),'fireball');}
+    if(idx<n&&Math.abs(bossPatternTimer-idx*gap)<dt*1.2){AUDIO.projectile('fireball');const base=Math.atan2(player.y-e.y,player.x-e.x);shootProjectile(e.x,e.y,base+(idx-2)*.11,122,Math.round(14*eliteDamageScale(e)),'fireball');}
     bossPatternTimer+=dt;
     if(bossPatternTimer>=1.0){e.patternActive=false;e.attackTimer=3.2;}
    }else if(e.patternActive&&bossPatternMode==='spiral'&&bossPatternTimer<3.6){
@@ -756,7 +781,7 @@ function update(dt){
    }
   }
   e.x=clamp(e.x,32,W-32);e.y=clamp(e.y,72,H-72);
-  if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){damagePlayer(e.type==='boss'?Math.round(30*enemyDamageScale()):e.type==='bat'?1:Math.round(22*enemyDamageScale()),e.x,e.y,e.type==='boss'?1.2:.55,'normal')}
+  if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){damagePlayer(e.type==='boss'?Math.round(30*eliteDamageScale(e)):e.type==='bat'?1:Math.round(22*eliteDamageScale(e)),e.x,e.y,e.type==='boss'?1.2:.55,'normal')}
   if(player.hp<=0){player.hp=0;finishGameOver()}
  }
  clampEnemySeparation();
@@ -765,7 +790,7 @@ function update(dt){
 
  for(let i=slashes.length-1;i>=0;i--){
   const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const reach=s.reach||playerWeapon().reach;const centre=s.angle+s.side*(Math.PI*.40-(Math.min(1,progress)*Math.PI*.80));
-  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){const crit=Math.random()<((s.weapon&&s.weapon.critChance)||.10);const damage=crit?Math.round(s.damage*1.75):s.damage;e.hp-=damage;s.hit.add(e);e.hit=crit?.16:.12;e.stagger=crit?.20:.12;const push=Math.max(0,1-d/(reach+e.r))*(crit?1.18:1);const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);if(crit){AUDIO.crit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.22,type:'crit',angle:Math.random()*Math.PI});burst(e.x,e.y,'crit',9);criticalMarks.push({x:e.x,y:e.y-22,age:0,dur:.55});}else{AUDIO.hit();AUDIO.enemyHit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.16,type:'hit',angle:Math.random()*Math.PI});burst(e.x,e.y,'hit',5);}if(e.hp<=0){AUDIO.death(e.type);deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type);else{const reward=bossGoldReward();gold+=reward;totalGoldCollected+=reward;showPickup(`👑 GUARDIAN BONUS  +${reward} GOLD`)}enemies.splice(enemies.indexOf(e),1);kills++;addScore(SCORE_VALUES[e.type]||0);awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5);burst(e.x,e.y,'death',e.type==='boss'?28:12);if(e.type==='boss'){areaClearTimer=1.8;areaClearShown=true;}if(!isBossRoom())spawnTimer=.65;}}}
+  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){const crit=Math.random()<(currentWeaponStats().critChance||.10);const damage=crit?Math.round(s.damage*1.75):s.damage;e.hp-=damage;s.hit.add(e);e.hit=crit?.16:.12;e.stagger=crit?.20:.12;const push=Math.max(0,1-d/(reach+e.r))*(crit?1.18:1);const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);if(crit){AUDIO.crit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.22,type:'crit',angle:Math.random()*Math.PI});burst(e.x,e.y,'crit',9);criticalMarks.push({x:e.x,y:e.y-22,age:0,dur:.55});}else{AUDIO.hit();AUDIO.enemyHit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.16,type:'hit',angle:Math.random()*Math.PI});burst(e.x,e.y,'hit',5);}if(e.hp<=0){AUDIO.death(e.type);deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type,e.elite);else{const reward=bossGoldReward();gold+=reward;totalGoldCollected+=reward;bossesKilled++;showPickup(`👑 GUARDIAN BONUS  +${reward} GOLD`)}enemies.splice(enemies.indexOf(e),1);kills++;addScore((SCORE_VALUES[e.type]||0)*(e.elite?2:1));awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5+(e.elite?4:0));if(e.elite)showPickup('★ ELITE SLAIN!  DOUBLE SCORE');burst(e.x,e.y,'death',e.type==='boss'?28:e.elite?20:12);if(e.type==='boss'){areaClearTimer=1.8;areaClearShown=true;}if(!isBossRoom())spawnTimer=.65;}}}
   if(progress>=1)slashes.splice(i,1);
  }
 
@@ -778,14 +803,15 @@ function update(dt){
    if(d>0.1&&d<magnet){const pull=70+((magnet-d)/magnet)*210;l.x+=dx/d*pull*dt;l.y+=dy/d*pull*dt}
   }
  });
- for(let i=loot.length-1;i>=0;i--){const l=loot[i];const pickupRadius=l.type==='Gold'?player.r+5:player.r+l.r+9;if(dist(player,l)<pickupRadius){if(l.type==='Gold'){gold+=l.amount;totalGoldCollected+=l.amount;AUDIO.pickup('Gold');showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;AUDIO.pickup('Heart');showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;AUDIO.pickup('Potion');player.hp=clamp(player.hp+scaledPotionHeal(),0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}if(l.type==='Weapon'){weaponFinds.push(l.weapon);AUDIO.pickup('Weapon');showPickup(`⚔ ${l.weapon.name} — ${l.weapon.rarity}  •  take it to the exit`)}burst(l.x,l.y,l.type==='Gold'?'coin':l.type==='Weapon'?'weapon':'heal',8);loot.splice(i,1);updateHud()}}
+ for(let i=loot.length-1;i>=0;i--){const l=loot[i];const pickupRadius=l.type==='Gold'?player.r+5:player.r+l.r+9;if(dist(player,l)<pickupRadius){if(l.type==='Gold'){gold+=l.amount;totalGoldCollected+=l.amount;AUDIO.pickup('Gold');showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;AUDIO.pickup('Heart');showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;AUDIO.pickup('Potion');player.hp=clamp(player.hp+scaledPotionHeal(),0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}if(l.type==='Weapon'){weaponFinds.push(l.weapon);AUDIO.pickup('Weapon');showPickup(`⚔ ${l.weapon.name} — ${l.weapon.rarity}  •  take it to the exit`)}
+ if(l.type==='Armour'){player.armour=l.armour||armourInstance();AUDIO.pickup('Weapon');showPickup(`🛡 ${player.armour.name} equipped — ${Math.round(player.armour.damageReduction*100)}% damage reduction`)}burst(l.x,l.y,l.type==='Gold'?'coin':l.type==='Weapon'?'weapon':'heal',8);loot.splice(i,1);updateHud()}}
  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0); impactMarks.forEach(m=>m.age+=dt);impactMarks=impactMarks.filter(m=>m.age<m.dur);criticalMarks.forEach(m=>m.age+=dt);criticalMarks=criticalMarks.filter(m=>m.age<m.dur);
  if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){
    if(spawnWaveIndex<spawnWaves.length-1){spawnWaveIndex++;spawnQueue=spawnWaves[spawnWaveIndex].slice();spawnTimer=1.0;waveTransitionTimer=.9;AUDIO.wave();msg(`WAVE ${spawnWaveIndex+1}/${spawnWaves.length} — INCOMING`);}
-   else{roomCleared=true;roomsCleared++;AUDIO.clear();msg('ROOM CLEARED  •  WALK TO EXIT »');burst(W/2,H/2,'clear',18)}
+   else{roomCleared=true;roomsCleared++;AUDIO.clear();msg(pendingLevelUps>0?'ROOM CLEARED  •  CHOOSE YOUR LEVEL REWARD':'ROOM CLEARED  •  WALK TO EXIT »');burst(W/2,H/2,'clear',18);if(pendingLevelUps>0)setTimeout(openLevelChoice,120)}
  }
- if(isBossRoom()&&enemies.length===0&&!roomCleared){roomCleared=true;AUDIO.clear();msg(`AREA ${area} COMPLETE  •  WALK TO EXIT »`)}
- if(roomCleared&&!atShop&&!weaponPromptOpen){
+ if(isBossRoom()&&enemies.length===0&&!roomCleared){roomCleared=true;AUDIO.clear();msg(pendingLevelUps>0?'AREA COMPLETE  •  CHOOSE YOUR LEVEL REWARD':'AREA COMPLETE  •  WALK TO EXIT »');if(pendingLevelUps>0)setTimeout(openLevelChoice,120)}
+ if(roomCleared&&!atShop&&!weaponPromptOpen&&!levelChoiceOpen&&!pendingLevelUps){
   // 0.2.8c: the exit trigger now matches the actual wooden doorway in the right-wall asset.
   const door=exitDoorRect();
   const cx=clamp(player.x,door.x,door.x+door.w),cy=clamp(player.y,door.y,door.y+door.h);
@@ -951,6 +977,7 @@ function drawEnemy(e,i){
  }else{
    ctx.restore();drawLegacyEnemy(e,i);
  }
+ if(e.elite){ctx.save();const pulse=.65+.35*Math.sin(frameNow*.012+e.x);ctx.globalAlpha=.28+.18*pulse;ctx.strokeStyle=P.gold2;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(x,y,e.r+10+pulse*3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=.9;text('ELITE',x,y-e.r-28,7,P.gold2,'center');ctx.restore()}
  if(e.type==='bat'&&e.batAttackAge>0){ctx.save();ctx.globalAlpha=.45+.45*Math.sin(e.batAttackAge*30);ctx.strokeStyle=P.red2;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,e.r+7,0,Math.PI*2);ctx.stroke();ctx.restore()}
  if(e.type==='goblin'&&e.windup>0){const aimA=Math.atan2(player.y-y,player.x-x);ctx.save();ctx.translate(x,y);ctx.rotate(aimA);ctx.strokeStyle='#d9b35b';ctx.globalAlpha=.65*Math.min(1,e.windup/.52);ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(17,0);ctx.lineTo(48,0);ctx.stroke();ctx.setLineDash([]);ctx.restore()}
  if(e.windup>0){ctx.save();ctx.strokeStyle=P.gold2;ctx.lineWidth=2;ctx.globalAlpha=Math.min(1,e.windup/.48);ctx.beginPath();ctx.arc(x,y,e.r+7,-1.7,-.4);ctx.stroke();ctx.restore()}
@@ -973,6 +1000,7 @@ function drawEntrance(ent){
   if(spriteReady.skeleton)drawCharacterSprite('skeleton','idle',animFrame(frameNow/1000,5),0,0,80,false,1); else {pixelRect(-10,-6,20,14,P.cream);pixelRect(-8,-17,16,12,'#e3ddc8')}
  }
  ctx.restore();
+ if(ent.elite)text('⚠ ELITE',x,y-36,8,P.gold2,'center');
  if(p<1)text(ent.type==='bat'?'DROP IN':ent.type==='goblin'?'MAGIC':'EARTH',x,y-28,6,ent.type==='goblin'?P.green:ent.type==='skeleton'?'#a57b4c':P.cream,'center');
 }
 function drawProjectile(q){
@@ -990,8 +1018,8 @@ function drawProjectile(q){
 
 function drawLoot(l){
  const wobble=l.type==='Heart'||l.type==='Potion';const y=l.y+(wobble?Math.sin(l.bob)*3:0),x=l.x;ctx.save();ctx.translate(x,y);
- const key=l.type==='Gold'?'gold':l.type==='Heart'?'healthFull':l.type==='Potion'?'healthSmall':'weaponDrop';
- if(drawGameAsset(key,0,0,32,1,0)){
+ const key=l.type==='Gold'?'gold':l.type==='Heart'?'healthFull':l.type==='Potion'?'healthSmall':l.type==='Weapon'?'weaponDrop':null;
+ if(key&&drawGameAsset(key,0,0,32,1,0)){
    if(l.type==='Gold'||l.type==='Weapon'){const pulse=.45+.55*(.5+.5*Math.sin((l.spin||0)+frameNow*.008));const len=3+4*pulse;ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=.18+.38*pulse;ctx.strokeStyle=l.type==='Gold'?P.gold2:P.teal2;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-len,0);ctx.lineTo(len,0);ctx.moveTo(0,-len);ctx.lineTo(0,len);ctx.stroke();ctx.globalAlpha=.8*pulse;pixelRect(-1,-1,2,2,P.cream);ctx.restore()}
    if(l.type==='Weapon'){const r=rarityData(l.weapon?.rarity);text(l.weapon?.rarity?.slice(0,1)||'C',0,25,7,r.name==='Legendary'?P.gold2:r.name==='Epic'?P.red2:r.name==='Rare'?P.teal2:P.cream,'center')}
    ctx.restore();return;
@@ -999,7 +1027,8 @@ function drawLoot(l){
  if(l.type==='Gold'){pixelRect(-13,2,10,8,P.gold);pixelRect(1,-3,11,9,P.gold2);pixelRect(-4,-9,10,9,'#f0c85c');pixelRect(-10,4,5,3,'#8f6b25');pixelRect(4,-1,5,3,'#9d7426');}
  else if(l.type==='Heart'){ctx.fillStyle=P.red2;ctx.beginPath();ctx.moveTo(0,11);ctx.lineTo(-13,-1);ctx.quadraticCurveTo(-15,-12,-7,-13);ctx.quadraticCurveTo(0,-13,0,-6);ctx.quadraticCurveTo(0,-13,7,-13);ctx.quadraticCurveTo(15,-12,13,-1);ctx.closePath();ctx.fill();pixelRect(-7,-7,4,3,'#ffb0a5');}
  else if(l.type==='Potion'){pixelRect(-5,-13,10,5,P.cream);pixelRect(-9,-7,18,17,'#25876e');pixelRect(-6,-4,12,11,'#55c997');pixelRect(-3,1,6,6,'#8ee7b9');pixelRect(-7,-15,14,3,'#bcae87');}
- else{const r=rarityData(l.weapon?.rarity);pixelRect(-3,-14,6,9,P.gold2);pixelRect(-6,-6,12,4,P.cream);pixelRect(-3,-2,6,17,'#6f4f32');pixelRect(-8,13,16,4,P.gold);text(l.weapon?.rarity?.slice(0,1)||'C',0,25,7,r.name==='Legendary'?P.gold2:r.name==='Epic'?P.red2:r.name==='Rare'?P.teal2:P.cream,'center');}
+ else if(l.type==='Weapon'){const r=rarityData(l.weapon?.rarity);pixelRect(-3,-14,6,9,P.gold2);pixelRect(-6,-6,12,4,P.cream);pixelRect(-3,-2,6,17,'#6f4f32');pixelRect(-8,13,16,4,P.gold);text(l.weapon?.rarity?.slice(0,1)||'C',0,25,7,r.name==='Legendary'?P.gold2:r.name==='Epic'?P.red2:r.name==='Rare'?P.teal2:P.cream,'center');}
+ else{pixelRect(-10,-11,20,22,'#52656a');pixelRect(-7,-14,14,5,P.gold2);pixelRect(-7,9,14,5,'#31454a');pixelRect(-3,-7,6,14,P.cream);text('A',0,25,7,P.teal2,'center');}
  ctx.restore();
 }
 
@@ -1138,10 +1167,10 @@ function inventoryStatsHTML(){
  <div class="invWeapon">
    <div class="invWeaponIcon">⚔</div>
    <div class="invWeaponMain"><strong>${w.name}</strong><small class="rarity ${rarityClass(w.rarity)}">${w.rarity.toUpperCase()}</small></div>
-   <div class="invWeaponStats"><span>DAMAGE <b>${s.damage}</b></span><span>REACH <b>${s.reach}</b></span><span>SPEED <b>${formatSpeed(s.cooldown)}</b></span><span>KNOCKBACK <b>${s.knockback.toFixed(2)}×</b></span></div>
+   <div class="invWeaponStats"><span>DAMAGE <b>${s.damage}</b></span><span>REACH <b>${s.reach}</b></span><span>SPEED <b>${formatSpeed(s.cooldown)}</b></span><span>CRIT <b>${Math.round(s.critChance*100)}%</b></span></div>
  </div>
  <div class="invSectionTitle">EQUIPMENT</div>
- <div class="invLocked"><span>ARMOUR</span><b>— EMPTY —</b><small>Armour slots will be added to the dungeon.</small></div>
+ <div class="invLocked"><span>ARMOUR</span><b>${player.armour?player.armour.name:'— EMPTY —'}</b><small>${player.armour?`${Math.round(player.armour.damageReduction*100)}% DAMAGE REDUCTION`:'Find armour in the dungeon.'}</small></div>
  <div class="invSectionTitle">RUN</div>
  <div class="invRunGrid"><span>AREA <b>${area} • ${areaName}</b></span><span>ROOM <b>${isBossRoom()?'GUARDIAN':room}</b></span><span>ENEMIES <b>${kills}</b></span><span>ROOMS CLEARED <b>${roomsCleared}</b></span></div>`;
 }
@@ -1149,7 +1178,7 @@ function updateInventoryPanel(){const el=document.getElementById('inventoryConte
 function openInventory(){if(!started||gameOver||atShop||weaponPromptOpen)return;paused=true;updateInventoryPanel();document.getElementById('inventoryScreen').classList.add('show');msg('GAME PAUSED  •  INVENTORY OPEN')}
 function closeInventory(){document.getElementById('inventoryScreen').classList.remove('show');paused=false;msg(roomCleared?'ROOM CLEARED  •  WALK TO EXIT »':`AREA ${area} • ${areaName} — ROOM ${room} • CLEAR THE ROOM`)}
 function formatScoreDate(ts){if(!ts)return '—';try{return new Date(ts).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return '—'}}
-function renderScoreboard(){const list=document.getElementById('scoreList');if(!list)return;const rows=highScores.length?highScores.map((r,i)=>`<div class="scoreRow"><span>#${i+1}</span><b>${r.score}</b><span>R${r.room} • LV${r.level}</span><span>${r.kills}K • ${formatScoreDate(r.endedAt)}</span></div>`).join(''):`<div class="emptyScores">NO RUNS RECORDED YET</div>`;list.innerHTML=rows;}
+function renderScoreboard(){const list=document.getElementById('scoreList');if(!list)return;const rows=highScores.length?highScores.map((r,i)=>`<div class="scoreRow"><span>#${i+1}</span><b>${r.score}</b><span>R${r.room} • LV${r.level}</span><span>${r.kills}K • ${r.stagesCleared??Math.max(0,(r.room||1)-1)}S • ${r.bossesKilled??0}B • ${formatScoreDate(r.endedAt)}</span></div>`).join(''):`<div class="emptyScores">NO RUNS RECORDED YET</div>`;list.innerHTML=rows;}
 function clearScoreboard(){if(!highScores.length)return;if(!window.confirm('Are you sure?'))return;highScores=[];try{localStorage.removeItem('dungeonSurvivorHighScores')}catch(e){}renderScoreboard();AUDIO.confirm();}
 function openScoreboard(){if(started)return;renderScoreboard();document.getElementById('scoreboardScreen').classList.add('show');startScreen.classList.add('menuHidden');}
 function closeScoreboard(){document.getElementById('scoreboardScreen').classList.remove('show');startScreen.classList.remove('menuHidden');}
@@ -1177,7 +1206,7 @@ function draw(){
   ctx.fillStyle='#02090af2';ctx.globalAlpha=Math.max(0,Math.min(1,alpha));ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;
   if(roomTransition.switched&&fadeIn>.15){ctx.globalAlpha=Math.min(1,(fadeIn-.15)/.45);text(roomTransition.roomName,W/2,215,17,P.teal2,'center');text(`ROOM ${roomTransition.nextRoom}`,W/2,240,9,P.cream,'center');ctx.globalAlpha=1;}
  }
- if(gameOver){ctx.fillStyle='#02090af2';ctx.fillRect(0,0,W,H);panel(24,74,W-48,320);text('GAME OVER',W/2,106,27,P.cream,'center');text(`FINAL SCORE  ${score}`,W/2,134,16,P.gold2,'center');const rank=scoreRank();text(rank===1?'NEW HIGH SCORE!':rank?`HIGH SCORE RANK  #${rank}`:'',W/2,154,8,P.red2,'center');text(`REACHED  ${isBossRoom()?'GUARDIAN':`ROOM ${room}`}`,W/2,181,9,P.teal2,'center');text(`LEVEL ${level}  •  GOLD ${totalGoldCollected}`,W/2,202,9,P.gold2,'center');text(`ENEMIES DEFEATED  ${kills}`,W/2,223,9,P.cream,'center');text(`ROOMS CLEARED  ${roomsCleared}`,W/2,244,9,P.cream,'center');text('BEST RUNS',W/2,272,9,P.teal2,'center');for(let i=0;i<Math.min(3,highScores.length);i++){const r=highScores[i];text(`${i+1}.  ${r.score}`,W/2,291+i*16,8,P.cream,'center')}panel(W/2-82,340,164,34);text('MAIN MENU',W/2,362,10,P.teal2,'center')}
+ if(gameOver){ctx.fillStyle='#02090af2';ctx.fillRect(0,0,W,H);panel(24,74,W-48,320);text('GAME OVER',W/2,106,27,P.cream,'center');text(`FINAL SCORE  ${score}`,W/2,134,16,P.gold2,'center');const rank=scoreRank();text(rank===1?'NEW HIGH SCORE!':rank?`HIGH SCORE RANK  #${rank}`:'',W/2,154,8,P.red2,'center');text(`REACHED  ${isBossRoom()?'GUARDIAN':`ROOM ${room}`}`,W/2,181,9,P.teal2,'center');text(`LEVEL ${level}  •  GOLD ${totalGoldCollected}`,W/2,202,9,P.gold2,'center');text(`ENEMIES DEFEATED  ${kills}`,W/2,223,9,P.cream,'center');text(`STAGES CLEARED  ${roomsCleared}  •  BOSSES KILLED  ${bossesKilled}`,W/2,244,8,P.cream,'center');text('BEST RUNS',W/2,272,9,P.teal2,'center');for(let i=0;i<Math.min(3,highScores.length);i++){const r=highScores[i];text(`${i+1}.  ${r.score}`,W/2,291+i*16,8,P.cream,'center')}panel(W/2-82,340,164,34);text('MAIN MENU',W/2,362,10,P.teal2,'center')}
  if(shake)ctx.restore();
 }
 let frameNow=0;
@@ -1201,6 +1230,9 @@ const inventoryButton=document.getElementById('inventoryButton');
 const inventoryScreen=document.getElementById('inventoryScreen');
 const inventoryClose=document.getElementById('inventoryClose');
 const inventoryCloseBottom=document.getElementById('inventoryCloseBottom');
+const levelChoiceScreen=document.getElementById('levelChoiceScreen');
+const levelChoiceList=document.getElementById('levelChoiceList');
+if(levelChoiceList)levelChoiceList.addEventListener('pointerdown',e=>{const btn=e.target.closest('.levelChoice');if(!btn)return;e.preventDefault();AUDIO.menu();chooseLevelChoice(btn.dataset.choice)});
 startScreen.style.display='none';
 // Keep the menu underneath the splash during its fade so there is never a frame of the dungeon showing between them.
 setTimeout(()=>{startScreen.style.display='flex';splashScreen.classList.add('done');setTimeout(()=>{splashScreen.style.display='none';msg('PRESS PLAY TO ENTER THE DUNGEON')},220)},1800);
@@ -1217,7 +1249,7 @@ inventoryCloseBottom.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){AUDIO.start();started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;roomTransition=null;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function startNewRun(){AUDIO.start();started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
 function returnToTitle(){AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
