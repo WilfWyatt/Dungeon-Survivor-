@@ -961,11 +961,11 @@ function drawPlayer(){
  if(hurt){action='hurt';frame=timedAnimFrame(.24-player.hitTimer,.24,16)}
  else if(slashes.length){const s=slashes[slashes.length-1];action='attack';frame=timedAnimFrame(s.age,s.duration,18)}
  else if(moving){
-   // The Codex player walk row is a directional stepping pose, not a 4-frame cycle.
-   // Alternate it with the matching idle pose to create a clean two-pose walk.
-   const step=Math.floor(walkTime*5)%2;
-   action=step?'walk':'idle';
-   frame=animFrame(frameNow/1000,5,4);
+   // The player sheet uses the full four-frame walk strip. Do not alternate
+   // between idle and walk frames: that was causing the player's movement
+   // animation to jump/flicker between poses.
+   action='walk';
+   frame=animFrame(walkTime,7,4);
  }
  const flip=facingDir==='left';
  if(drawCharacterSprite('player',action,frame,x,y,48,flip,hurt?.78:1,facingDir)){
