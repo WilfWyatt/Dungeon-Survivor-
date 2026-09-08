@@ -280,7 +280,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.6c';
+const VERSION='0.3.6d';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -412,12 +412,17 @@ let roomTransition=null;
 const ROOM_ARCHETYPES=['GREAT HALL','PILLARED HALL','RUINED CHAMBER','CHAPEL','GUARD ROOM','CROSS HALL'];
 function roomArchetype(){return ROOM_ARCHETYPES[(roomVariation+room*3+area)%ROOM_ARCHETYPES.length]}
 function clampEnemySeparation(){
- const normal=enemies.filter(e=>e.type!=='boss');
- for(let i=0;i<normal.length;i++)for(let j=i+1;j<normal.length;j++){
-  const a=normal[i],b=normal[j];
-  if(a.type!=='goblin'&&b.type!=='goblin')continue;
-  const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1,min=34;
-  if(d<min){const push=(min-d)/2,ux=dx/d,uy=dy/d;a.x-=ux*push;a.y-=uy*push;b.x+=ux*push;b.y+=uy*push;}
+ // Avoid allocating a filtered array every frame. Rooms only have a small active
+ // enemy cap, so a direct pair scan is both cheaper and easier on mobile GC.
+ for(let i=0;i<enemies.length;i++){
+  const a=enemies[i];
+  if(a.type==='boss')continue;
+  for(let j=i+1;j<enemies.length;j++){
+   const b=enemies[j];
+   if(b.type==='boss'||(a.type!=='goblin'&&b.type!=='goblin'))continue;
+   const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1,min=34;
+   if(d<min){const push=(min-d)/2,ux=dx/d,uy=dy/d;a.x-=ux*push;a.y-=uy*push;b.x+=ux*push;b.y+=uy*push;}
+  }
  }
 }
 function nearestGoblins(){return enemies.filter(e=>e.type==='goblin').sort((a,b)=>dist(a,player)-dist(b,player))}
@@ -803,7 +808,7 @@ function update(dt){
 
  for(let i=slashes.length-1;i>=0;i--){
   const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const reach=s.reach||playerWeapon().reach;const centre=s.angle+s.side*(Math.PI*.40-(Math.min(1,progress)*Math.PI*.80));
-  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){const crit=Math.random()<(currentWeaponStats().critChance||.10);const damage=crit?Math.round(s.damage*1.75):s.damage;e.hp-=damage;s.hit.add(e);e.hit=crit?.16:.12;e.stagger=crit?.20:.12;const push=Math.max(0,1-d/(reach+e.r))*(crit?1.18:1);const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);if(crit){AUDIO.crit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.22,type:'crit',angle:Math.random()*Math.PI});burst(e.x,e.y,'crit',9);criticalMarks.push({x:e.x,y:e.y-22,age:0,dur:.55});}else{AUDIO.hit();AUDIO.enemyHit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.16,type:'hit',angle:Math.random()*Math.PI});burst(e.x,e.y,'hit',5);}if(e.hp<=0){AUDIO.death(e.type);deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type,e.elite);else{const reward=bossGoldReward();gold+=reward;totalGoldCollected+=reward;bossesKilled++;showPickup(`👑 GUARDIAN BONUS  +${reward} GOLD`)}enemies.splice(enemies.indexOf(e),1);kills++;addScore((SCORE_VALUES[e.type]||0)*(e.elite?2:1));awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5+(e.elite?4:0));if(e.elite)showPickup('★ ELITE SLAIN!  DOUBLE SCORE');burst(e.x,e.y,'death',e.type==='boss'?28:e.elite?20:12);if(e.type==='boss'){areaClearTimer=1.8;areaClearShown=true;}if(!isBossRoom())spawnTimer=.65;}}}
+  for(let ei=0;ei<enemies.length;ei++){const e=enemies[ei];if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){const crit=Math.random()<(currentWeaponStats().critChance||.10);const damage=crit?Math.round(s.damage*1.75):s.damage;e.hp-=damage;s.hit.add(e);e.hit=crit?.16:.12;e.stagger=crit?.20:.12;const push=Math.max(0,1-d/(reach+e.r))*(crit?1.18:1);const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);if(crit){AUDIO.crit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.22,type:'crit',angle:Math.random()*Math.PI});burst(e.x,e.y,'crit',9);criticalMarks.push({x:e.x,y:e.y-22,age:0,dur:.55});}else{AUDIO.hit();AUDIO.enemyHit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.16,type:'hit',angle:Math.random()*Math.PI});burst(e.x,e.y,'hit',5);}if(e.hp<=0){AUDIO.death(e.type);deathMarks.push({x:e.x,y:e.y,type:e.type,remainKey:e.type==='skeleton'?'skeletonRemains':e.type==='goblin'?'goblinRemains':e.type==='bat'?'batRemains':'bossRemains'});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type,e.elite);else{const reward=bossGoldReward();gold+=reward;totalGoldCollected+=reward;bossesKilled++;showPickup(`👑 GUARDIAN BONUS  +${reward} GOLD`)}enemies.splice(enemies.indexOf(e),1);kills++;addScore((SCORE_VALUES[e.type]||0)*(e.elite?2:1));awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5+(e.elite?4:0));if(e.elite)showPickup('★ ELITE SLAIN!  DOUBLE SCORE');burst(e.x,e.y,'death',e.type==='boss'?28:e.elite?20:12);if(e.type==='boss'){areaClearTimer=1.8;areaClearShown=true;}if(!isBossRoom())spawnTimer=.65;}}}
   if(progress>=1)slashes.splice(i,1);
  }
 
@@ -899,7 +904,16 @@ function drawSkullShrine(x,y){ctx.save();ctx.shadowBlur=10;ctx.shadowColor='#142
 function drawBone(x,y,r){ctx.save();ctx.translate(x,y);ctx.rotate(r);pixelRect(-18,-2,36,4,'#9c9a85');pixelRect(-17,-6,5,5,P.cream);pixelRect(12,1,5,5,P.cream);ctx.restore()}
 function drawBlood(x,y,col){ctx.fillStyle=col;for(let i=0;i<8;i++){const a=i*1.7;const rr=6+((i*13)%17);pixelRect(x+Math.cos(a)*rr,y+Math.sin(a)*rr*.55,2+(i%3),2+(i%2),ctx.fillStyle)}}
 function drawBonePile(x,y){drawBone(x-5,y-2,-.65);drawBone(x+6,y+3,.7)}
-function drawDeathMarks(){for(const m of deathMarks){const remainKey=m.type==='skeleton'?'skeletonRemains':m.type==='goblin'?'goblinRemains':m.type==='bat'?'batRemains':'bossRemains';if(!drawGameAsset(remainKey,m.x,m.y,34,.88)){if(m.type==='skeleton')drawBonePile(m.x,m.y);else if(m.type==='bat'||m.type==='boss')drawBlood(m.x,m.y,'#7a3035');else drawBlood(m.x,m.y,'#3b7b45')}if(m.type!=='skeleton')drawGameAsset('bloodSplat',m.x,m.y,30,.45)}}
+function drawDeathMarks(){
+ for(const m of deathMarks){
+  if(!drawGameAsset(m.remainKey,m.x,m.y,34,.88)){
+   if(m.type==='skeleton')drawBonePile(m.x,m.y);
+   else if(m.type==='bat'||m.type==='boss')drawBlood(m.x,m.y,'#7a3035');
+   else drawBlood(m.x,m.y,'#3b7b45');
+  }
+  if(m.type!=='skeleton')drawGameAsset('bloodSplat',m.x,m.y,30,.45);
+ }
+}
 function drawImpactMarks(){for(const m of impactMarks){const p=Math.min(1,m.age/m.dur);drawGameAsset(m.type==='hit'?'hitSpark':'impactSpark',m.x,m.y,m.type==='crit'?38+Math.round(p*10):30+Math.round(p*8),1-p,m.angle)}}
 function drawCriticalMarks(){for(const m of criticalMarks){const p=Math.min(1,m.age/m.dur);ctx.globalAlpha=1-p;text('CRITICAL!',m.x,m.y-p*18,9,P.gold2,'center');ctx.globalAlpha=1}}
 function drawTorch(x,y){const t=frameNow/115+x*.04;const wobble=Math.sin(t)*2;ctx.save();ctx.shadowBlur=24+Math.sin(t*.7)*5;ctx.shadowColor=P.teal;pixelRect(x-8,y,16,28,'#5b655d');pixelRect(x-5,y+5,10,19,'#2b4543');ctx.fillStyle=P.teal2;ctx.beginPath();ctx.moveTo(x+wobble,y-21-Math.sin(t)*2);ctx.lineTo(x+9,y-5);ctx.lineTo(x+Math.sin(t*1.3)*2,y+4);ctx.lineTo(x-9,y-5);ctx.closePath();ctx.fill();ctx.fillStyle=P.teal;ctx.beginPath();ctx.moveTo(x+wobble*.5,y-15);ctx.lineTo(x+4,y-5);ctx.lineTo(x,y);ctx.lineTo(x-4,y-5);ctx.closePath();ctx.fill();ctx.restore()}
