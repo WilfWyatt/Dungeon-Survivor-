@@ -1,39 +1,12 @@
-## 0.3.3 — Combat Feel & Scoreboard
-
-- Added end-of-run local date/time to scoreboard records and display. Existing older records without timestamps remain valid and show `—`.
-- Added weapon weight movement profiles: Short Sword 100%/80% normal/swinging, Long Sword 90%/70%, Claymore 80%/60%. Movement is hard-capped at 100%.
-- Added weapon-dependent critical hits with stronger impact, knockback, stagger, audio and `CRITICAL!` feedback.
-
-## 0.3.2 — Sound Upgrade
-
-Integrates the authored WAV sound library from `assets/audio/` with buffered Web Audio playback, contextual combat/loot/UI/world sounds, and lightweight ambience. The audio folders are expected to already exist in the repository; ordinary code-only build ZIPs do not duplicate them.
-
 # DUNGEON SURVIVOR
 
-**Current Version: 0.3.3**
-
-Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run directly from GitHub Pages and install as a PWA on Android.
+Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run from GitHub Pages and install as a PWA on Android.
 
 ## What is the game?
 
-Fight your way through dangerous dungeon rooms, survive waves of enemies, collect dropped loot, gain XP and grow stronger. Clear each room to unlock the exit, progress through the castle and eventually face the Guardian.
+Fight your way through dangerous dungeon rooms, survive waves of enemies, collect dropped loot, gain XP and grow stronger. Clear each room to unlock the exit, move through the doorway and enter the next room. Progress through the castle and eventually face the Guardian.
 
-The game is built as a lightweight HTML, CSS and JavaScript project with a portrait mobile layout, virtual controls and a deliberately chunky pixel-art presentation.
-
-## 0.2.9 Update
-- Optimised the cleared-room exit effect by pre-rendering the teal smoke and golden sparks into a small set of animation frames.
-- Gameplay now reuses those frames with a single `drawImage()` instead of rebuilding gradients, bezier smoke and blurred sparks every frame.
-- Tightened the escape trigger to the actual wooden doorway bounds in the supplied 160×1536 right-wall asset.
-- Kept the effect completely invisible until the room is cleared.
-- No changes to the Swing control or core combat loop.
-
-## 0.2.8b Update
-
-- The exit is completely invisible until the room is cleared.
-- Cleared exits now emit animated teal spectral smoke and drifting golden sparkles around the actual right-wall PNG doorway.
-- The exit activation area is tightly matched to the wooden doorway instead of using an oversized rectangle.
-- Removed the old hard-edged exit glow/marker and EXIT label.
-- No changes to the Swing control or core combat loop.
+The game is built as a lightweight HTML, CSS and JavaScript project with a portrait mobile layout, virtual controls and a chunky pixel-art presentation.
 
 ## Gameplay
 
@@ -47,6 +20,25 @@ The game is built as a lightweight HTML, CSS and JavaScript project with a portr
 - Learn enemy attack patterns and react to telegraphed attacks.
 - Reach the Guardian and survive its projectile patterns.
 
+## Loot & Equipment
+
+- Gold, health and weapon items physically appear in the dungeon.
+- Items must be walked over to collect them; notifications do not replace physical collection.
+- Gold and weapon drops use a sparkle effect rather than a wobble.
+- Health pickups retain their wobble animation.
+- Weapons use Common, Uncommon, Rare, Epic and Legendary rarities.
+- Weapon finds are presented for an equip-or-keep decision at the room exit.
+- Armour and boots form the foundation of the equipment system, including damage reduction and evade effects.
+
+## Combat
+
+- Close-range sword combat with visible attack animations.
+- Weapon classes include Short Sword, Long Sword and Claymore.
+- Weapon rarity affects combat statistics.
+- Critical hits provide increased damage and stronger combat feedback.
+- Enemy attacks include melee, ranged and Guardian projectile patterns.
+- Enemies can evade attacks, while the player can gain Evade through equipped boots.
+
 ## Controls
 
 - **Move:** virtual joystick.
@@ -54,287 +46,177 @@ The game is built as a lightweight HTML, CSS and JavaScript project with a portr
 - **Inventory:** opens the player card and pauses the run.
 - **Desktop testing:** WASD + Space.
 
+## Mobile HUD
+
+The mobile HUD is deliberately slim and sits above the game world. It contains only the essential player information:
+
+- Health
+- XP / Level
+- Purse / Gold
+
+There is no mini-map.
+
 ## General Features
 
 - Portrait mobile layout.
 - PWA/GitHub Pages-ready structure.
 - Progressive enemy spawning and varied enemy behaviours.
 - Directional player and enemy presentation.
-- Physical gold, hearts and potions.
-- XP, levels, health and damage progression.
-- Melee combat with visible sword swings, hit effects, stagger and knockback.
+- Physical loot collection.
+- XP, levels, health, damage and build progression.
+- Melee combat with hit effects, stagger and knockback.
 - Locked room exits and a Guardian boss encounter.
 - Permanent upgrade shop between areas.
-- Branded splash/start presentation and installable app icons.
 - Local high-score table and end-of-run score summary.
 - Modular authored dungeon architecture with separate wall, floor and prop assets.
+- Authored pixel-art gameplay assets and dungeon remains.
+- Lightweight authored/procedural audio and visual combat feedback.
 
 ## GitHub Pages
 
 Upload the project files to the root of a GitHub repository, then enable **Settings → Pages → Deploy from a branch → main → /(root)**. Open the generated Pages URL in Chrome on Android and use Chrome's menu to install/add the app to the home screen.
 
-## Archived 0.1.x Releases
+# Change Log
 
-The 0.1 releases are retained here as historical development records rather than current project documentation.
+## 0.3.8e — Bug Hunt & Asset Direction Fixes
 
-### 0.1.9 — Weapons, Decisions & Start Menu
+- Corrected projectile arrow orientation for the updated arrow asset, which is authored pointing cardinal North.
+- Arrow rotation now maps North, East, South and West correctly from the projectile's travel direction.
+- Removed the old procedural weapon-drop drawing fallback so a weapon drop cannot silently revert to the legacy sword/icon artwork.
+- Preserved the authored weapon-drop asset and rarity marker as the only weapon-drop presentation.
+- Restored the v0.3.8b behaviour that keeps enemy hurt animation without reducing enemy opacity or creating a hit blink.
+- Cleaned the README so the top of the document is dedicated to game information rather than version/build details.
+- Moved the 0.2.x history out of the active Change Log into the archive below.
 
-- Added physical weapon drops that must be collected by walking over them.
-- Added Short Sword, Long Sword and Claymore as distinct weapon classes.
-- Added Common, Uncommon, Rare, Epic and Legendary weapon rarities.
-- Kept the Short Sword as the guaranteed starting weapon.
-- Added weapon discovery/equip decisions at room exits.
-- Slowed Goblins slightly and changed Bat close-range behaviour.
-- Added the Local Scoreboard and return-to-start controls.
-- Added a discreet version number and Exit App control.
+## 0.3.8d — Player Movement Animation Fix
 
-### 0.1.8 — Movement, Combat Feel & Castle Room Variation
+- Fixed an excessively fast player animation timer that caused movement to judder.
+- Kept movement speed unchanged; only the animation timing was corrected.
 
-- Rebalanced movement speed hierarchy for player and enemies.
-- Kept Bats as the fastest enemy and the Guardian deliberately slow.
-- Fixed Game Over screen shake after lethal hits.
-- Added deterministic Castle room variation including pillars, alcoves, rubble, moss, torches, banners, shrines and floor details.
+## 0.3.8c — Evade System
 
-### 0.1.7 — Progression, Scoring & Front-End Presentation
+- Added player Evade through equipped boots.
+- Added rarity-based boot evade chances.
+- Added enemy Evade chances for normal enemies, Elites and the Guardian.
+- Added visible **EVADE!** combat feedback.
+- Kept Evade separate from Critical Hit behaviour.
 
-- Added area/level-based enemy scaling and stronger area progression naming.
-- Increased gold rewards and potion healing with progression.
-- Added scoring and damage penalties.
-- Added a local top-five high-score table.
-- Added an Area Cleared presentation after the Guardian.
-- Replaced early splash/menu approximations with selected torchlit dungeon artwork.
-- Updated PWA icons and front-end presentation.
+## 0.3.8b — Enemy Hit Stability
 
-### 0.1.6 — Combat Feedback & Presentation
+- Removed enemy hit-state opacity reduction/blinking while retaining the hurt animation and combat feedback.
 
-- Added Goblin Archer simultaneous active limits and clearer aiming/firing feedback.
-- Added player hit feedback, knockback, hit recovery and low-health warning.
-- Added clearer enemy attack presentation.
-- Added the branded splash screen, hero app icon and matching title-menu presentation.
+## 0.3.8a — Death Remains
 
-### 0.1.5 — Guardian Fix & Run Flow
+- Added authored enemy death-remains animations for Skeletons, Goblins, Bats and the Guardian.
+- Added subtle blood-splat presentation beneath non-skeletal remains.
 
-- Fixed Guardian sword damage and defeat handling.
-- Tuned Guardian projectile speed.
-- Changed Game Over and fresh-run flow.
-- Kept the Guardian body blocker so close-range sword hits remain possible.
+## 0.3.5b — Reward Flow
 
-### 0.1.4 — Combat & Presentation Polish
+- Level-up reward choices now open when the player activates the cleared-room exit, alongside the end-of-room weapon reward flow.
+- Level-up rewards no longer interrupt the final enemy death/combat moment.
+- Door reward flow resolves weapon rewards, then pending level rewards, before transitioning to the next room or area shop.
 
-- Added the dedicated title/start screen.
-- Added Guardian attack warnings and stronger boss-attack presentation.
-- Reworked Guardian projectiles with layered flame-like effects.
-- Added the Guardian collision blocker, sword-hit feedback and player movement polish.
-- Added gold sparkle feedback, room-clear presentation and run summary.
-- Separated README documentation from the version history.
+## 0.3.5a — Hit Stability Fix
 
-### 0.1.3 — Directional Characters & Room Presentation
+- Hardened the player damage path against invalid damage/position values.
+- Isolated player-hurt audio failures from gameplay updates.
 
-- Added the left-side decorative entrance and left-side player starting position.
-- Added irregular floor detail and directional player/enemy presentation.
-- Fixed skeleton movement and Guardian repositioning.
-- Restored player damage upgrades to sword-swing damage.
+## 0.3.5 — Player Progression
 
-### 0.1.2 — Sword Combat & Enemy Polish
+- Added between-room level-up choices with three upgrade options.
+- Added progressive player build stats for damage, max HP, movement speed, critical chance, attack speed and knockback.
+- Added occasional Elite enemies with stronger stats, a gold aura and bonus score/XP.
+- Added the first armour drop and automatic equipping.
+- Added Bosses Killed and Stages Cleared to saved scoreboard records.
+- Added progression and armour information to the inventory/player card.
 
-- Fixed sword damage collision.
-- Expanded the visual sword swing while keeping the gameplay hitbox separate.
-- Added hit flash, stagger, knockback and stronger impact particles.
-- Refined Bat, Goblin and Skeleton behaviours.
-- Added deterministic decorative pillars and dropped-gold bounce.
+## 0.3.4a — Polish & Atmosphere
 
-### 0.1.1 — Combat Feel & Gold Pickup
+- Gold and weapon pickups now use a subtle animated sparkle instead of the old wobble.
+- Health pickups retain their wobble animation.
+- Expanded the dungeon soundscape with torch crackle and room-archetype ambience.
+- Exit and room transitions now include door close/open sounds.
+- Added a clear-scoreboard control with confirmation.
 
-- Added close-range magnetic gold pickup.
-- Added visible animated player and skeleton sword swings.
-- Added Short Sword / Long Sword / Claymore weapon-class foundation.
-- Added weapon-rarity data foundation.
+## 0.3.3 — Combat Feel & Scoreboard
 
-### 0.1.0 — Core Gameplay Loop
+- Added end-of-run local date/time to scoreboard records.
+- Added weapon weight movement profiles for Short Sword, Long Sword and Claymore.
+- Added weapon-dependent critical hits with stronger impact, knockback, stagger, audio and feedback.
 
-- Established the first dedicated core-loop milestone.
-- Added progressive room spawning with active caps and total quotas.
-- Added furthest-edge spawn selection and enemy entrance animations.
-- Added Goblin ranged combat, Skeleton telegraphed melee attacks and Guardian projectile patterns.
-- Added spawn/death combat feedback and physical loot collection.
-- Added the Area 1 castle room sequence, Guardian encounter and upgrade shop.
-
-### 0.0.x — Early Prototype Archive
-
-- Prototype room combat, sword system, locked exit, XP, loot and Area 1 boss/shop progression.
-- Reduced character sprite scale to make the dungeon environment feel larger.
-
-## Change Log
+## 0.3.2 — Authored Gameplay Assets
 
-### 0.2.8
-- Replaced the floating exit marker with a soft glow hugging the exact outer dimensions of the exit door.
-- The exit outline brightens subtly once the room is cleared, while retaining the existing door artwork and progression behaviour.
-- Version/cache updated to 0.2.8.
-
-
-### 0.2.7
-- Replaced the legacy procedural sword indicator with a small facing-direction arrow.
-- Removed the old procedural sword from the swing trail; the authored player attack animation now carries the sword, while the swoosh remains.
-- Standardised left/right side-facing character presentation by mirroring the canonical right-facing pose for left-facing movement.
-- Version/cache updated to 0.2.7.
-
-
-### 0.2.6 — Major Performance Optimisation
-- Added an off-screen room cache so the static floor, walls and props are rendered once per room instead of every frame.
-- Replaced per-frame torch radial-gradient creation with a pre-rendered glow texture and lightweight flicker.
-- Reduced expensive dynamic canvas shadow-blur usage on frequently rendered actors, loot, weapons and projectiles.
-- Reduced the maximum canvas backing-device pixel ratio from 2× to 1.5× to lower mobile GPU fill cost while retaining crisp pixel rendering.
-- Cached the current animation clock once per frame instead of repeatedly querying `performance.now()`.
-- Preserved enemy counts and gameplay behaviour; the optimisation targets rendering and repeated per-frame work rather than reducing the swarm.
-
-### 0.2.5j — Sprite Direction & Torch Placement Fixes
-
-- Corrected directional idle/walk frame selection for the Player, Goblin, Skeleton and Guardian sheets instead of cycling through direction columns as animation frames.
-- Corrected Goblin frame selection so the intended 32×32 cell is used consistently, eliminating the apparent half-sprite/adjacent-frame selection caused by treating directional poses as an animation.
-- Kept Bat animation frame cycling intact because its sheet uses the columns as animation frames.
-- Reworked mandatory torch placement into four distinct corner zones; two torches use opposite corners, while three or four fill separate corners.
-- Changed additional prop dressing from 3–5 to 2–5 props per room.
-- Preserved the proven 0.2.5gg environment/gameplay foundation and existing character assets.
-
-
-### 0.2.5h — Character Sprite Integration
-
-- Added the five final character sprite sheets: player, bat, goblin archer, skeleton with claymore, and Guardian mage with staff.
-- Sprite sheets use a strict 4×5 grid of 32×32 frames: idle, walk, attack, hurt and death.
-- Player and enemy rendering now uses the new individual sprite sheets instead of the retired combined player/enemy sheets.
-- Attack and hurt animation rows are selected from the live combat state so weapon continuity is preserved throughout the relevant frames.
-- Preserved the working 0.2.5gg environment and gameplay foundation.
-
-
-### 0.2.5gg — Claude Fix Integration
-
-- Rebased the environment implementation on the known-working Claude fix rather than the failed 0.2.5g rewrite.
-- Restored the approved 128×96 floor sheet as the canonical floor source, sliced as twelve 32×32 tiles.
-- Preserved Claude’s working asynchronous asset-loading and environment-render flow.
-- Kept the new authored prop system and existing gameplay systems intact.
-- Made wall asset resolution tolerant of the project’s organised `/walls/`, `assets/walls/` and root-level upload layouts.
-- Removed only demonstrably dead embedded Great Hall and unused atlas-renderer code; no working environment path was replaced.
-- Bumped the visible build number and service-worker cache to **0.2.5gg**.
-
-### 0.2.5g — Environment Codebase Clean-up & Recovery
-
-- Rebuilt the room environment renderer as a single, isolated pipeline: **floor → walls → props → torch lighting**.
-- Removed the obsolete embedded Great Hall background and embedded modular prop artwork.
-- Removed the retired atlas-based floor renderer and legacy procedural room-decoration renderers.
-- Floor rendering now uses the approved individual **32×32 authored floor PNGs** directly.
-- Wall rendering now uses the approved modular wall assets only, with safe visual fallbacks so a missing asset cannot stop the game loop.
-- New authored props under `assets/props/` are the only active environmental decoration system.
-- Preserved the proven player, enemy, combat, loot, XP, inventory, progression and boss systems from the last stable gameplay base.
-- Hardened the service-worker asset list and bumped the cache to 0.2.5g.
-- Updated the visible build number to **v0.2.5g**.
-
-
-### 0.2.5fff — Codebase Clean-up & Render Pipeline Rewrite
-
-- Reworked the active game renderer into a single, clean floor → walls → props pipeline.
-- Removed obsolete embedded environment artwork and the unused legacy room-decoration renderers.
-- Removed the old floor-sheet slicing path that was sampling tiny regions from the large presentation atlas.
-- Uses the twelve authored 32×32 floor PNGs directly, with an organised-folder fallback.
-- Simplified wall loading while retaining compatibility with the organised wall folders and existing root-level uploads.
-- Kept only the new authored `assets/props/` decoration system in the live room renderer.
-- Removed unused room-archetype decorative helpers, obsolete atlas helpers and dead environment code.
-- Cleaned and hardened the service-worker cache list around assets that are actually used.
-- Bumped the build identifier to **0.2.5fff**.
-
-### 0.2.5ff — Floor & Architecture Recovery
-
-- Repaired the room render pipeline after 0.2.5f blanked the floor and wall architecture.
-- Uses the uploaded `assets/floor/floor_tiles.png` as the primary 4×3 sheet of twelve 32×32 floor tiles, with the existing individual floor PNGs retained as a compatibility fallback.
-- Added repository-path fallbacks for the approved wall assets so the room still renders if the organised `/walls/...` paths or earlier root-level uploads are present.
-- Supports the packed three-variant root cracked/mossy wall files as a fallback without stretching the whole three-variant image into a single wall.
-- Keeps the new authored `assets/props/` decorations as the active room-decoration layer; no legacy room-decoration drawing is used by the live room renderer.
-- Hardened service-worker installation so one missing optional asset cannot prevent the new cache from installing.
-- Bumped the build identifier to **0.2.5ff** for easier testing.
-
-### 0.2.5f — Floor & Decoration Fix
-
-- Fixed the dungeon floor to use the uploaded **12 individual 32×32 floor PNGs directly** rather than treating the labelled presentation sheet as a sprite sheet.
-- Uses the four Clean, four Debris and four Moss variants as the actual room-floor tiles.
-- Corrected the floor room dimensions and clipping so tiles stay inside the wall architecture.
-- Disabled the legacy environmental decoration render path so old torches, chests, pillars and rubble cannot be drawn over the new system.
-- Made the new authored `assets/props/` set the only active room-decoration source.
-- Kept the agreed sparse decoration rules: 2–4 torches, 3–5 additional props, edge-biased placement, clear centre, no bottom-edge props and protected doorways.
-- Made the version label substantially more visible for easier build identification during testing.
-- Reorganised this README so release changes live in the Change Log rather than at the top of the document.
-- Moved the complete 0.1.x history into the archived section at the bottom of the Change Log.
-
-### 0.2.5e — Authored Architecture & New Props
-
-- Added the new authored wall architecture using the uploaded modular wall assets.
-- Added the new independent environmental prop set under `assets/props/`.
-- Added deterministic sparse edge-biased room decoration with mandatory torches.
-- Removed the old active modular prop presentation from the intended live room render path.
-- Updated the service-worker asset list for the new walls and props.
-
-### 0.2.5d — Architecture Pass
-
-- Integrated the approved top, left, right and bottom wall pieces into the live room.
-- Added modular wall variants and doorway architecture.
-- Improved the room silhouette so the dungeon reads as an enclosed room rather than a flat canvas.
-
-### 0.2.5c — Environment Integration
-
-- Continued the modular environment integration and prepared the authored wall/floor asset pipeline for the Castle rooms.
-- Kept the player, enemy, combat and progression systems intact while the environment presentation was rebuilt.
-
-### 0.2.5b — Authored 12-Tile Floor Foundation
-
-- Introduced the approved **12-piece authored floor set**: four Clean, four Debris and four Moss 32×32 tiles.
-- Added deterministic per-cell floor variation and room-archetype weighting.
-- Kept clean stone dominant while using debris and moss as restrained variation.
-- Preserved readable central combat lanes.
-
-### 0.2.5 — Player HUD, Controls & Inventory Foundation
-
-- Moved the player status UI out of the dungeon canvas into a slim banner above the game world.
-- Reduced the status information to the essentials: health, XP/level, purse and room.
-- Removed the in-world minimap so the dungeon has more visual space and less HUD clutter.
-- Moved transient player notifications to the top of the game world directly beneath the status banner.
-- Removed the duplicate room-clear notification from the bottom of the screen.
-- Repositioned the virtual controls lower on the phone layout.
-- Added a dedicated central Inventory button between Move and Swing.
-- Inventory opens a full player card and pauses the run without advancing enemies, projectiles or timers.
-- Inventory currently shows health, XP/level, purse, equipped weapon stats and run progress, with an armour section reserved for the future equipment system.
-
-### 0.2.4 — Architecture & Props Pass
-
-- Externalised the modular Castle atlas/prop sheets into real repository assets.
-- Added deeper wall construction, inner trim, doorway masonry and corner/buttress dressing.
-- Added physical collision for substantial pillars, chests, altars and rubble.
-- Added prop shadows and room-specific architectural dressing.
-- Kept the room surface modular rather than using a baked room background.
-
-### 0.2.3 — Textured Modular Dungeon
-
-- Promoted the modular atlas into the live room surface.
-- Added reusable authored stone samples and a repeatable brick wall ring.
-- Added finer surface wear, cracks and a restrained inner vignette for more depth.
-- Added the earlier compact HUD and minimap foundation that was later replaced by the slimmer 0.2.5 HUD.
-
-### 0.2.1c — Ancient Stone Graphical Refinement
-
-- Refined the modular floor into finer-grained individual masonry slabs.
-- Reduced slab size, softened seam contrast and added irregular edge wear, chips, moss, mineral flecks and fine cracks.
-- Retained modular wall variants and room dressing for architectural identity.
-
-### 0.2.1b — Broken Masonry Graphical Refinement
-
-- Reworked the Castle floor from a visibly repeating square-tile field into an irregular stone field.
-- Added larger-scale cracks, chips, moss, grime and worn-stone variation.
-- Reduced the visual grid effect while retaining modular room construction.
-
-### 0.2.1 — The Living Dungeon
-
-- Great Hall moved to a reusable modular environment pipeline.
-- Added deterministic room layouts for Great Hall, Pillared Hall, Ruined Chamber, Chapel, Guard Room and Cross Hall.
-- Added independent modular props and torch glow layers.
-
-### 0.2.0 REDO — Authored Pixel-Art Great Hall
+- Added authored 32×32 RGBA PNG gameplay assets.
+- Loot now uses authored Gold, Small Health, Full Health and Weapon Drop assets.
+- Goblin arrows, fireballs and fireblasts use authored projectile assets.
+- Enemy deaths use authored Skeleton, Goblin, Bat and Guardian remains.
+- Added authored hit/impact spark effects while retaining lightweight procedural fallbacks where appropriate.
+
+## 0.3.0 — Soundscape
+
+- Added the procedural Web Audio soundscape for combat, enemies, projectiles, pickups, level-ups, room transitions, the shop and game-over feedback.
+- Added subtle dungeon ambience including a low drone, air/noise, distant drips and movement footsteps.
+- Audio starts from the Play gesture to work within mobile browser audio restrictions.
+
+# Archived 0.2.x Development History
+
+The 0.2.x releases are retained here as historical development records. They are no longer part of the active Change Log.
+
+## 0.2.9
+
+- Added paced enemy waves, with rooms arriving in distinct waves rather than one continuous spawn stream.
+- Added room-to-room fade transitions showing the next room name and number.
+- Added the Fortune shop upgrade for better weapon rarity chances.
+- Optimised the cleared-room exit effect using pre-rendered animation frames.
+- Tightened the escape trigger to the actual wooden doorway bounds.
+
+## 0.2.8 / 0.2.8b / 0.2.8c
+
+- Reworked the cleared-room exit presentation around the actual doorway.
+- Added animated teal spectral smoke and golden spark effects.
+- Removed the old hard-edged exit marker and EXIT label.
+- Kept the exit invisible until the room is cleared.
+- Optimised the exit effect with pre-rendered frames.
+
+## 0.2.7
+
+- Replaced the legacy procedural sword indicator with a facing-direction arrow.
+- Removed the old procedural sword from the swing trail while retaining the swoosh.
+- Standardised left/right side-facing character presentation.
+
+## 0.2.6
+
+- Added off-screen room caching for static floor, walls and props.
+- Reduced expensive per-frame lighting and shadow work.
+- Reduced the maximum canvas backing-device pixel ratio for mobile performance.
+- Cached the current animation clock once per frame.
+
+## 0.2.5
+
+- Introduced the slim mobile HUD with Health, XP/Level and Purse information.
+- Removed the mini-map.
+- Added the central Inventory button and a paused inventory/player card.
+- Added the authored modular floor, wall and prop environment pipeline.
+- Added sparse, deterministic room decoration and doorway protection.
+
+## 0.2.4
+
+- Externalised modular Castle architecture and props into repository assets.
+- Added deeper wall construction, doorway masonry, corner dressing and physical prop collision.
+
+## 0.2.3
+
+- Promoted the modular atlas into the live dungeon surface.
+- Added reusable authored stone samples and repeatable brick wall presentation.
+- Added surface wear, cracks and restrained depth treatment.
+
+## 0.2.1
+
+- Refined the Castle floor and masonry presentation through several graphical passes.
+- Added reusable room layouts including Great Hall, Pillared Hall, Ruined Chamber, Chapel, Guard Room and Cross Hall.
+- Added independent modular props and torch presentation.
+
+## 0.2.0 REDO
 
 - Overhauled the Castle presentation with richer authored pixel-art environment work.
 - Added deterministic Castle room archetypes and decorative layouts.
@@ -343,69 +225,3 @@ The 0.1 releases are retained here as historical development records rather than
 - Added a clearer room-clear rhythm and stronger Castle room identity.
 - Added the requested Game Over **MAIN MENU** button.
 - Updated the start-menu visual language, splash presentation and PWA artwork.
-
-
-### 0.2.5j — Sprite, Combat & Torch Lighting Fixes
-
-- Fixed player walking presentation by alternating the directional idle and stepping poses instead of treating the directional walk row as a four-frame loop.
-- Rebuilt the Goblin sprite sheet into clean 32×32 frame cells so adjacent artwork can no longer bleed into the selected frame.
-- Reduced Bat damage to **1 HP per hit**, including its dive/contact hit, to make swarms more manageable.
-- Added a softer, warmer flickering torch glow with gradual falloff around the mandatory room torches.
-
-
-## 0.2.9 Update
-
-- Added paced enemy waves: rooms now arrive in 2–3 distinct waves rather than one continuous spawn stream.
-- Added a short room-to-room fade transition showing the next room name and number.
-- Added a Fortune shop upgrade for 125 gold; each level shifts weapon drops towards better rarities.
-- Existing health upgrade retained unchanged.
-- Retained the optimised exit smoke/spark effect from 0.2.8c.
-
-
-## 0.3.0 — Soundscape
-- Added a fully procedural Web Audio soundscape with no external audio files.
-- Added sword swings, impacts, enemy deaths, player damage, projectiles, pickups, level-ups, wave warnings, room clear, exit activation, transitions, shop/UI feedback and game-over sounds.
-- Added subtle procedural dungeon ambience: low drone, filtered air/noise, occasional distant drips, and movement footsteps.
-- Audio starts from the Play gesture to satisfy mobile browser audio restrictions.
-- Soundscape is designed to be lightweight and mobile-friendly.
-
-## 0.3.2 — Authored Gameplay Assets
-- Added a set of authored 32×32 RGBA PNG assets matching the existing chunky dungeon palette.
-- Loot now uses authored Gold, Small Health, Full Health and Weapon Drop assets.
-- Goblin arrows, fireballs and fireblasts now use authored projectile assets.
-- Enemy deaths now leave authored Skeleton, Goblin, Bat or Guardian remains, with a subtle blood-splat under non-skeletal deaths.
-- Added short-lived authored hit/impact spark effects while retaining procedural particles as a lightweight fallback.
-- Asset loading is asset-first with the previous procedural drawings retained as fallbacks, so a missing PNG cannot blank gameplay.
-
-
-## v0.3.4a — Polish & Atmosphere
-- Gold and weapon pickups now use a subtle animated sparkle instead of the old wobble.
-- Health pickups retain their wobble animation.
-- Expanded dungeon soundscape with periodic torch crackle and room-archetype ambience.
-- Exit/room transitions now include door close/open sounds alongside the transition effect.
-
-## v0.3.4a — Scoreboard controls
-- Added a **CLEAR SCOREBOARD** button to the local scoreboard.
-- Clearing requires confirmation with **“Are you sure?”**.
-- Confirming removes all locally stored high scores and refreshes the scoreboard immediately.
-
-## v0.3.5 — Player Progression
-- Added between-room level-up choices: choose 1 of 3 upgrades whenever a level is earned.
-- Added progressive player build stats for damage, max HP, movement speed, critical chance, attack speed and knockback.
-- Enemy difficulty continues to scale with area and player level.
-- Added occasional solo Elite enemies with a clear warning, distinctive gold aura/label, increased toughness and damage, and bonus score/XP.
-- Added placeholder Leather Armour drops and automatic equipping, currently providing 8% damage reduction.
-- Added Bosses Killed and Stages Cleared to saved scoreboard records.
-- Added the new progression and armour information to the inventory/player card.
-
-
-## v0.3.5a — Hit Stability Fix
-- Hardened the player damage path against invalid damage/position values.
-- Isolated player-hurt audio failures from gameplay updates.
-- Bumped cache/version to 0.3.5a.
-
-
-## v0.3.5b
-- Level-up reward choices now open when the player activates the cleared-room exit, alongside the end-of-room weapon reward flow.
-- Level-up rewards no longer interrupt the final enemy death/combat moment.
-- Door reward flow resolves weapon rewards, then pending level rewards, before transitioning to the next room (or the area shop after a boss).
