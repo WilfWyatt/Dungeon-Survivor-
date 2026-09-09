@@ -78,14 +78,12 @@ Upload the project files to the root of a GitHub repository, then enable **Setti
 
 # Change Log
 
-## 0.3.8g — Stability & Efficiency Pass
+## 0.3.8g — Elite Waves
+- Added dedicated Elite waves that replace a normal wave when triggered, with depth-scaled frequency and 1–8 Elites per wave.
+- Elites are 50% larger, have greatly increased health and damage, reduced stagger, a gold shimmer, heavy landing thud, and improved health bars.
+- Elite kills award massive XP/score and a guaranteed Rare+ equipment cache, with a chance of an additional Rare+ weapon.
+- Equipment drops use their correct helmet, chest-piece, and boots artwork.
 
-- Fixed player/enemy disappearance during damage by correcting the sprite-sheet row handling for the authored 512×96 sheets.
-- Added bounds-safe sprite rendering so invalid future animation coordinates fall back instead of rendering transparent frames.
-- Increased equipment drop visibility/chance so armour is meaningfully discoverable during normal runs, while keeping physical pickup.
-- Added sparkle feedback to equipment drops alongside Gold and Weapons; Health/Heart and Potion retain wobble.
-- Removed the now-unused Move Speed bonus state from the movement path.
-- Removed a duplicate cleared-room guard and tightened a few hot-path checks without changing the gameplay loop.
 
 ## 0.3.8f — Armour & Equipment System
 

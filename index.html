@@ -13,7 +13,7 @@
   <style>
     #roomRewardScreen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:50;background:rgba(2,9,10,.9);padding:12px;box-sizing:border-box}
     #roomRewardScreen.show{display:flex}
-    .roomRewardPanel{width:min(680px,100%);max-height:100%;overflow:auto;padding:16px;box-sizing:border-box}
+    .roomRewardPanel{width:min(700px,100%);max-height:100%;overflow:auto;padding:16px;box-sizing:border-box}
     .roomRewardHeader{text-align:center;margin-bottom:12px}
     .roomRewardGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .rewardPanel{min-width:0;padding:11px;background:rgba(6,22,25,.72);border:1px solid rgba(55,101,102,.9);border-radius:5px;box-sizing:border-box}
@@ -29,6 +29,8 @@
     .levelChoice b{display:block;color:#83f0d7;font-size:11px;letter-spacing:.4px}
     .levelChoice small{display:block;margin-top:4px;color:#9ab0aa;font-size:8.5px;line-height:1.35}
     .rewardWeaponWrap .weaponCompare{font-size:9px}
+    .invEquipGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px}.invEquipSlot{border:1px solid #29494a;background:#07181b;padding:6px;min-width:0}.invEquipImage{height:52px;display:grid;place-items:center;background:#0b2528;border:1px solid #173336;margin-bottom:5px}.invEquipImage img{width:44px;height:44px;image-rendering:pixelated;object-fit:contain}.invEquipImage span{font-size:18px;color:#476f6e}.invEquipInfo strong{display:block;font-size:7px;color:#78918a;letter-spacing:.5px}.invEquipInfo b{display:block;font-size:8px;color:#d8d4bd;margin:3px 0;line-height:1.2}.invEquipInfo small{display:block;font-size:6px;color:#476f6e;line-height:1.25}.invEquipInfo em{display:block;font-style:normal;font-size:6px;color:#83f0d7;margin-top:4px;line-height:1.25}.invEquipInfo .rarity{font-size:6px}
+
     .roomRewardActions{margin-top:10px}
     #roomRewardContinue{width:100%}
     #roomRewardContinue:disabled{opacity:.42;filter:grayscale(.35)}
@@ -60,7 +62,7 @@
           <button id="scoreboardButton" type="button">LOCAL SCOREBOARD</button>
           <button id="exitAppButton" type="button">EXIT APP</button>
         </div>
-        <div id="versionLabel">v0.3.6a</div>
+        <div id="versionLabel">v0.3.8g</div>
       </div>
       <div id="roomRewardScreen" aria-label="Room reward screen">
         <div class="menuPanel roomRewardPanel">
@@ -70,7 +72,6 @@
           </div>
           <div class="roomRewardGrid">
             <div id="rewardWeaponPanel" class="rewardPanel"></div>
-            <div id="rewardArmourPanel" class="rewardPanel"></div>
             <div id="rewardLevelPanel" class="rewardPanel"></div>
           </div>
           <div class="roomRewardActions"><button id="roomRewardContinue" type="button" class="menuButton primary" disabled>MAKE ALL CHOICES</button></div>
@@ -102,6 +103,6 @@
       <div id="fire" role="button" aria-label="Swing sword">⚔<span>SWING</span></div>
     </section>
   </main>
-  <script src="game.js?v=0.3.6a"></script>
+  <script src="game.js?v=0.3.8g"></script>
 </body>
 </html>
