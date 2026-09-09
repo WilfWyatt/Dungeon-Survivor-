@@ -78,6 +78,14 @@ Upload the project files to the root of a GitHub repository, then enable **Setti
 
 # Change Log
 
+## 0.3.8h — Elite Attack Patterns
+- Added dedicated Elite Mage, Elite Zombie and Elite Skeleton sprite-sheet support from `assets/elites/`.
+- Elite Mage uses a ranged 3-fireball fan volley, with spacing/retreat movement so it behaves differently from the Guardian Mage.
+- Elite Zombie uses a telegraphed heavy melee lunge, then briefly retreats before re-engaging.
+- Elite Skeleton uses a fast two-swing weapon combo with a short recovery window.
+- Elite waves now select only the dedicated Mage/Zombie/Skeleton Elite archetypes.
+- Existing Elite HP, damage, evade, shimmer, Rare+ loot, XP and 5× score systems remain intact.
+
 ## 0.3.8g — Elite Waves
 - Added dedicated Elite waves that replace a normal wave when triggered, with depth-scaled frequency and 1–8 Elites per wave.
 - Elites are 50% larger, have greatly increased health and damage, reduced stagger, a gold shimmer, heavy landing thud, and improved health bars.

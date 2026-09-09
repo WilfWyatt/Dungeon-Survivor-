@@ -51,7 +51,7 @@ wallImages.left=loadImageWithFallback(WALL_CANDIDATES.left);
 wallImages.right=loadImageWithFallback(WALL_CANDIDATES.right);
 wallImages.bottom=loadImageWithFallback(WALL_CANDIDATES.bottom);
 
-const SPRITE_SHEET_FILES={player:'assets/sprites/player.png',bat:'assets/sprites/bat.png',goblin:'assets/sprites/goblin.png',skeleton:'assets/sprites/skeleton.png',boss:'assets/sprites/boss_mage.png'};
+const SPRITE_SHEET_FILES={player:'assets/sprites/player.png',bat:'assets/sprites/bat.png',goblin:'assets/sprites/goblin.png',skeleton:'assets/sprites/skeleton.png',boss:'assets/sprites/boss_mage.png',eliteMage:'assets/elites/elite-mage.png',eliteZombie:'assets/elites/elite-zombie.png',eliteSkeleton:'assets/elites/elite-skeleton.png'};
 const spriteImages={};
 const spriteReady={};
 Object.entries(SPRITE_SHEET_FILES).forEach(([key,src])=>{const img=new Image();img.decoding='async';img.onload=()=>{spriteReady[key]=true};img.onerror=()=>{spriteReady[key]=false};img.src=src;spriteImages[key]=img;spriteReady[key]=false});
@@ -60,7 +60,7 @@ const SPRITE_COLS=4;
 const SPRITE_ROWS={idle:0,walk:1,attack:2,hurt:3,death:4};
 // Codex sheets use the four columns differently by state: idle/walk are directional poses,
 // while attack/hurt/death are four-frame animations. Bats are the exception: all states are animated.
-const DIRECTIONAL_POSE_SPRITES=new Set(['player','goblin','skeleton','boss']);
+const DIRECTIONAL_POSE_SPRITES=new Set(['player','goblin','skeleton','boss','eliteMage','eliteZombie','eliteSkeleton']);
 const DIRECTION_FRAME={down:0,up:1,right:2,left:3};
 function directionFrame(dir){return DIRECTION_FRAME[dir]??DIRECTION_FRAME.right;}
 function drawCharacterSprite(kind,action,frame,x,y,size,flip=false,alpha=1,direction=null){
@@ -280,7 +280,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.8g';
+const VERSION='0.3.8h';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -426,7 +426,7 @@ function clampEnemySeparation(){
  }
 }
 function nearestGoblins(){return enemies.filter(e=>e.type==='goblin').sort((a,b)=>dist(a,player)-dist(b,player))}
-const SCORE_VALUES={bat:50,goblin:75,skeleton:100,boss:1000};
+const SCORE_VALUES={bat:50,goblin:75,skeleton:100,boss:1000,zombie:120,mage:140};
 let highScores=[];
 try{highScores=JSON.parse(localStorage.getItem('dungeonSurvivorHighScores')||'[]');if(!Array.isArray(highScores))highScores=[]}catch(e){highScores=[]}
 function addScore(amount){score=Math.max(0,score+amount)}
@@ -470,7 +470,7 @@ function openLevelChoice(){if(pendingLevelUps<=0)return;levelChoices=rollLevelCh
 function chooseLevelChoice(id){if(!roomRewardOpen||pendingLevelUps<=0)return;const c=levelChoices.find(x=>x.id===id);if(!c)return;applyLevelChoice(id);pendingLevelUps=Math.max(0,pendingLevelUps-1);levelChoices=[];showPickup(`★ ${c.title} chosen`);renderRoomRewards();updateHud()}
 
 function scaledPotionHeal(){return Math.min(player.maxHp,18+(area-1)*3+Math.floor((level-1)*1.5))}
-function scaledGoldAmount(enemyType){const typeBonus=enemyType==='skeleton'?2:enemyType==='goblin'?1:0;const base=1+Math.floor(Math.random()*5);return Math.min(14,base+Math.max(0,area-1)+Math.floor((level-1)/3)+typeBonus)}
+function scaledGoldAmount(enemyType){const typeBonus=enemyType==='skeleton'?2:enemyType==='goblin'?1:enemyType==='zombie'?3:enemyType==='mage'?3:0;const base=1+Math.floor(Math.random()*5);return Math.min(14,base+Math.max(0,area-1)+Math.floor((level-1)/3)+typeBonus)}
 function bossGoldReward(){return 30+area*12+level*3}
 let nextSwingSide=1, swingCooldown=0, facing=0, facingDir='right';
 const GOBLIN_CAPS={1:2,2:3,3:4,4:5,5:6,6:6};
@@ -515,6 +515,18 @@ function updateHud(){
 function chooseEnemyType(weights){
  const r=Math.random();let acc=0;for(const [type,w] of weights){acc+=w;if(r<=acc)return type}return weights[weights.length-1][0];
 }
+function chooseEliteType(){
+ const r=Math.random();
+ if(r<.34)return 'mage';
+ if(r<.67)return 'zombie';
+ return 'skeleton';
+}
+function enemySpriteKind(e){
+ if(e?.elite&&e.type==='mage')return 'eliteMage';
+ if(e?.elite&&e.type==='zombie')return 'eliteZombie';
+ if(e?.elite&&e.type==='skeleton')return 'eliteSkeleton';
+ return e?.type==='boss'?'boss':e?.type;
+}
 function resetRoom(){
  roomCacheDirty=true;
  player.x=58;player.y=H/2;player.hp=clamp(player.hp,0,player.maxHp);roomVariation=(room*37+area*101)%997;makeRoomLayout();player.flash=0;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;
@@ -537,7 +549,7 @@ function resetRoom(){
   if(eliteWave){
     const waveIndex=Math.floor(Math.random()*spawnWaves.length);
     const eliteCount=Math.min(spawnWaves[waveIndex].length,eliteWaveCount());
-    const eliteTypes=spawnWaves[waveIndex].map(()=>chooseEnemyType(plan.weights));
+    const eliteTypes=spawnWaves[waveIndex].map(()=>chooseEliteType());
     spawnWaves[waveIndex]=eliteTypes.map(type=>({type,elite:true})).slice(0,eliteCount);
     // Keep the overall room quota stable by redistributing the removed normal spawns.
     const removed=baseWave+(waveIndex<remainder?1:0)-eliteCount;
@@ -581,12 +593,12 @@ function trySpawnEnemy(delay=0){
  startEntrance(type,elite);spawnTimer=elite?1.35:.65;
 }
 function activateEntrance(ent){
- const base=ent.type==='bat'?34:ent.type==='goblin'?48:58;
- const speed=ent.type==='bat'?205:ent.type==='goblin'?135:105;
- const r=ent.type==='bat'?11:15;
+ const base=ent.elite?(ent.type==='mage'?62:ent.type==='zombie'?72:ent.type==='skeleton'?58:58):(ent.type==='bat'?34:ent.type==='goblin'?48:58);
+ const speed=ent.elite?(ent.type==='mage'?92:ent.type==='zombie'?112:ent.type==='skeleton'?105:105):(ent.type==='bat'?205:ent.type==='goblin'?135:105);
+ const r=ent.elite?(ent.type==='mage'?15:ent.type==='zombie'?17:17):(ent.type==='bat'?11:15);
  const eliteMult=ent.elite?5.5:1;
  const hp=Math.round((base+room*7)*enemyScale()*eliteMult);
- enemies.push({x:ent.x,y:ent.y,r:r*SPRITE_SCALE*(ent.elite?1.5:1),type:ent.type,elite:!!ent.elite,hp,max:hp,speed:(speed+(ent.type==='bat'?2:ent.type==='goblin'?1:1))*(ent.elite?.98:1),hit:0,attackCooldown:.8+Math.random()*.5,windup:0,attackAge:0,swingHit:false,swingAngle:0,swingSide:1,reposition:0,vulnerable:0,active:true,facingDir:'left',orbitAngle:Math.random()*Math.PI*2,orbitRadius:55+Math.random()*28,batAttackCooldown:1.0+Math.random()*.8,batAttackAge:0,batAttackHit:false,edgeTarget:null});
+ enemies.push({x:ent.x,y:ent.y,r:r*SPRITE_SCALE*(ent.elite?1.5:1),type:ent.type,elite:!!ent.elite,hp,max:hp,speed:(speed+(ent.type==='bat'?2:ent.type==='goblin'?1:1))*(ent.elite?.98:1),hit:0,attackCooldown:ent.elite?(ent.type==='mage'?1.15:ent.type==='zombie'?1.0:.8)+Math.random()*.45:.8+Math.random()*.5,windup:0,attackAge:0,swingHit:false,swingAngle:0,swingSide:1,reposition:0,vulnerable:0,active:true,facingDir:'left',orbitAngle:Math.random()*Math.PI*2,orbitRadius:55+Math.random()*28,batAttackCooldown:1.0+Math.random()*.8,batAttackAge:0,batAttackHit:false,edgeTarget:null,eliteCastAge:0,eliteCastStep:0,eliteCastHit:false,eliteLungeHit:false,eliteComboStep:0,eliteComboPause:0});
 }
 
 function isBossRoom(){return room===bossRoom}
@@ -747,8 +759,42 @@ function update(dt){
   e.hit=Math.max(0,e.hit-dt);
   const d=dist(e,player);
   const moveScale=e.stagger>0?.35:1;
-  e.stagger=Math.max(0,(e.stagger||0)-dt);
-  if(e.type==='goblin'){
+  e.stagger=Math.max(0,(e.stagger||0)-dt);e.eliteComboPause=Math.max(0,(e.eliteComboPause||0)-dt);
+  if(e.elite&&e.type==='mage'){
+   const a=Math.atan2(player.y-e.y,player.x-e.x);e.facingDir=dirFromAngle(a);
+   const desired=190;
+   if(d>desired+24){e.x+=Math.cos(a)*e.speed*dt*moveScale;e.y+=Math.sin(a)*e.speed*dt*moveScale;}
+   else if(d<desired-34){e.x-=Math.cos(a)*e.speed*.72*dt*moveScale;e.y-=Math.sin(a)*e.speed*.72*dt*moveScale;}
+   const strafe=Math.sin(frameNow/760+e.orbitAngle);e.x+=Math.cos(a+Math.PI/2)*strafe*e.speed*.28*dt*moveScale;e.y+=Math.sin(a+Math.PI/2)*strafe*e.speed*.28*dt*moveScale;
+   e.attackCooldown-=dt;
+   if(e.eliteCastAge>0){
+    e.eliteCastAge-=dt;
+    if(e.eliteCastAge<=0){
+     const baseA=Math.atan2(player.y-e.y,player.x-e.x);
+     const offsets=[-.16,0,.16];
+     offsets.forEach((off,idx)=>{AUDIO.projectile('fireball');shootProjectile(e.x,e.y,baseA+off,138,Math.round(13*eliteDamageScale(e)),'fireball')});
+     e.eliteCastStep++;e.eliteCastHit=false;e.attackCooldown=2.35+Math.random()*.35;
+     e.reposition=.42;
+    }
+   }else if(e.attackCooldown<=0&&d<310){e.eliteCastAge=.58;}
+   if(e.reposition>0){e.reposition-=dt;const back=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(back)*e.speed*dt*1.25*moveScale;e.y+=Math.sin(back)*e.speed*dt*1.25*moveScale;}
+  }else if(e.elite&&e.type==='zombie'){
+   const a=Math.atan2(player.y-e.y,player.x-e.x);e.facingDir=dirFromAngle(a);
+   e.attackCooldown-=dt;
+   if(e.eliteLungeHit===false&&e.attackAge>0){
+    e.attackAge-=dt;
+    e.x+=Math.cos(a)*e.speed*1.65*dt*moveScale;e.y+=Math.sin(a)*e.speed*1.65*dt*moveScale;
+    if(!e.eliteLungeHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+12){
+     const crit=Math.random()<.12;const baseDamage=Math.round(25*eliteDamageScale(e));damagePlayer(crit?Math.round(baseDamage*1.75):baseDamage,e.x,e.y,.8,'normal',crit);if(gameOver)return;e.eliteLungeHit=true;
+    }
+    if(e.attackAge<=0){e.attackCooldown=1.55+Math.random()*.3;e.eliteLungeHit=false;e.reposition=.28;}
+   }else if(e.reposition>0){
+    e.reposition-=dt;const back=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(back)*e.speed*dt*1.1*moveScale;e.y+=Math.sin(back)*e.speed*dt*1.1*moveScale;
+   }else{
+    if(d>70){e.x+=Math.cos(a)*e.speed*dt*moveScale;e.y+=Math.sin(a)*e.speed*dt*moveScale;}
+    if(d<150&&e.attackCooldown<=0){e.windup=.36;e.attackAge=.36;e.eliteLungeHit=false;}
+   }
+  }else if(e.type==='goblin'){
    const a=Math.atan2(player.y-e.y,player.x-e.x); e.facingDir=dirFromAngle(a);
    // Goblins spread around the perimeter and avoid occupying the same firing lane.
    const candidates=[{x:42,y:92},{x:W-42,y:92},{x:42,y:H-92},{x:W-42,y:H-92},{x:W/2,y:84},{x:W/2,y:H-88}];
@@ -777,12 +823,12 @@ function update(dt){
    const skeletonPressure=nearbyGoblin?1.10:1;
    if(d>52&&e.windup<=0&&e.attackAge<=0){e.x+=Math.cos(a)*e.speed*dt*moveScale*skeletonPressure;e.y+=Math.sin(a)*e.speed*dt*moveScale*skeletonPressure}
    e.attackCooldown-=dt;
-   if(d<78&&e.attackCooldown<=0&&e.windup<=0&&e.attackAge<=0){e.windup=.48;e.swingHit=false;e.swingAngle=a;e.swingSide=(Math.random()<.5?-1:1)}
-   if(e.windup>0){e.windup-=dt;if(e.windup<=0){e.attackAge=.20;e.swingHit=false;e.swingAngle=a}}
+   if(d<(e.elite?88:78)&&e.attackCooldown<=0&&e.windup<=0&&e.attackAge<=0&&e.eliteComboPause<=0){e.windup=e.elite?.34:.48;e.swingHit=false;e.swingAngle=a;e.swingSide=(Math.random()<.5?-1:1)}
+   if(e.windup>0){e.windup-=dt;if(e.windup<=0){e.attackAge=e.elite?.18:.20;e.swingHit=false;e.swingAngle=a}}
    if(e.attackAge>0){
     e.attackAge=Math.max(0,e.attackAge-dt);
-    if(!e.swingHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+18){const goblinSupport=enemies.filter(o=>o.type==='goblin'&&dist(o,e)<120).length;const enemyCritChance=e.type==='boss'?.15:e.elite?.12:.08;const enemyCrit=Math.random()<enemyCritChance;const baseDamage=Math.round(14*eliteDamageScale(e)*(1+Math.min(2,goblinSupport)*.08));damagePlayer(enemyCrit?Math.round(baseDamage*1.75):baseDamage,e.x,e.y,1.0,'normal',enemyCrit);if(gameOver)return;e.swingHit=true}
-    if(e.attackAge<=0){e.attackCooldown=1.2;e.vulnerable=.35;}
+    if(!e.swingHit&&Math.hypot(player.x-e.x,player.y-e.y)<e.r+player.r+(e.elite?24:18)){const goblinSupport=enemies.filter(o=>o.type==='goblin'&&dist(o,e)<120).length;const enemyCritChance=e.elite?.12:.08;const enemyCrit=Math.random()<enemyCritChance;const baseDamage=Math.round((e.elite?18:14)*eliteDamageScale(e)*(1+Math.min(2,goblinSupport)*.08));damagePlayer(enemyCrit?Math.round(baseDamage*1.75):baseDamage,e.x,e.y,1.0,'normal',enemyCrit);if(gameOver)return;e.swingHit=true}
+    if(e.attackAge<=0){if(e.elite&&e.eliteComboStep===0){e.eliteComboStep=1;e.eliteComboPause=.13;e.attackAge=.18;e.windup=.08;e.swingHit=false;e.swingAngle=Math.atan2(player.y-e.y,player.x-e.x);e.swingSide*=-1;}else{e.eliteComboStep=0;e.attackCooldown=e.elite?1.45:1.2;e.vulnerable=e.elite?.22:.35;}}
    e.vulnerable=Math.max(0,(e.vulnerable||0)-dt);
    }
   }else if(e.type==='bat'){
@@ -840,7 +886,7 @@ function update(dt){
    }
   }
   e.x=clamp(e.x,32,W-32);e.y=clamp(e.y,72,H-72);
-  if(e.type!=='goblin'&&e.type!=='skeleton'&&d<e.r+player.r){damagePlayer(e.type==='boss'?Math.round(30*eliteDamageScale(e)):e.type==='bat'?1:Math.round(22*eliteDamageScale(e)),e.x,e.y,e.type==='boss'?1.2:.55,'normal');if(gameOver)return}
+  if(e.type!=='goblin'&&e.type!=='skeleton'&&!(e.elite&&e.type==='mage')&&!(e.elite&&e.type==='zombie')&&d<e.r+player.r){damagePlayer(e.type==='boss'?Math.round(30*eliteDamageScale(e)):e.type==='bat'?1:Math.round(22*eliteDamageScale(e)),e.x,e.y,e.type==='boss'?1.2:.55,'normal');if(gameOver)return}
   if(player.hp<=0){player.hp=0;finishGameOver()}
  }
  clampEnemySeparation();
@@ -851,7 +897,7 @@ function update(dt){
   const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const reach=s.reach||playerWeapon().reach;const centre=s.angle+s.side*(Math.PI*.40-(Math.min(1,progress)*Math.PI*.80));
   for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){const evade=Math.random()<enemyEvadeChance(e);
    if(evade){s.hit.add(e);e.stagger=0;AUDIO.hit();evadeMarks.push({x:e.x,y:e.y-22,age:0,dur:.55});capTransient(evadeMarks,MAX_EVADE_MARKS);continue;}
-   const crit=Math.random()<(currentWeaponStats().critChance||.10);const damage=crit?Math.round(s.damage*1.75):s.damage;e.hp-=damage;s.hit.add(e);e.hit=crit?.16:.12;e.stagger=e.elite?(crit?.08:.05):(crit?.20:.12);const push=Math.max(0,1-d/(reach+e.r))*(crit?1.18:1);const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);if(crit){AUDIO.crit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.22,type:'crit',angle:Math.random()*Math.PI});capTransient(impactMarks,MAX_IMPACTS);burst(e.x,e.y,'crit',9);criticalMarks.push({x:e.x,y:e.y-22,age:0,dur:.55});capTransient(criticalMarks,MAX_CRITICALS);}else{AUDIO.hit();AUDIO.enemyHit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.16,type:'hit',angle:Math.random()*Math.PI});capTransient(impactMarks,MAX_IMPACTS);burst(e.x,e.y,'hit',5);}if(e.hp<=0){AUDIO.death(e.type);deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type,e.elite);else{const reward=bossGoldReward();gold+=reward;totalGoldCollected+=reward;bossesKilled++;showPickup(`👑 GUARDIAN BONUS  +${reward} GOLD`)}enemies.splice(enemies.indexOf(e),1);kills++;addScore((SCORE_VALUES[e.type]||0)*(e.elite?5:1));awardXP(e.type==='boss'?30:e.elite?Math.round((e.type==='bat'?3:e.type==='goblin'?4:5)*7):e.type==='bat'?3:e.type==='goblin'?4:5);if(e.elite)showPickup('★ ELITE SLAIN!  5× SCORE  •  MASSIVE XP');burst(e.x,e.y,'death',e.type==='boss'?28:e.elite?20:12);if(e.type==='boss'){areaClearTimer=1.8;areaClearShown=true;}if(!isBossRoom())spawnTimer=.65;}}}
+   const crit=Math.random()<(currentWeaponStats().critChance||.10);const damage=crit?Math.round(s.damage*1.75):s.damage;e.hp-=damage;s.hit.add(e);e.hit=crit?.16:.12;e.stagger=e.elite?(crit?.08:.05):(crit?.20:.12);const push=Math.max(0,1-d/(reach+e.r))*(crit?1.18:1);const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);if(crit){AUDIO.crit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.22,type:'crit',angle:Math.random()*Math.PI});capTransient(impactMarks,MAX_IMPACTS);burst(e.x,e.y,'crit',9);criticalMarks.push({x:e.x,y:e.y-22,age:0,dur:.55});capTransient(criticalMarks,MAX_CRITICALS);}else{AUDIO.hit();AUDIO.enemyHit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.16,type:'hit',angle:Math.random()*Math.PI});capTransient(impactMarks,MAX_IMPACTS);burst(e.x,e.y,'hit',5);}if(e.hp<=0){AUDIO.death(e.type);deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type,e.elite);else{const reward=bossGoldReward();gold+=reward;totalGoldCollected+=reward;bossesKilled++;showPickup(`👑 GUARDIAN BONUS  +${reward} GOLD`)}enemies.splice(enemies.indexOf(e),1);kills++;addScore((SCORE_VALUES[e.type]||0)*(e.elite?5:1));awardXP(e.type==='boss'?30:e.elite?Math.round((e.type==='mage'?6:e.type==='zombie'?6:e.type==='skeleton'?5:5)*7):e.type==='bat'?3:e.type==='goblin'?4:5);if(e.elite)showPickup('★ ELITE SLAIN!  5× SCORE  •  MASSIVE XP');burst(e.x,e.y,'death',e.type==='boss'?28:e.elite?20:12);if(e.type==='boss'){areaClearTimer=1.8;areaClearShown=true;}if(!isBossRoom())spawnTimer=.65;}}}
   if(progress>=1)slashes.splice(i,1);
  }
 
@@ -1021,15 +1067,15 @@ function drawLegacyPlayer(){
 function drawEnemy(e,i){
  const x=e.x,y=e.y;
  ctx.save();
- const kind=e.type==='boss'?'boss':e.type;
+ const kind=enemySpriteKind(e);
  const size=e.type==='boss'?70:e.elite?78:52;
  const flip=(e.facingDir||'right')==='left';
  let action='idle',frame=animFrame(frameNow/1000+(i||0)*.17,e.type==='bat'?8:5);
- const attacking=(e.type==='goblin'&&e.windup>0)||(e.type==='skeleton'&&(e.windup>0||e.attackAge>0))||(e.type==='bat'&&e.batAttackAge>0)||(e.type==='boss'&&(e.warningTimer>0||e.patternActive));
+ const attacking=(e.elite&&e.type==='mage'&&e.eliteCastAge>0)||(e.elite&&e.type==='zombie'&&(e.windup>0||e.attackAge>0))||(e.elite&&e.type==='skeleton'&&(e.windup>0||e.attackAge>0))||(e.type==='goblin'&&e.windup>0)||(e.type==='skeleton'&&(e.windup>0||e.attackAge>0))||(e.type==='bat'&&e.batAttackAge>0)||(e.type==='boss'&&(e.warningTimer>0||e.patternActive));
  if(e.hit>0){action='hurt';frame=timedAnimFrame(.12-e.hit,.12,18)}
  else if(attacking){action='attack';
-   const age=e.type==='bat'?e.batAttackAge:(e.type==='skeleton'?Math.max(0,.20-e.attackAge):(e.type==='goblin'?Math.max(0,.52-e.windup):.82-e.warningTimer));
-   const duration=e.type==='bat'?.34:(e.type==='skeleton'?.20:(e.type==='goblin'?.52:.82));
+   const age=e.elite&&e.type==='mage'?.58-e.eliteCastAge:e.elite&&e.type==='zombie'?.36-e.attackAge:e.type==='bat'?e.batAttackAge:(e.type==='skeleton'?Math.max(0,(e.elite?.18:.20)-e.attackAge):(e.type==='goblin'?Math.max(0,.52-e.windup):.82-e.warningTimer));
+   const duration=e.elite&&e.type==='mage'?.58:e.elite&&e.type==='zombie'?.36:e.type==='bat'?.34:(e.type==='skeleton'?(e.elite?.18:.20):(e.type==='goblin'?.52:.82));
    frame=timedAnimFrame(age,duration,12);
  }else{action='walk';}
  if(drawCharacterSprite(kind,action,frame,x,y,size,flip,1,e.facingDir)){
@@ -1052,6 +1098,12 @@ function drawEntrance(ent){
  if(ent.type==='bat'){
   const h=(1-p)*28;ctx.globalAlpha=.35;ctx.fillStyle='#02090a';ctx.beginPath();ctx.ellipse(0,12,10+p*8,4,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.translate(0,-h);ctx.scale(.45+.55*p,.45+.55*p);
   if(spriteReady.bat)drawCharacterSprite('bat','idle',animFrame(frameNow/1000,8),0,0,80,false,p); else {pixelRect(-8,-6,16,14,'#2a2a42');pixelRect(-22,-14,14,20,'#463253');pixelRect(8,-14,14,20,'#463253')}
+ }else if(ent.elite&&ent.type==='mage'){
+  ctx.globalAlpha=p;ctx.scale((.7+.3*p)*1.5,(.7+.3*p)*1.5);if(spriteReady.eliteMage)drawCharacterSprite('eliteMage','idle',animFrame(frameNow/1000,5),0,0,80,false,1);
+ }else if(ent.elite&&ent.type==='zombie'){
+  ctx.globalAlpha=p;ctx.scale((.7+.3*p)*1.5,(.7+.3*p)*1.5);if(spriteReady.eliteZombie)drawCharacterSprite('eliteZombie','idle',animFrame(frameNow/1000,5),0,0,80,false,1);
+ }else if(ent.elite&&ent.type==='skeleton'){
+  ctx.globalAlpha=p;ctx.scale((.7+.3*p)*1.5,(.7+.3*p)*1.5);if(spriteReady.eliteSkeleton)drawCharacterSprite('eliteSkeleton','idle',animFrame(frameNow/1000,5),0,0,80,false,1);
  }else if(ent.type==='goblin'){
   const r=5+18*p;ctx.globalAlpha=(1-p)*.7;ctx.fillStyle='#397d65';for(let i=0;i<9;i++){const a=i*2.4;ctx.beginPath();ctx.arc(Math.cos(a)*r*.7,Math.sin(a)*r*.45,r*.16,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=p;ctx.scale((.7+.3*p)*(ent.elite?1.5:1),(.7+.3*p)*(ent.elite?1.5:1));
   if(spriteReady.goblin)drawCharacterSprite('goblin','idle',animFrame(frameNow/1000,5),0,0,80,false,1); else {pixelRect(-14,-5,28,15,'#397d65');pixelRect(-10,-11,20,7,'#57b48b')}
@@ -1061,7 +1113,7 @@ function drawEntrance(ent){
  }
  ctx.restore();
  if(ent.elite)text('⚠ ELITE',x,y-36,8,P.gold2,'center');
- if(p<1)text(ent.type==='bat'?'DROP IN':ent.type==='goblin'?'MAGIC':'EARTH',x,y-28,6,ent.type==='goblin'?P.green:ent.type==='skeleton'?'#a57b4c':P.cream,'center');
+ if(p<1)text(ent.elite?'ELITE DROP':ent.type==='bat'?'DROP IN':ent.type==='goblin'?'MAGIC':'EARTH',x,y-28,6,ent.elite?P.gold2:ent.type==='goblin'?P.green:ent.type==='skeleton'?'#a57b4c':P.cream,'center');
 }
 function drawProjectile(q){
  ctx.save();
