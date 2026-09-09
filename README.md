@@ -78,6 +78,15 @@ Upload the project files to the root of a GitHub repository, then enable **Setti
 
 # Change Log
 
+## 0.3.8g — Stability & Efficiency Pass
+
+- Fixed player/enemy disappearance during damage by correcting the sprite-sheet row handling for the authored 512×96 sheets.
+- Added bounds-safe sprite rendering so invalid future animation coordinates fall back instead of rendering transparent frames.
+- Increased equipment drop visibility/chance so armour is meaningfully discoverable during normal runs, while keeping physical pickup.
+- Added sparkle feedback to equipment drops alongside Gold and Weapons; Health/Heart and Potion retain wobble.
+- Removed the now-unused Move Speed bonus state from the movement path.
+- Removed a duplicate cleared-room guard and tightened a few hot-path checks without changing the gameplay loop.
+
 ## 0.3.8f — Armour & Equipment System
 
 - Added Common, Uncommon, Rare, Epic and Legendary Iron equipment.

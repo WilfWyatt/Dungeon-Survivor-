@@ -57,7 +57,11 @@ const spriteReady={};
 Object.entries(SPRITE_SHEET_FILES).forEach(([key,src])=>{const img=new Image();img.decoding='async';img.onload=()=>{spriteReady[key]=true};img.onerror=()=>{spriteReady[key]=false};img.src=src;spriteImages[key]=img;spriteReady[key]=false});
 const SPRITE_FRAME=32;
 const SPRITE_COLS=4;
-const SPRITE_ROWS={idle:0,walk:1,attack:2,hurt:3,death:4};
+const SPRITE_ROWS={idle:0,walk:1,attack:2,hurt:1,death:2};
+// The authored sheets are 512x96 (16 columns x 3 rows), so rows 3+ do not exist.
+// Keep the animation selector bounded to the real image and fall back safely if a future
+// asset uses a different layout rather than drawing a transparent out-of-bounds frame.
+const SPRITE_ROW_FALLBACK={idle:0,walk:1,attack:2,hurt:1,death:2};
 // Codex sheets use the four columns differently by state: idle/walk are directional poses,
 // while attack/hurt/death are four-frame animations. Bats are the exception: all states are animated.
 const DIRECTIONAL_POSE_SPRITES=new Set(['player','goblin','skeleton','boss']);
@@ -66,8 +70,13 @@ function directionFrame(dir){return DIRECTION_FRAME[dir]??DIRECTION_FRAME.right;
 function drawCharacterSprite(kind,action,frame,x,y,size,flip=false,alpha=1,direction=null){
  const img=spriteImages[kind];
  if(!img||!spriteReady[kind])return false;
- const row=SPRITE_ROWS[action]??SPRITE_ROWS.idle;
+ let row=SPRITE_ROWS[action]??SPRITE_ROWS.idle;
  let f=((frame%SPRITE_COLS)+SPRITE_COLS)%SPRITE_COLS;
+ if(!img.naturalWidth||!img.naturalHeight||((row+1)*SPRITE_FRAME>img.naturalHeight)||((f+1)*SPRITE_FRAME>img.naturalWidth)){
+   row=SPRITE_ROW_FALLBACK[action]??SPRITE_ROWS.idle;
+   f=Math.min(f,SPRITE_COLS-1);
+ }
+ if((row+1)*SPRITE_FRAME>img.naturalHeight)row=0;
  let mirror=flip;
  if(DIRECTIONAL_POSE_SPRITES.has(kind)&&(action==='idle'||action==='walk')){
    const dir=direction||'right';
@@ -280,7 +289,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.8e';
+const VERSION='0.3.8g';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -384,7 +393,7 @@ const RARITIES=[
  {name:'Epic',weight:5,mult:1.30,cooldown:.88,reach:1.12,knockback:1.25,label:'EPIC'},
  {name:'Legendary',weight:1,mult:1.45,cooldown:.84,reach:1.16,knockback:1.35,label:'LEGENDARY'}
 ];
-const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:185,fire:0,damage:25,damageBonus:0,moveSpeedBonus:0,critBonus:0,attackSpeedBonus:0,knockbackBonus:0,armour:null,helmet:null,boots:null,flash:0,hitTimer:0,hitCooldown:0,knockX:0,knockY:0,weapon:null};
+const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:185,fire:0,damage:25,damageBonus:0,critBonus:0,attackSpeedBonus:0,knockbackBonus:0,armour:null,helmet:null,boots:null,flash:0,hitTimer:0,hitCooldown:0,knockX:0,knockY:0,weapon:null};
 let weaponFinds=[],pendingWeaponIndex=0,weaponPromptOpen=false,weaponBurning=false,doorSequenceActive=false,roomRewardOpen=false;
 function rarityData(name){return RARITIES.find(r=>r.name===name)||RARITIES[0]}
 function weaponInstance(id,rarityName='Common'){const base=WEAPONS[id]||WEAPONS.shortSword,r=rarityData(rarityName);return {id:base.id,name:base.name,rarity:r.name,baseDamage:base.baseDamage,damage:Math.round(base.baseDamage*r.mult),cooldown:base.cooldown*r.cooldown,reach:Math.round(base.reach*r.reach),swingDuration:base.swingDuration,knockback:base.knockback*r.knockback,moveSpeed:base.moveSpeed,swingMoveSpeed:base.swingMoveSpeed,critChance:base.critChance,icon:base.icon}}
@@ -613,7 +622,7 @@ function spawnLoot(x,y,enemyType,isElite=false){
  if(roll<(isElite?.10:.075)){type='Weapon';weapon=randomWeaponDrop()}
  else if(roll<(isElite?.14:.110)) type='Heart';
  else if(roll<(isElite?.23:.185)) type='Potion';
- else if(roll<(isElite?.29:.225)){type='Equipment';equipment=randomEquipmentDrop()}
+ else if(roll<(isElite?.41:.335)){type='Equipment';equipment=randomEquipmentDrop()}
  const kick=Math.random()*Math.PI*2;const kickSpeed=type==='Gold'?35+Math.random()*35:0;
  loot.push({x,y,r:type==='Weapon'?13:type==='Equipment'?13:11,type,amount,weapon,equipment,bob:Math.random()*6.28,spin:Math.random()*6.28,age:0,vx:Math.cos(kick)*kickSpeed,vy:Math.sin(kick)*kickSpeed});
  if(type==='Gold') AUDIO.pickup('Gold'),showPickup(`🪙 ${amount} gold dropped — nearby gold is attracted to you`);
@@ -700,7 +709,7 @@ function update(dt){
  const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l}
  const swinging=slashes.length>0;const moveSpeed=player.speed*weaponMoveSpeed(playerWeapon(),swinging);
  if(l>.12){facing=Math.atan2(my,mx);facingDir=dirFromAngle(facing)}
- const effectiveMoveSpeed=moveSpeed*(1+(player.moveSpeedBonus||0));player.x=clamp(player.x+mx*effectiveMoveSpeed*dt,30,W-30);player.y=clamp(player.y+my*effectiveMoveSpeed*dt,70,H-70);
+ const effectiveMoveSpeed=moveSpeed;player.x=clamp(player.x+mx*effectiveMoveSpeed*dt,30,W-30);player.y=clamp(player.y+my*effectiveMoveSpeed*dt,70,H-70);
  player.x=clamp(player.x,30,W-30);player.y=clamp(player.y,70,H-70);
  // Keep the player outside the Guardian's body, while leaving enough overlap-free distance for sword reach to connect.
  const guardian=enemies.find(e=>e.type==='boss');
@@ -1051,7 +1060,7 @@ function drawLoot(l){
  const wobble=l.type==='Heart'||l.type==='Potion';const y=l.y+(wobble?Math.sin(l.bob)*3:0),x=l.x;ctx.save();ctx.translate(x,y);
  const key=l.type==='Gold'?'gold':l.type==='Heart'?'healthFull':l.type==='Potion'?'healthSmall':l.type==='Weapon'?'weaponDrop':l.type==='Equipment'?'armourDrop':null;
  if(key&&drawGameAsset(key,0,0,32,1,0)){
-   if(l.type==='Gold'||l.type==='Weapon'){const pulse=.45+.55*(.5+.5*Math.sin((l.spin||0)+frameNow*.008));const len=3+4*pulse;ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=.18+.38*pulse;ctx.strokeStyle=l.type==='Gold'?P.gold2:P.teal2;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-len,0);ctx.lineTo(len,0);ctx.moveTo(0,-len);ctx.lineTo(0,len);ctx.stroke();ctx.globalAlpha=.8*pulse;pixelRect(-1,-1,2,2,P.cream);ctx.restore()}
+   if(l.type==='Gold'||l.type==='Weapon'||l.type==='Equipment'){const pulse=.45+.55*(.5+.5*Math.sin((l.spin||0)+frameNow*.008));const len=3+4*pulse;ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=.18+.38*pulse;ctx.strokeStyle=l.type==='Gold'?P.gold2:(l.type==='Equipment'?P.teal2:P.teal2);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-len,0);ctx.lineTo(len,0);ctx.moveTo(0,-len);ctx.lineTo(0,len);ctx.stroke();ctx.globalAlpha=.8*pulse;pixelRect(-1,-1,2,2,P.cream);ctx.restore()}
    if(l.type==='Weapon'||l.type==='Equipment'){const r=rarityData((l.weapon||l.equipment)?.rarity);text((l.weapon||l.equipment)?.rarity?.slice(0,1)||'C',0,25,7,r.name==='Legendary'?P.gold2:r.name==='Epic'?P.red2:r.name==='Rare'?P.teal2:P.cream,'center')}
    ctx.restore();return;
  }
@@ -1307,7 +1316,7 @@ if(inventoryCloseBottom)inventoryCloseBottom.addEventListener('pointerdown',e=>{
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.helmet=null;player.boots=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.helmet=null;player.boots=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
 function returnToTitle(){AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];doorSequenceActive=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
