@@ -78,6 +78,13 @@ Upload the project files to the root of a GitHub repository, then enable **Setti
 
 # Change Log
 
+## 0.3.8i — Menu & UI Readability Pass
+- Reworked the main menu, scoreboard, inventory, room rewards, area shop and game-over screens around a consistent dark-fantasy pixel UI language.
+- Increased primary text, stats and touch targets while grouping information into clearer cards.
+- Added dedicated HTML/CSS area-complete shop and run-complete screens so the most important choices are easier to scan and tap.
+- Preserved the existing gameplay systems, authored gameplay art and slim mobile HUD.
+
+
 ## 0.3.8h — Elite Attack Patterns
 - Added dedicated Elite Mage, Elite Zombie and Elite Skeleton sprite-sheet support from `assets/elites/`.
 - Elite Mage uses a ranged 3-fireball fan volley, with spacing/retreat movement so it behaves differently from the Guardian Mage.

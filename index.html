@@ -40,6 +40,47 @@
       .rewardPanel{padding:10px}
       .rewardEmpty{min-height:80px}
     }
+
+    /* v0.3.8i — readable dungeon menu system */
+    :root{--ui-bg:#071316;--ui-panel:#0b1b20;--ui-panel2:#10242a;--ui-edge:#6b7d84;--ui-teal:#83f0d7;--ui-cream:#f1e5c5;--ui-gold:#ffd86a;--ui-red:#d93832;--ui-blue:#66b9d7;}
+    .menuPanel,.roomRewardPanel{background:linear-gradient(180deg,rgba(18,35,41,.98),rgba(5,15,18,.98));border:2px solid var(--ui-edge);box-shadow:inset 0 0 0 2px #0a171b,0 0 0 3px #050b0e,0 16px 35px #000d;position:relative}
+    .menuPanel:before,.roomRewardPanel:before{content:'';position:absolute;inset:5px;border:1px solid #29464d;pointer-events:none;opacity:.75}
+    .menuTitle{font-size:24px;line-height:1.05;color:var(--ui-cream);letter-spacing:1.2px;text-shadow:0 3px 0 #111,0 0 9px #000}
+    .menuSub{font-size:10px;color:#b7c9c5;letter-spacing:.8px;margin-bottom:15px}
+    .menuButton,#menuActions button{min-height:46px;font-size:12px;letter-spacing:.7px;border-radius:4px;border:2px solid #9da7aa;background:linear-gradient(#263e45,#14262c 52%,#0b171b);box-shadow:inset 0 2px 0 #58717a,inset 0 -2px 0 #03090b,0 4px 0 #020607,0 0 0 1px #35464b;text-shadow:0 2px 2px #000;color:var(--ui-cream)}
+    .menuButton.primary,#menuActions button:first-child{background:linear-gradient(#3cbd79,#16884e 50%,#0b5735);border-color:#bfe7ca;box-shadow:inset 0 2px 0 #8df5b3,inset 0 -2px 0 #063521,0 4px 0 #020607,0 0 0 1px #48695a}
+    .menuButton.danger,#menuActions button:last-child{background:linear-gradient(#a52e31,#702024 50%,#421216);border-color:#d99a9b;box-shadow:inset 0 2px 0 #ed6668,inset 0 -2px 0 #26090b,0 4px 0 #020607,0 0 0 1px #654042}
+    .menuButton:active,#menuActions button:active{transform:translateY(2px)}
+    #startScreen{background-image:url('./menu-screen.png')}
+    #startScreen:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,7,9,.15),rgba(2,7,9,.05) 45%,rgba(2,7,9,.52));pointer-events:none}
+    #startScreen:before{content:'DUNGEON\A SURVIVOR';white-space:pre;position:absolute;top:7%;left:0;right:0;text-align:center;color:#f0e5c8;font:900 31px/1 ui-monospace,monospace;letter-spacing:1px;text-shadow:0 4px 0 #16110d,0 0 10px #000;z-index:2}
+    #playButton{z-index:3;left:22%;top:43%;width:56%;height:10%;background:linear-gradient(#c63b35,#8e211f 55%,#551313);border:2px solid #d8d9d5;box-shadow:inset 0 2px 0 #ff8b71,inset 0 -3px 0 #3a0707,0 5px 0 #020607,0 0 0 2px #5a6061;color:#fff1d2;font:900 15px ui-monospace,monospace;letter-spacing:1px;text-shadow:0 3px 2px #3a0000;border-radius:5px}
+    #playButton:after{content:'⚔  START RUN';color:#fff1d2;font:900 15px ui-monospace,monospace;letter-spacing:1px}
+    #menuActions{left:18%;right:18%;bottom:9%;gap:7px;z-index:4}
+    #menuActions button{min-height:38px;font-size:10px}
+    #versionLabel{font-size:9px;bottom:2%;opacity:.9}
+    #scoreboardScreen,#inventoryScreen,#roomRewardScreen{background:rgba(1,7,9,.86);backdrop-filter:blur(2px)}
+    #scoreboardScreen:before,#inventoryScreen:before,#roomRewardScreen:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 25%,rgba(73,126,127,.12),transparent 45%);pointer-events:none}
+    .scoreboardPanel{width:min(350px,94vw);padding:22px 18px;min-height:410px}
+    #scoreList{gap:8px;margin:12px 0 18px}
+    .scoreRow{grid-template-columns:36px 1fr 82px;grid-template-areas:'rank score meta' 'rank details details';gap:3px 7px;padding:10px 8px;border:1px solid #3b5b61;background:linear-gradient(180deg,#10262c,#08161a);font-size:8px}
+    .scoreRow span:first-child{grid-area:rank;font-size:16px;color:#83f0d7}
+    .scoreRow b{grid-area:score;font-size:16px}
+    .scoreRow span:nth-child(3){grid-area:meta;font-size:8px}
+    .scoreRow span:last-child{grid-area:details;text-align:left;font-size:7px}
+    .scoreboardActions{display:grid;grid-template-columns:1fr;gap:7px;position:relative;z-index:2}
+    .inventoryPanel{width:min(360px,94vw);padding:20px 16px;max-height:92vh}
+    .inventoryHeader #inventoryClose{width:42px;height:42px;font-size:26px;border:2px solid #6b7d84;background:#12282e;color:var(--ui-cream);position:relative;z-index:2}
+    .invOverview{gap:7px;margin:8px 0 13px}.invStat{padding:9px 7px;border:1px solid #45636a;background:linear-gradient(180deg,#10272d,#07171b)}.invStat span{font-size:7px}.invStat b{font-size:10px}.purseInv b{font-size:12px}.invSectionTitle{font-size:9px;padding:8px 3px 5px}.invEquipGrid{gap:7px}.invEquipSlot{padding:7px;border:1px solid #45636a;background:linear-gradient(180deg,#10272d,#07171b)}.invEquipImage{height:64px}.invEquipImage img{width:52px;height:52px}.invEquipInfo strong{font-size:8px}.invEquipInfo b{font-size:9px}.invEquipInfo small,.invEquipInfo em,.invEquipInfo .rarity{font-size:7px}.invWeapon{padding:9px;border:1px solid #45636a;background:linear-gradient(180deg,#10272d,#07171b)}.invWeaponIcon{width:50px;height:50px;font-size:27px}.invWeaponMain strong{font-size:13px}.invWeaponStats span,.invRunGrid span{font-size:8px}.invWeaponStats b,.invRunGrid b{font-size:9px}
+    .roomRewardPanel{width:min(720px,96vw);padding:20px;max-height:94vh}.roomRewardGrid{gap:12px}.rewardPanel{padding:14px;border:1px solid #4d6c72;background:linear-gradient(180deg,#10272d,#07171b);border-radius:4px}.rewardMiniTitle{font-size:10px;letter-spacing:1px;color:#9cefdc}.rewardEmpty{min-height:180px}.rewardEmpty b{font-size:13px;color:var(--ui-cream)}.rewardEmpty small{font-size:9px}.levelChoice{min-height:68px;padding:12px;border:2px solid #49666c;background:linear-gradient(180deg,#163139,#0b1b20);box-shadow:inset 0 2px 0 #31545b,0 3px 0 #020607}.levelChoice b{font-size:12px;color:var(--ui-cream)}.levelChoice small{font-size:9px}.weaponCompare{gap:7px}.weaponCol{padding:12px 9px;border:1px solid #45636a;background:#08181c}.weaponCol.found{border:2px solid #63d8bf;box-shadow:0 0 12px rgba(77,220,191,.12)}.smallTitle{font-size:8px}.weaponName{font-size:12px}.rarity{font-size:8px}.weaponStat{font-size:8px;padding:5px 0}.weaponButtons{gap:8px}.roomRewardActions{position:relative;z-index:2}.roomRewardActions .menuButton{min-height:50px;font-size:12px}
+    #shopScreen,#gameOverScreen{position:fixed;inset:0;z-index:140;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(1,7,9,.88);backdrop-filter:blur(2px);touch-action:manipulation}
+    #shopScreen.show,#gameOverScreen.show{display:flex}
+    .bigMenuPanel{width:min(360px,94vw);max-height:92vh;overflow:auto;padding:20px 16px;background:linear-gradient(180deg,#122930,#07161a);border:2px solid #6b7d84;box-shadow:inset 0 0 0 2px #091519,0 0 0 3px #050b0e,0 16px 35px #000d;position:relative}
+    .bigMenuPanel:before{content:'';position:absolute;inset:6px;border:1px solid #29464d;pointer-events:none}
+    .menuGold{text-align:center;color:var(--ui-gold);font-size:15px;font-weight:900;margin:3px 0 10px;position:relative}.menuHint{text-align:center;color:#aabbb7;font-size:8px;line-height:1.4;margin-bottom:13px;position:relative}
+    .shopGrid{display:grid;gap:8px;position:relative}.shopCard{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:9px;padding:9px;border:1px solid #45636a;background:linear-gradient(180deg,#10272d,#07171b);min-height:64px}.shopIcon{width:40px;height:40px;display:grid;place-items:center;border:1px solid #38565c;background:#0a1b1f;font-size:22px}.shopName{font-size:10px;color:var(--ui-cream);font-weight:900}.shopDesc{font-size:7px;color:#91a6a2;margin-top:4px;line-height:1.35}.shopCost{font-size:10px;color:var(--ui-gold);font-weight:900;text-align:right;margin-bottom:5px}.shopCard .menuButton{min-height:34px;padding:0 9px;width:auto;font-size:9px}.loadoutTitle{font-size:9px;color:var(--ui-teal);letter-spacing:1px;border-bottom:1px solid #38565c;padding:10px 2px 5px;margin-top:7px;position:relative}.shopLoadout{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:7px;position:relative}.loadoutSlot{padding:7px;border:1px solid #38565c;background:#08181c;text-align:center}.loadoutSlot img{width:42px;height:42px;object-fit:contain;image-rendering:pixelated}.loadoutSlot strong{display:block;font-size:7px;color:var(--ui-cream);margin-top:3px}.loadoutSlot small{display:block;font-size:6px;color:#83f0d7;margin-top:2px}
+    .gameOverScore{text-align:center;color:var(--ui-gold);font-size:22px;font-weight:900;margin:8px 0 4px;text-shadow:0 3px 0 #21170a}.gameOverBadge{text-align:center;color:#ed7b7d;font-size:9px;font-weight:900;min-height:14px}.summaryGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:14px 0}.summaryStat{padding:9px;border:1px solid #45636a;background:#08181c}.summaryStat span{display:block;font-size:7px;color:#829995}.summaryStat b{display:block;font-size:12px;color:var(--ui-cream);margin-top:4px}.bestRuns{border-top:1px solid #38565c;padding-top:9px;margin-bottom:12px}.bestRunsTitle{font-size:8px;color:var(--ui-teal);letter-spacing:1px;text-align:center;margin-bottom:6px}.bestRun{display:flex;justify-content:space-between;padding:5px 7px;font-size:8px;color:#cbd3cc}.bestRun b{color:var(--ui-gold)}
+    @media(max-width:560px){.roomRewardPanel{padding:15px}.roomRewardGrid{grid-template-columns:1fr}.rewardPanel{padding:12px}.rewardEmpty{min-height:110px}.menuTitle{font-size:21px}.bigMenuPanel{padding:18px 13px}.shopCard{grid-template-columns:38px 1fr auto}.shopIcon{width:36px;height:36px}}
   </style>
 </head>
 <body>
@@ -62,7 +103,7 @@
           <button id="scoreboardButton" type="button">LOCAL SCOREBOARD</button>
           <button id="exitAppButton" type="button">EXIT APP</button>
         </div>
-        <div id="versionLabel">v0.3.8g</div>
+        <div id="versionLabel">v0.3.8i</div>
       </div>
       <div id="roomRewardScreen" aria-label="Room reward screen">
         <div class="menuPanel roomRewardPanel">
@@ -91,6 +132,33 @@
           <button id="inventoryCloseBottom" type="button" class="menuButton primary">CLOSE INVENTORY</button>
         </div>
       </div>
+      <div id="shopScreen" aria-label="Area complete shop">
+        <div class="bigMenuPanel">
+          <div class="menuTitle">AREA COMPLETE</div>
+          <div id="shopAreaSub" class="menuSub">UPGRADE • RESTOCK • PREPARE</div>
+          <div id="shopGold" class="menuGold">💰 0 GOLD</div>
+          <div class="menuHint">Spend your gold before entering the next area.<br>Choose upgrades that suit your build.</div>
+          <div class="shopGrid">
+            <div class="shopCard"><div class="shopIcon">⚔</div><div><div class="shopName">SWORD DAMAGE</div><div class="shopDesc">Increase your attack damage by +5.</div></div><div><div class="shopCost">100 G</div><button class="menuButton primary shopBuy" data-shop="damage">BUY</button></div></div>
+            <div class="shopCard"><div class="shopIcon">❤</div><div><div class="shopName">MAX HEALTH</div><div class="shopDesc">+10 max HP and fully heal.</div></div><div><div class="shopCost">75 G</div><button class="menuButton primary shopBuy" data-shop="health">BUY</button></div></div>
+            <div class="shopCard"><div class="shopIcon">✦</div><div><div class="shopName">FORTUNE</div><div class="shopDesc">Improve the chance of better weapon rarities.</div></div><div><div class="shopCost">125 G</div><button class="menuButton primary shopBuy" data-shop="fortune">BUY</button></div></div>
+          </div>
+          <div class="loadoutTitle">CURRENT EQUIPMENT</div>
+          <div id="shopLoadout" class="shopLoadout"></div>
+          <button id="shopContinue" class="menuButton primary" style="margin-top:12px;position:relative">ENTER NEXT AREA</button>
+        </div>
+      </div>
+      <div id="gameOverScreen" aria-label="Game over screen">
+        <div class="bigMenuPanel">
+          <div class="menuTitle">RUN COMPLETE</div>
+          <div id="gameOverScore" class="gameOverScore">0</div>
+          <div id="gameOverBadge" class="gameOverBadge"></div>
+          <div id="gameOverReached" class="menuSub" style="margin-top:7px">REACHED ROOM 1</div>
+          <div id="gameOverStats" class="summaryGrid"></div>
+          <div class="bestRuns"><div class="bestRunsTitle">BEST RUNS</div><div id="bestRunsList"></div></div>
+          <button id="gameOverHome" class="menuButton primary">RETURN TO MAIN MENU</button>
+        </div>
+      </div>
       <div id="bossWarning" aria-live="polite"></div>
       <div id="message" aria-live="polite"></div>
       <div id="pickupNotice"></div>
@@ -103,6 +171,6 @@
       <div id="fire" role="button" aria-label="Swing sword">⚔<span>SWING</span></div>
     </section>
   </main>
-  <script src="game.js?v=0.3.8g"></script>
+  <script src="game.js?v=0.3.8i"></script>
 </body>
 </html>

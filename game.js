@@ -280,7 +280,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.8h';
+const VERSION='0.3.8i';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -432,7 +432,7 @@ try{highScores=JSON.parse(localStorage.getItem('dungeonSurvivorHighScores')||'[]
 function addScore(amount){score=Math.max(0,score+amount)}
 function saveHighScore(){if(scoreSaved)return;scoreSaved=true;const endedAt=Date.now();highScores.push({score,room,level,gold:totalGoldCollected,kills,bossesKilled,stagesCleared:roomsCleared,area,endedAt});highScores.sort((a,b)=>b.score-a.score);highScores=highScores.slice(0,5);try{localStorage.setItem('dungeonSurvivorHighScores',JSON.stringify(highScores))}catch(e){}}
 function scoreRank(){const i=highScores.findIndex(r=>r.score===score&&r.level===level&&r.kills===kills&&r.gold===totalGoldCollected);return i>=0?i+1:0}
-function finishGameOver(){if(gameOver)return;gameOver=true;AUDIO.gameOver();AUDIO.stop();player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;saveHighScore();msg('RUN ENDED — choose an option')}
+function finishGameOver(){if(gameOver)return;gameOver=true;AUDIO.gameOver();AUDIO.stop();player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;saveHighScore();renderGameOverScreen();msg('RUN ENDED — choose an option')}
 function enemyScale(){return (1+(area-1)*.18)*(1+(level-1)*.075)}
 function enemyDamageScale(){return 1+(area-1)*.12+(level-1)*.045}
 function eliteDamageScale(e){return enemyDamageScale()*(e?.elite?2.20:1)}
@@ -605,7 +605,7 @@ function isBossRoom(){return room===bossRoom}
 function bossDefeated(){return room===bossRoom && roomCleared}
 function beginAreaShop(){
  AUDIO.shop(); atShop=true;areaComplete=true;shopMessage=`${areaName} COMPLETE — spend your gold before the next area.`;
- msg('AREA COMPLETE — CHOOSE YOUR UPGRADES');
+ msg('AREA COMPLETE — CHOOSE YOUR UPGRADES');renderShopScreen();
 }
 function buyUpgrade(type){
  if(!atShop)return;
@@ -626,6 +626,7 @@ function buyUpgrade(type){
 }
 function continueFromShop(){
  if(!atShop)return; AUDIO.transition();
+ closeShopScreen();
  atShop=false;areaComplete=false;area++;areaName={2:'LOWER CASTLE',3:'CRYPT',4:'CATACOMBS',5:'ABYSS'}[area]||`AREA ${area}`;room=1;
  showPickup(`Entering Area ${area}`);
  msg(`AREA ${area} — ${areaName}`);
@@ -1246,18 +1247,30 @@ function startRoomTransition(nextRoom){
  msg(`ENTERING ${nextName}`);
 }
 
-function drawShop(){
- ctx.fillStyle='#02090ae8';ctx.fillRect(8,40,W-16,H-58);
- panel(18,50,W-36,420);
- text(`${areaName} COMPLETE`,W/2,76,18,P.teal2,'center');text(`PURSE  ${gold} GOLD`,W/2,98,10,P.gold2,'center');text('PERMANENT UPGRADES',W/2,116,8,P.cream,'center');
- panel(38,126,284,50);text('SWORD DAMAGE',50,145,9,P.cream);text('+5',50,163,13,P.teal2);text('100 G',310,159,10,P.gold2,'right');
- panel(38,184,284,50);text('MAX HEALTH',50,203,9,P.cream);text('+10  •  FULL HEAL',50,221,10,P.teal2);text('75 G',310,218,10,P.gold2,'right');
- panel(38,242,284,50);text('FORTUNE',50,261,9,P.cream);text(`BETTER LOOT  •  LV ${fortuneLevel}`,50,279,9,P.teal2);text('125 G',310,276,10,P.gold2,'right');
- text('CURRENT EQUIPMENT',W/2,311,8,P.cream,'center');
- const gear=[['helmet',player.helmet,'HELMET'],['chestPiece',player.armour,'CHEST'],['boots',player.boots,'BOOTS']];
- gear.forEach((g,i)=>{const x=70+i*110;panel(x-42,322,84,66);if(g[1]){drawGameAsset(g[0],x,343,30,1,0);text(g[1].rarity,x,366,6,P.teal2,'center');text(g[2],x,379,6,P.cream,'center')}else{text('—',x,346,16,P.wall2,'center');text(g[2],x,365,6,P.cream,'center');text('EMPTY',x,378,6,'#476f6e','center')}});
- panel(38,397,284,48);text('CONTINUE',W/2,426,12,P.teal2,'center');text('UPGRADES • LOADOUT • NEXT AREA',W/2,458,7,'#78918a','center');
- const guardian=enemies.find(e=>e.type==='boss');if(guardian){const minD=guardian.r+player.r+6,dx=player.x-guardian.x,dy=player.y-guardian.y,d=Math.hypot(dx,dy);if(d>0&&d<minD){player.x=guardian.x+dx/d*minD;player.y=guardian.y+dy/d*minD;}}if(fireHeld)performSwing();
+function drawShop(){}
+function renderShopScreen(){
+ const screen=document.getElementById('shopScreen');if(!screen)return;
+ const areaSub=document.getElementById('shopAreaSub'),goldEl=document.getElementById('shopGold'),loadout=document.getElementById('shopLoadout');
+ if(areaSub)areaSub.textContent=`${areaName} • AREA COMPLETE • PREPARE FOR AREA ${area+1}`;
+ if(goldEl)goldEl.textContent=`💰 ${gold} GOLD`;
+ if(loadout){
+  const gear=[['helmet',player.helmet,'HELMET'],['chest-piece',player.armour,'CHEST'],['boots(1)',player.boots,'BOOTS']];
+  loadout.innerHTML=gear.map(([asset,item,label])=>`<div class="loadoutSlot">${item?.asset?`<img src="${item.asset}" alt="${label}">`:'<div style="height:42px;display:grid;place-items:center;color:#476f6e;font-size:22px">—</div>'}<strong>${label}</strong><small>${item?item.rarity.toUpperCase():'EMPTY'}</small></div>`).join('');
+ }
+ document.querySelectorAll('.shopBuy').forEach(btn=>{const type=btn.dataset.shop;const cost=type==='damage'?100:type==='health'?75:125;btn.disabled=gold<cost;btn.textContent=gold<cost?'NEED GOLD':'BUY';});
+ screen.classList.add('show');
+}
+function closeShopScreen(){document.getElementById('shopScreen')?.classList.remove('show')}
+function renderGameOverScreen(){
+ const screen=document.getElementById('gameOverScreen');if(!screen)return;
+ const rank=scoreRank();
+ document.getElementById('gameOverScore').textContent=`${score}`;
+ document.getElementById('gameOverBadge').textContent=rank===1?'NEW HIGH SCORE!':rank?`HIGH SCORE RANK #${rank}`:'';
+ document.getElementById('gameOverReached').textContent=`${isBossRoom()?'GUARDIAN':'ROOM '+room} • LEVEL ${level}`;
+ const stats=[['GOLD',totalGoldCollected],['ENEMIES',kills],['ROOMS',roomsCleared],['BOSSES',bossesKilled]];
+ document.getElementById('gameOverStats').innerHTML=stats.map(([a,b])=>`<div class="summaryStat"><span>${a}</span><b>${b}</b></div>`).join('');
+ const list=document.getElementById('bestRunsList');list.innerHTML=highScores.slice(0,3).map((r,i)=>`<div class="bestRun"><span>#${i+1} • R${r.room} • LV${r.level}</span><b>${r.score}</b></div>`).join('')||'<div class="bestRun"><span>NO RUNS RECORDED</span><b>—</b></div>';
+ screen.classList.add('show');
 }
 
 function formatSpeed(cooldown){return `${(1/cooldown).toFixed(1)}/s`}
@@ -1336,7 +1349,7 @@ function draw(){
  drawFacingArrow();
  slashes.forEach(drawSlash);
  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);let col=p.type==='coin'?P.gold2:(p.type==='heal'?P.teal2:(p.type==='weapon'?P.gold2:(p.type==='hit'?P.cream:(p.type==='spawn'?(p.spawnType==='goblin'?P.green:p.spawnType==='skeleton'?'#a57b4c':P.cream):P.gold))));pixelRect(p.x,p.y,4,4,col);ctx.globalAlpha=1});
- if(atShop)drawShop();
+
  if(player.hp>0&&player.hp/player.maxHp<=.25&&!gameOver){const p=.12+.08*(.5+.5*Math.sin(frameNow/180));ctx.fillStyle='#8f3036';ctx.globalAlpha=p;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;}
  if(roomTransition){
   const t=roomTransition.timer,fadeOut=Math.min(1,t/.38),fadeIn=Math.min(1,Math.max(0,(t-.38)/.57));
@@ -1344,7 +1357,7 @@ function draw(){
   ctx.fillStyle='#02090af2';ctx.globalAlpha=Math.max(0,Math.min(1,alpha));ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;
   if(roomTransition.switched&&fadeIn>.15){ctx.globalAlpha=Math.min(1,(fadeIn-.15)/.45);text(roomTransition.roomName,W/2,215,17,P.teal2,'center');text(`ROOM ${roomTransition.nextRoom}`,W/2,240,9,P.cream,'center');ctx.globalAlpha=1;}
  }
- if(gameOver){ctx.fillStyle='#02090af2';ctx.fillRect(0,0,W,H);panel(24,74,W-48,320);text('GAME OVER',W/2,106,27,P.cream,'center');text(`FINAL SCORE  ${score}`,W/2,134,16,P.gold2,'center');const rank=scoreRank();text(rank===1?'NEW HIGH SCORE!':rank?`HIGH SCORE RANK  #${rank}`:'',W/2,154,8,P.red2,'center');text(`REACHED  ${isBossRoom()?'GUARDIAN':`ROOM ${room}`}`,W/2,181,9,P.teal2,'center');text(`LEVEL ${level}  •  GOLD ${totalGoldCollected}`,W/2,202,9,P.gold2,'center');text(`ENEMIES DEFEATED  ${kills}`,W/2,223,9,P.cream,'center');text(`STAGES CLEARED  ${roomsCleared}  •  BOSSES KILLED  ${bossesKilled}`,W/2,244,8,P.cream,'center');text('BEST RUNS',W/2,272,9,P.teal2,'center');for(let i=0;i<Math.min(3,highScores.length);i++){const r=highScores[i];text(`${i+1}.  ${r.score}`,W/2,291+i*16,8,P.cream,'center')}panel(W/2-82,340,164,34);text('MAIN MENU',W/2,362,10,P.teal2,'center')}
+
  if(shake)ctx.restore();
 }
 let frameNow=0;
@@ -1367,6 +1380,10 @@ const scoreboardButton=document.getElementById('scoreboardButton');
 const scoreboardBack=document.getElementById('scoreboardBack');
 const clearScoreboardButton=document.getElementById('clearScoreboard');
 const exitAppButton=document.getElementById('exitAppButton');
+const shopScreen=document.getElementById('shopScreen');
+const shopContinue=document.getElementById('shopContinue');
+const gameOverScreen=document.getElementById('gameOverScreen');
+const gameOverHome=document.getElementById('gameOverHome');
 const versionLabel=document.getElementById('versionLabel'); if(versionLabel)versionLabel.textContent='v'+VERSION;
 const inventoryButton=document.getElementById('inventoryButton');
 const inventoryScreen=document.getElementById('inventoryScreen');
@@ -1385,11 +1402,14 @@ if(exitAppButton)exitAppButton.addEventListener('pointerdown',e=>{e.preventDefau
 if(inventoryButton)inventoryButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();openInventory()});
 if(inventoryClose)inventoryClose.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeInventory()});
 if(inventoryCloseBottom)inventoryCloseBottom.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeInventory()});
+if(shopScreen)shopScreen.addEventListener('pointerdown',e=>{const b=e.target.closest('.shopBuy');if(b){e.preventDefault();AUDIO.menu();buyUpgrade(b.dataset.shop);return}});
+if(shopContinue)shopContinue.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();continueFromShop()});
+if(gameOverHome)gameOverHome.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();document.getElementById('gameOverScreen')?.classList.remove('show');returnToTitle()});
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.helmet=null;player.boots=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
-function returnToTitle(){AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];doorSequenceActive=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
+function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.helmet=null;player.boots=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function returnToTitle(){AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];doorSequenceActive=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
 function joyMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,m=Math.min(45,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*m/45;joy.y=Math.sin(a)*m/45;nub.style.transform=`translate(${joy.x*45}px,${joy.y*45}px)`}
@@ -1397,9 +1417,7 @@ stick.addEventListener('pointerdown',e=>{if(paused)return;joy.active=true;stick.
 const f=document.getElementById('fire');f.addEventListener('pointerdown',()=>{if(gameOver||paused)return;if(atShop)return;performSwing();fireHeld=true});f.addEventListener('pointerup',()=>fireHeld=false);f.addEventListener('pointercancel',()=>fireHeld=false);
 c.addEventListener('pointerdown',e=>{
  const r=c.getBoundingClientRect(),x=(e.clientX-r.left)*(W/r.width),y=(e.clientY-r.top)*(H/r.height);
- if(gameOver){if(x>=W/2-90&&x<=W/2+90&&y>=334&&y<=378)returnToTitle();return;}
- if(!atShop||weaponPromptOpen)return;
- if(x>=48&&x<=312&&y>=150&&y<=204)buyUpgrade('damage');else if(x>=48&&x<=312&&y>=212&&y<=266)buyUpgrade('health');else if(x>=48&&x<=312&&y>=274&&y<=328)buyUpgrade('fortune');else if(x>=48&&x<=312&&y>=342&&y<=392)continueFromShop();
+ if(gameOver||atShop)return;
 });
 if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('portrait').catch(()=>{});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
