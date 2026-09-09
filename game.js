@@ -56,29 +56,31 @@ const spriteImages={};
 const spriteReady={};
 Object.entries(SPRITE_SHEET_FILES).forEach(([key,src])=>{const img=new Image();img.decoding='async';img.onload=()=>{spriteReady[key]=true};img.onerror=()=>{spriteReady[key]=false};img.src=src;spriteImages[key]=img;spriteReady[key]=false});
 const SPRITE_FRAME=32;
-// v0.3.8 sprite sheets are authored as 32x32 cells. Character sheets use animated
-// rows rather than directional cells: 4 frames for normal states and 6 for death.
-// The player has an additional ranged-attack row.
 const SPRITE_COLS=4;
 const SPRITE_ROWS={idle:0,walk:1,attack:2,hurt:3,death:4};
-const PLAYER_SPRITE_ROWS={idle:0,walk:1,attack:2,ranged:3,hurt:4,death:5};
-const SPRITE_FRAME_COUNTS={idle:4,walk:4,attack:4,ranged:4,hurt:4,death:6};
-function spriteFrameCount(kind,action){
-  return action==='death'?6:4;
-}
+// Codex sheets use the four columns differently by state: idle/walk are directional poses,
+// while attack/hurt/death are four-frame animations. Bats are the exception: all states are animated.
+const DIRECTIONAL_POSE_SPRITES=new Set(['player','goblin','skeleton','boss']);
+const DIRECTION_FRAME={down:0,up:1,right:2,left:3};
+function directionFrame(dir){return DIRECTION_FRAME[dir]??DIRECTION_FRAME.right;}
 function drawCharacterSprite(kind,action,frame,x,y,size,flip=false,alpha=1,direction=null){
  const img=spriteImages[kind];
  if(!img||!spriteReady[kind])return false;
- const isPlayer=kind==='player';
- const row=(isPlayer?PLAYER_SPRITE_ROWS:SPRITE_ROWS)[action]??0;
- const count=spriteFrameCount(kind,action);
- const f=((frame%count)+count)%count;
- // These sheets are animation strips, not directional sheets. Keep the supplied
- // artwork orientation intact; only mirror when the caller explicitly requests it.
- return drawSpriteFrame(img,f*SPRITE_FRAME,row*SPRITE_FRAME,SPRITE_FRAME,SPRITE_FRAME,x,y,size,size,flip,alpha);
+ const row=SPRITE_ROWS[action]??SPRITE_ROWS.idle;
+ let f=((frame%SPRITE_COLS)+SPRITE_COLS)%SPRITE_COLS;
+ let mirror=flip;
+ if(DIRECTIONAL_POSE_SPRITES.has(kind)&&(action==='idle'||action==='walk')){
+   const dir=direction||'right';
+   // Use the clean right-facing pose as the canonical side view and mirror it for left.
+   // This keeps side-facing characters consistent instead of relying on two subtly
+   // different side cells in the authored sheets.
+   if(dir==='left'){f=DIRECTION_FRAME.right;mirror=true;}
+   else {f=directionFrame(dir);mirror=false;}
+ }
+ return drawSpriteFrame(img,f*SPRITE_FRAME,row*SPRITE_FRAME,SPRITE_FRAME,SPRITE_FRAME,x,y,size,size,mirror,alpha);
 }
-function animFrame(time,rate=8,count=4){return Math.floor(time*rate)%count;}
-function timedAnimFrame(age,duration,rate=12,count=4){return Math.min(count-1,Math.floor(Math.max(0,Math.min(1,age/Math.max(.001,duration)))*count));}
+function animFrame(time,rate=8){return Math.floor(time*rate)%SPRITE_COLS;}
+function timedAnimFrame(age,duration,rate=12){return Math.min(SPRITE_COLS-1,Math.floor(Math.max(0,Math.min(1,age/Math.max(.001,duration)))*SPRITE_COLS));}
 
 let roomTiles=[],roomDecor=[];
 const TILE=32, COLS=8, ROWS=12;
@@ -278,7 +280,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.8b';
+const VERSION='0.3.6e';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -382,7 +384,7 @@ const RARITIES=[
  {name:'Epic',weight:5,mult:1.30,cooldown:.88,reach:1.12,knockback:1.25,label:'EPIC'},
  {name:'Legendary',weight:1,mult:1.45,cooldown:.84,reach:1.16,knockback:1.35,label:'LEGENDARY'}
 ];
-const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:185,fire:0,damage:25,damageBonus:0,critBonus:0,attackSpeedBonus:0,knockbackBonus:0,armour:null,flash:0,hitTimer:0,hitCooldown:0,knockX:0,knockY:0,weapon:null};
+const player={x:0,y:0,r:14*SPRITE_SCALE,hp:100,maxHp:100,speed:185,fire:0,damage:25,damageBonus:0,moveSpeedBonus:0,critBonus:0,attackSpeedBonus:0,knockbackBonus:0,armour:null,boots:null,flash:0,hitTimer:0,hitCooldown:0,knockX:0,knockY:0,weapon:null};
 let weaponFinds=[],pendingWeaponIndex=0,weaponPromptOpen=false,weaponBurning=false,doorSequenceActive=false,roomRewardOpen=false;
 function rarityData(name){return RARITIES.find(r=>r.name===name)||RARITIES[0]}
 function weaponInstance(id,rarityName='Common'){const base=WEAPONS[id]||WEAPONS.shortSword,r=rarityData(rarityName);return {id:base.id,name:base.name,rarity:r.name,baseDamage:base.baseDamage,damage:Math.round(base.baseDamage*r.mult),cooldown:base.cooldown*r.cooldown,reach:Math.round(base.reach*r.reach),swingDuration:base.swingDuration,knockback:base.knockback*r.knockback,moveSpeed:base.moveSpeed,swingMoveSpeed:base.swingMoveSpeed,critChance:base.critChance,icon:base.icon}}
@@ -400,9 +402,9 @@ function weightedRarity(){
 function randomWeaponDrop(){const ids=['shortSword','longSword','claymore'];return weaponInstance(ids[Math.floor(Math.random()*ids.length)],weightedRarity())}
 function rarityClass(r){return String(r||'Common').toLowerCase()}
 function weaponStatLines(w){return {damage:w.damage,reach:w.reach,cooldown:w.cooldown,knockback:w.knockback}}
-let enemies=[],loot=[],slashes=[],deathMarks=[],impactMarks=[],criticalMarks=[],particles=[],projectiles=[],entrances=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
+let enemies=[],loot=[],slashes=[],deathMarks=[],impactMarks=[],criticalMarks=[],evadeMarks=[],particles=[],projectiles=[],entrances=[],keys={},joy={x:0,y:0,active:false},fireHeld=false;
 // 0.3.6e: hard caps on transient effects prevent runaway mobile allocations if a frame stalls.
-const MAX_PARTICLES=120,MAX_IMPACTS=40,MAX_CRITICALS=20,MAX_PROJECTILES=24,MAX_SLASHES=3,MAX_DEATH_MARKS=30;
+const MAX_PARTICLES=120,MAX_IMPACTS=40,MAX_CRITICALS=20,MAX_EVADE_MARKS=20,MAX_PROJECTILES=24,MAX_SLASHES=3,MAX_DEATH_MARKS=30;
 function capTransient(arr,max){if(arr.length>max)arr.splice(0,arr.length-max);}
 
 let spawnQueue=[],spawnTimer=0,totalSpawned=0,totalQuota=0,activeCap=0,activeGoblinCap=0,bossPatternTimer=0,bossPatternStep=0,bossPatternMode='burst';
@@ -433,12 +435,17 @@ function finishGameOver(){if(gameOver)return;gameOver=true;AUDIO.gameOver();AUDI
 function enemyScale(){return (1+(area-1)*.18)*(1+(level-1)*.075)}
 function enemyDamageScale(){return 1+(area-1)*.12+(level-1)*.045}
 function eliteDamageScale(e){return enemyDamageScale()*(e?.elite?1.38:1)}
-const ARMOURS=[{id:'leather',name:'Leather Armour',damageReduction:.08,icon:'🛡'}];
-function armourInstance(id='leather'){const a=ARMOURS.find(x=>x.id===id)||ARMOURS[0];return {...a}}
+const ARMOURS=[{id:'iron',name:'Iron Chest Piece',damageReduction:.04,icon:'🛡'}];
+const BOOTS_RARITY={Common:.03,Uncommon:.05,Rare:.08,Epic:.12,Legendary:.17};
+function armourInstance(id='iron'){const a=ARMOURS.find(x=>x.id===id)||ARMOURS[0];return {...a}}
+function bootsInstance(rarityName='Common'){const rarity=rarityData(rarityName).name;return {id:'boots',name:'Iron Boots',rarity,evadeChance:BOOTS_RARITY[rarity]||BOOTS_RARITY.Common,icon:'🥾'}}
 function armourReduction(){return player.armour?.damageReduction||0}
+function playerEvadeChance(){return player.boots?.evadeChance||0}
+function enemyEvadeChance(e){return e?.type==='boss'?.10:e?.elite?.08:.05}
 const LEVEL_UP_POOL=[
  {id:'damage',title:'+5 DAMAGE',desc:'Every swing hits harder.'},
  {id:'health',title:'+10 MAX HP',desc:'Increase maximum health and heal 10 HP.'},
+ {id:'speed',title:'+5% MOVE SPEED',desc:'Move faster through the dungeon.'},
  {id:'crit',title:'+3% CRITICAL',desc:'More chance to land a critical hit.'},
  {id:'attack',title:'+5% ATTACK SPEED',desc:'Swing more often.'},
  {id:'knockback',title:'+10% KNOCKBACK',desc:'Push enemies back further.'}
@@ -447,6 +454,7 @@ function rollLevelChoices(){const pool=[...LEVEL_UP_POOL],out=[];while(out.lengt
 function applyLevelChoice(id){
  if(id==='damage'){player.damageBonus+=5;player.damage=currentWeaponStats().damage}
  else if(id==='health'){player.maxHp+=10;player.hp=Math.min(player.maxHp,player.hp+10)}
+ else if(id==='speed'){player.moveSpeedBonus+=.05}
  else if(id==='crit'){player.critBonus+=.03}
  else if(id==='attack'){player.attackSpeedBonus+=.05;swingCooldown=0}
  else if(id==='knockback'){player.knockbackBonus+=.10}
@@ -637,6 +645,12 @@ function performSwing(){
 
 function damagePlayer(amount,sourceX,sourceY,knockbackScale=1,hitType='normal'){
  if(gameOver||player.hitCooldown>0)return false;
+ const evadeChance=clamp(Number.isFinite(playerEvadeChance())?playerEvadeChance():0,0,.50);
+ if(evadeChance>0&&Math.random()<evadeChance){
+  AUDIO.hit();
+  evadeMarks.push({x:player.x,y:player.y-22,age:0,dur:.55});capTransient(evadeMarks,MAX_EVADE_MARKS);
+  return false;
+ }
  // Keep the hit path deliberately defensive: damage can come from several enemy/projectile
  // systems, and a malformed value must never poison the animation loop with NaN/Infinity.
  amount=Number.isFinite(amount)?Math.max(0,amount):0;
@@ -664,7 +678,6 @@ function update(dt){
  if(!started)return;
  if(gameOver)return;
  if(paused){updateHud();return;}
- deathMarks.forEach(m=>m.age=(m.age||0)+dt);
  if(roomTransition){
   roomTransition.timer+=dt;
   if(roomTransition.timer>=roomTransition.switchAt&&!roomTransition.switched){room=roomTransition.nextRoom;resetRoom();AUDIO.doorOpen();roomTransition.switched=true;}
@@ -678,12 +691,12 @@ function update(dt){
  player.x+=player.knockX*dt;player.y+=player.knockY*dt;const knockDrag=Math.pow(.025,dt);player.knockX*=knockDrag;player.knockY*=knockDrag;
  let mx=(keys.d?1:0)-(keys.a?1:0),my=(keys.s?1:0)-(keys.w?1:0);
  const movingInput=joy.active||Math.hypot(mx,my)>.12;
- if(movingInput){walkTime+=dt;audioStepTimer-=dt;if(started&&!paused&&!atShop&&!roomTransition&&audioStepTimer<=0){AUDIO.step();audioStepTimer=.24+Math.random()*.08}}else audioStepTimer=0;
+ if(movingInput){walkTime+=dt*10;audioStepTimer-=dt;if(started&&!paused&&!atShop&&!roomTransition&&audioStepTimer<=0){AUDIO.step();audioStepTimer=.24+Math.random()*.08}}else audioStepTimer=0;
  if(joy.active){mx=joy.x;my=joy.y}
  const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l}
  const swinging=slashes.length>0;const moveSpeed=player.speed*weaponMoveSpeed(playerWeapon(),swinging);
  if(l>.12){facing=Math.atan2(my,mx);facingDir=dirFromAngle(facing)}
- const effectiveMoveSpeed=moveSpeed;player.x=clamp(player.x+mx*effectiveMoveSpeed*dt,30,W-30);player.y=clamp(player.y+my*effectiveMoveSpeed*dt,70,H-70);
+ const effectiveMoveSpeed=moveSpeed*(1+(player.moveSpeedBonus||0));player.x=clamp(player.x+mx*effectiveMoveSpeed*dt,30,W-30);player.y=clamp(player.y+my*effectiveMoveSpeed*dt,70,H-70);
  player.x=clamp(player.x,30,W-30);player.y=clamp(player.y,70,H-70);
  // Keep the player outside the Guardian's body, while leaving enough overlap-free distance for sword reach to connect.
  const guardian=enemies.find(e=>e.type==='boss');
@@ -804,7 +817,9 @@ function update(dt){
 
  for(let i=slashes.length-1;i>=0;i--){
   const s=slashes[i];s.age+=dt;const progress=s.age/s.duration;const reach=s.reach||playerWeapon().reach;const centre=s.angle+s.side*(Math.PI*.40-(Math.min(1,progress)*Math.PI*.80));
-  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){const crit=Math.random()<(currentWeaponStats().critChance||.10);const damage=crit?Math.round(s.damage*1.75):s.damage;e.hp-=damage;s.hit.add(e);e.hit=crit?.16:.12;e.stagger=crit?.20:.12;const push=Math.max(0,1-d/(reach+e.r))*(crit?1.18:1);const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);if(crit){AUDIO.crit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.22,type:'crit',angle:Math.random()*Math.PI});capTransient(impactMarks,MAX_IMPACTS);burst(e.x,e.y,'crit',9);criticalMarks.push({x:e.x,y:e.y-22,age:0,dur:.55});capTransient(criticalMarks,MAX_CRITICALS);}else{AUDIO.hit();AUDIO.enemyHit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.16,type:'hit',angle:Math.random()*Math.PI});capTransient(impactMarks,MAX_IMPACTS);burst(e.x,e.y,'hit',5);}if(e.hp<=0){AUDIO.death(e.type);deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000,age:0,facingDir:e.facingDir||'left'});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type,e.elite);else{const reward=bossGoldReward();gold+=reward;totalGoldCollected+=reward;bossesKilled++;showPickup(`👑 GUARDIAN BONUS  +${reward} GOLD`)}enemies.splice(enemies.indexOf(e),1);kills++;addScore((SCORE_VALUES[e.type]||0)*(e.elite?2:1));awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5+(e.elite?4:0));if(e.elite)showPickup('★ ELITE SLAIN!  DOUBLE SCORE');burst(e.x,e.y,'death',e.type==='boss'?28:e.elite?20:12);if(e.type==='boss'){areaClearTimer=1.8;areaClearShown=true;}if(!isBossRoom())spawnTimer=.65;}}}
+  for(const e of [...enemies]){if(s.hit.has(e)||!e.active)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);let da=Math.atan2(dy,dx)-centre;da=Math.atan2(Math.sin(da),Math.cos(da));if(d<reach+e.r&&Math.abs(da)<.82){const evade=Math.random()<enemyEvadeChance(e);
+   if(evade){s.hit.add(e);e.stagger=0;AUDIO.hit();evadeMarks.push({x:e.x,y:e.y-22,age:0,dur:.55});capTransient(evadeMarks,MAX_EVADE_MARKS);continue;}
+   const crit=Math.random()<(currentWeaponStats().critChance||.10);const damage=crit?Math.round(s.damage*1.75):s.damage;e.hp-=damage;s.hit.add(e);e.hit=crit?.16:.12;e.stagger=crit?.20:.12;const push=Math.max(0,1-d/(reach+e.r))*(crit?1.18:1);const pa=Math.atan2(e.y-player.y,e.x-player.x);e.x+=Math.cos(pa)*(8+18*push);e.y+=Math.sin(pa)*(8+18*push);if(crit){AUDIO.crit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.22,type:'crit',angle:Math.random()*Math.PI});capTransient(impactMarks,MAX_IMPACTS);burst(e.x,e.y,'crit',9);criticalMarks.push({x:e.x,y:e.y-22,age:0,dur:.55});capTransient(criticalMarks,MAX_CRITICALS);}else{AUDIO.hit();AUDIO.enemyHit();impactMarks.push({x:e.x,y:e.y,age:0,dur:.16,type:'hit',angle:Math.random()*Math.PI});capTransient(impactMarks,MAX_IMPACTS);burst(e.x,e.y,'hit',5);}if(e.hp<=0){AUDIO.death(e.type);deathMarks.push({x:e.x,y:e.y,type:e.type,seed:Math.random()*1000});if(e.type!=='boss')spawnLoot(e.x,e.y,e.type,e.elite);else{const reward=bossGoldReward();gold+=reward;totalGoldCollected+=reward;bossesKilled++;showPickup(`👑 GUARDIAN BONUS  +${reward} GOLD`)}enemies.splice(enemies.indexOf(e),1);kills++;addScore((SCORE_VALUES[e.type]||0)*(e.elite?2:1));awardXP(e.type==='boss'?30:e.type==='bat'?3:e.type==='goblin'?4:5+(e.elite?4:0));if(e.elite)showPickup('★ ELITE SLAIN!  DOUBLE SCORE');burst(e.x,e.y,'death',e.type==='boss'?28:e.elite?20:12);if(e.type==='boss'){areaClearTimer=1.8;areaClearShown=true;}if(!isBossRoom())spawnTimer=.65;}}}
   if(progress>=1)slashes.splice(i,1);
  }
 
@@ -819,7 +834,7 @@ function update(dt){
  });
  for(let i=loot.length-1;i>=0;i--){const l=loot[i];const pickupRadius=l.type==='Gold'?player.r+5:player.r+l.r+9;if(dist(player,l)<pickupRadius){if(l.type==='Gold'){gold+=l.amount;totalGoldCollected+=l.amount;AUDIO.pickup('Gold');showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;AUDIO.pickup('Heart');showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;AUDIO.pickup('Potion');player.hp=clamp(player.hp+scaledPotionHeal(),0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}if(l.type==='Weapon'){weaponFinds.push(l.weapon);AUDIO.pickup('Weapon');showPickup(`⚔ ${l.weapon.name} — ${l.weapon.rarity}  •  take it to the exit`)}
  if(l.type==='Armour'){player.armour=l.armour||armourInstance();AUDIO.pickup('Weapon');showPickup(`🛡 ${player.armour.name} equipped — ${Math.round(player.armour.damageReduction*100)}% damage reduction`)}burst(l.x,l.y,l.type==='Gold'?'coin':l.type==='Weapon'?'weapon':'heal',8);loot.splice(i,1);updateHud()}}
- particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0); impactMarks.forEach(m=>m.age+=dt);impactMarks=impactMarks.filter(m=>m.age<m.dur);criticalMarks.forEach(m=>m.age+=dt);criticalMarks=criticalMarks.filter(m=>m.age<m.dur);
+ particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0); impactMarks.forEach(m=>m.age+=dt);impactMarks=impactMarks.filter(m=>m.age<m.dur);criticalMarks.forEach(m=>m.age+=dt);criticalMarks=criticalMarks.filter(m=>m.age<m.dur);evadeMarks.forEach(m=>m.age+=dt);evadeMarks=evadeMarks.filter(m=>m.age<m.dur);
  if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){
    if(spawnWaveIndex<spawnWaves.length-1){spawnWaveIndex++;spawnQueue=spawnWaves[spawnWaveIndex].slice();spawnTimer=1.0;waveTransitionTimer=.9;AUDIO.wave();msg(`WAVE ${spawnWaveIndex+1}/${spawnWaves.length} — INCOMING`);}
    else{roomCleared=true;roomsCleared++;AUDIO.clear();msg('ROOM CLEARED  •  WALK TO EXIT »');burst(W/2,H/2,'clear',18)}
@@ -901,29 +916,10 @@ function drawSkullShrine(x,y){ctx.save();ctx.shadowBlur=10;ctx.shadowColor='#142
 function drawBone(x,y,r){ctx.save();ctx.translate(x,y);ctx.rotate(r);pixelRect(-18,-2,36,4,'#9c9a85');pixelRect(-17,-6,5,5,P.cream);pixelRect(12,1,5,5,P.cream);ctx.restore()}
 function drawBlood(x,y,col){ctx.fillStyle=col;for(let i=0;i<8;i++){const a=i*1.7;const rr=6+((i*13)%17);pixelRect(x+Math.cos(a)*rr,y+Math.sin(a)*rr*.55,2+(i%3),2+(i%2),ctx.fillStyle)}}
 function drawBonePile(x,y){drawBone(x-5,y-2,-.65);drawBone(x+6,y+3,.7)}
-function drawDeathMarks(){for(const m of deathMarks){
-  const remainKey=m.type==='skeleton'?'skeletonRemains':m.type==='goblin'?'goblinRemains':m.type==='bat'?'batRemains':'bossRemains';
-  const img=gameAssetImages[remainKey];
-  const duration=.72;
-  const frameCount=4;
-  if(img&&img._ready){
-    const frame=Math.min(frameCount-1,Math.floor(Math.max(0,Math.min(1,m.age/duration))*frameCount));
-    const alpha=m.age<duration?Math.max(.25,1-m.age/duration):.88;
-    ctx.save();ctx.globalAlpha=alpha;ctx.imageSmoothingEnabled=false;
-    const size=m.type==='boss'?70:52;
-    ctx.translate(m.x,m.y);
-    if(m.facingDir==='left')ctx.scale(-1,1);
-    ctx.drawImage(img,frame*32,0,32,32,-size/2,-size/2,size,size);
-    ctx.restore();
-  }else{
-    if(m.type==='skeleton')drawBonePile(m.x,m.y);
-    else if(m.type==='bat'||m.type==='boss')drawBlood(m.x,m.y,'#7a3035');
-    else drawBlood(m.x,m.y,'#3b7b45');
-  }
-  if(m.type!=='skeleton')drawGameAsset('bloodSplat',m.x,m.y,30,.45);
-}}
+function drawDeathMarks(){for(const m of deathMarks){const remainKey=m.type==='skeleton'?'skeletonRemains':m.type==='goblin'?'goblinRemains':m.type==='bat'?'batRemains':'bossRemains';if(!drawGameAsset(remainKey,m.x,m.y,34,.88)){if(m.type==='skeleton')drawBonePile(m.x,m.y);else if(m.type==='bat'||m.type==='boss')drawBlood(m.x,m.y,'#7a3035');else drawBlood(m.x,m.y,'#3b7b45')}if(m.type!=='skeleton')drawGameAsset('bloodSplat',m.x,m.y,30,.45)}}
 function drawImpactMarks(){for(const m of impactMarks){const p=Math.min(1,m.age/m.dur);drawGameAsset(m.type==='hit'?'hitSpark':'impactSpark',m.x,m.y,m.type==='crit'?38+Math.round(p*10):30+Math.round(p*8),1-p,m.angle)}}
 function drawCriticalMarks(){for(const m of criticalMarks){const p=Math.min(1,m.age/m.dur);ctx.globalAlpha=1-p;text('CRITICAL!',m.x,m.y-p*18,9,P.gold2,'center');ctx.globalAlpha=1}}
+function drawEvadeMarks(){for(const m of evadeMarks){const p=Math.min(1,m.age/m.dur);ctx.globalAlpha=1-p;text('EVADE!',m.x,m.y-p*18,9,P.teal2,'center');ctx.globalAlpha=1}}
 function drawTorch(x,y){const t=frameNow/115+x*.04;const wobble=Math.sin(t)*2;ctx.save();ctx.shadowBlur=24+Math.sin(t*.7)*5;ctx.shadowColor=P.teal;pixelRect(x-8,y,16,28,'#5b655d');pixelRect(x-5,y+5,10,19,'#2b4543');ctx.fillStyle=P.teal2;ctx.beginPath();ctx.moveTo(x+wobble,y-21-Math.sin(t)*2);ctx.lineTo(x+9,y-5);ctx.lineTo(x+Math.sin(t*1.3)*2,y+4);ctx.lineTo(x-9,y-5);ctx.closePath();ctx.fill();ctx.fillStyle=P.teal;ctx.beginPath();ctx.moveTo(x+wobble*.5,y-15);ctx.lineTo(x+4,y-5);ctx.lineTo(x,y);ctx.lineTo(x-4,y-5);ctx.closePath();ctx.fill();ctx.restore()}
 
 function drawSwordAt(x,y,weaponKeyOrInstance,angle,alpha=1,scale=1){
@@ -968,15 +964,15 @@ function drawPlayer(){
  const bob=moving?Math.sin(walkTime)*1.2:0;
  const x=player.x,y=player.y+bob,hurt=player.hitTimer>0;
  ctx.save();
- let action='idle',frame=animFrame(frameNow/1000,3.5,4);
+ let action='idle',frame=animFrame(frameNow/1000,3.5);
  if(hurt){action='hurt';frame=timedAnimFrame(.24-player.hitTimer,.24,16)}
  else if(slashes.length){const s=slashes[slashes.length-1];action='attack';frame=timedAnimFrame(s.age,s.duration,18)}
  else if(moving){
-   // The player sheet uses the full four-frame walk strip. Do not alternate
-   // between idle and walk frames: that was causing the player's movement
-   // animation to jump/flicker between poses.
-   action='walk';
-   frame=animFrame(walkTime,8,4);
+   // The Codex player walk row is a directional stepping pose, not a 4-frame cycle.
+   // Alternate it with the matching idle pose to create a clean two-pose walk.
+   const step=Math.floor(walkTime*5)%2;
+   action=step?'walk':'idle';
+   frame=directionFrame(facingDir);
  }
  const flip=facingDir==='left';
  if(drawCharacterSprite('player',action,frame,x,y,48,flip,hurt?.78:1,facingDir)){
@@ -994,16 +990,16 @@ function drawEnemy(e,i){
  ctx.save();
  const kind=e.type==='boss'?'boss':e.type;
  const size=e.type==='boss'?70:52;
- const flip=e.facingDir==='left';
- let action='idle',frame=animFrame(frameNow/1000+(i||0)*.17,e.type==='bat'?8:5,4);
+ const flip=(e.facingDir||'right')==='left';
+ let action='idle',frame=animFrame(frameNow/1000+(i||0)*.17,e.type==='bat'?8:5);
  const attacking=(e.type==='goblin'&&e.windup>0)||(e.type==='skeleton'&&(e.windup>0||e.attackAge>0))||(e.type==='bat'&&e.batAttackAge>0)||(e.type==='boss'&&(e.warningTimer>0||e.patternActive));
  if(e.hit>0){action='hurt';frame=timedAnimFrame(.12-e.hit,.12,18)}
  else if(attacking){action='attack';
    const age=e.type==='bat'?e.batAttackAge:(e.type==='skeleton'?Math.max(0,.20-e.attackAge):(e.type==='goblin'?Math.max(0,.52-e.windup):.82-e.warningTimer));
    const duration=e.type==='bat'?.34:(e.type==='skeleton'?.20:(e.type==='goblin'?.52:.82));
    frame=timedAnimFrame(age,duration,12);
- }else{action=e.type==='bat'?'walk':'walk';}
- if(drawCharacterSprite(kind,action,frame,x,y,size,flip,1,e.facingDir)){
+ }else{action='walk';}
+ if(drawCharacterSprite(kind,action,frame,x,y,size,flip,e.hit>0?.78:1,e.facingDir)){
    ctx.restore();
  }else{
    ctx.restore();drawLegacyEnemy(e,i);
@@ -1038,10 +1034,7 @@ function drawProjectile(q){
  ctx.save();
  const key=q.type==='arrow'?'goblinArrow':q.type==='fireblast'?'fireblast':'fireball';
  const size=q.type==='arrow'?30:(q.type==='fireblast'?36:32);
- // New projectile artwork is authored pointing North. Canvas 0 radians points East,
- // so rotate the sprite by +90 degrees to align its North-facing art with travel angle q.a.
- const spriteAngle=q.a+Math.PI/2;
- if(drawGameAsset(key,q.x,q.y,size,.96,spriteAngle)){ctx.restore();return}
+ if(drawGameAsset(key,q.x,q.y,size,.96,q.type==='arrow'?q.a:0)){ctx.restore();return}
  ctx.translate(q.x,q.y);ctx.rotate(q.a);
  if(q.type==='arrow'){ctx.shadowBlur=8;ctx.shadowColor=P.gold;pixelRect(-7,-2,14,4,P.cream);pixelRect(5,-1,5,2,P.gold2);ctx.restore();return}
  const blast=q.type==='fireblast';const pulse=.85+.18*Math.sin(q.age*18);ctx.globalAlpha=.95;
@@ -1242,7 +1235,7 @@ function draw(){
  if(!atShop)drawExit();
  drawDeathMarks();
  drawImpactMarks();
- drawCriticalMarks();
+ drawCriticalMarks();drawEvadeMarks();
  loot.forEach(drawLoot);
  projectiles.forEach(drawProjectile);
  entrances.forEach(drawEntrance);
@@ -1302,7 +1295,7 @@ if(inventoryCloseBottom)inventoryCloseBottom.addEventListener('pointerdown',e=>{
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.boots=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
 function returnToTitle(){AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];doorSequenceActive=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
