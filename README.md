@@ -78,6 +78,18 @@ Upload the project files to the root of a GitHub repository, then enable **Setti
 
 # Change Log
 
+## 0.3.8f — Armour & Equipment System
+
+- Added Common, Uncommon, Rare, Epic and Legendary Iron equipment.
+- Added Helmet, Chest Piece and Boots equipment slots with rarity-based bonuses, using the authored `helmet.png`, `chest-piece.png` and `boots(1).png` assets.
+- Added physical equipment drops using the authored armour-drop asset; collected equipment is automatically equipped.
+- Helmet provides critical-hit resistance, Chest Piece provides damage reduction, and Boots provide Evade.
+- Added enemy critical hits so Helmet resistance has an active combat effect.
+- Expanded the end-of-area screen to show the current equipment loadout alongside permanent upgrades.
+- Expanded the inventory into a proper equipment layout using the authored Helmet, Chest Piece and Boots assets.
+- Removed Move Speed from the level-up upgrade pool.
+- Fixed the equipment drop slot roll so each equipment type has a consistent chance.
+
 ## 0.3.8e — Bug Hunt & Asset Direction Fixes
 
 - Corrected projectile arrow orientation for the updated arrow asset, which is authored pointing cardinal North.
