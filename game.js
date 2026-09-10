@@ -371,7 +371,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.8r';
+const VERSION='0.3.8s';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -1719,7 +1719,20 @@ if(shopScreen)shopScreen.addEventListener('click',e=>{
   const b=e.target.closest('.shopBuy');if(b){e.preventDefault();e.stopPropagation();if(!b.disabled){AUDIO.menu();buyUpgrade(b.dataset.shop)}return}
   if(e.target.closest('#shopContinue')){e.preventDefault();e.stopPropagation();AUDIO.menu();continueFromShop();return}
 });
-if(gameOverHome)gameOverHome.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();document.getElementById('gameOverScreen')?.classList.remove('show');returnToTitle()});
+// Main-menu image hit zones. The artwork supplies the visible buttons; these transparent
+// buttons provide reliable, accessible touch/click targets without drawing over the art.
+if(playButton)playButton.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();AUDIO.menu();if(started)return;closeScoreboard();startNewRun();msg('AREA 1 • CASTLE — ROOM 1 • CLEAR THE ROOM')});
+if(scoreboardButton)scoreboardButton.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();AUDIO.menu();openScoreboard()});
+if(exitAppButton)exitAppButton.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();AUDIO.menu();exitApp()});
+if(scoreboardBack)scoreboardBack.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();AUDIO.menu();closeScoreboard()});
+if(clearScoreboardButton)clearScoreboardButton.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();AUDIO.menu();clearScoreboard()});
+if(inventoryButton)inventoryButton.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();AUDIO.menu();openInventory()});
+if(inventoryClose)inventoryClose.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();AUDIO.menu();closeInventory()});
+if(inventoryCloseBottom)inventoryCloseBottom.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();AUDIO.menu();closeInventory()});
+if(gameOverHome)gameOverHome.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();AUDIO.menu();document.getElementById('gameOverScreen')?.classList.remove('show');returnToTitle()});
+startScreen.style.display='none';
+// Keep the menu underneath the splash during its fade so there is never a frame of the dungeon showing between them.
+setTimeout(()=>{startScreen.style.display='flex';splashScreen.classList.add('done');setTimeout(()=>{splashScreen.style.display='none';msg('PRESS PLAY TO ENTER THE DUNGEON')},220)},1800);
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});

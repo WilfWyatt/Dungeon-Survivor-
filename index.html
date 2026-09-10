@@ -51,14 +51,16 @@
     .menuButton.primary,#menuActions button:first-child{background:linear-gradient(#3cbd79,#16884e 50%,#0b5735);border-color:#bfe7ca;box-shadow:inset 0 2px 0 #8df5b3,inset 0 -2px 0 #063521,0 4px 0 #020607,0 0 0 1px #48695a}
     .menuButton.danger,#menuActions button:last-child{background:linear-gradient(#a52e31,#702024 50%,#421216);border-color:#d99a9b;box-shadow:inset 0 2px 0 #ed6668,inset 0 -2px 0 #26090b,0 4px 0 #020607,0 0 0 1px #654042}
     .menuButton:active,#menuActions button:active{transform:translateY(2px)}
-    #startScreen{background-image:url('./menu-screen.png')}
-    #startScreen:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,7,9,.15),rgba(2,7,9,.05) 45%,rgba(2,7,9,.52));pointer-events:none}
-    #startScreen:before{content:'DUNGEON\A SURVIVOR';white-space:pre;position:absolute;top:7%;left:0;right:0;text-align:center;color:#f0e5c8;font:900 31px/1 ui-monospace,monospace;letter-spacing:1px;text-shadow:0 4px 0 #16110d,0 0 10px #000;z-index:2}
-    #playButton{z-index:3;left:22%;top:43%;width:56%;height:10%;background:linear-gradient(#c63b35,#8e211f 55%,#551313);border:2px solid #d8d9d5;box-shadow:inset 0 2px 0 #ff8b71,inset 0 -3px 0 #3a0707,0 5px 0 #020607,0 0 0 2px #5a6061;color:#fff1d2;font:900 15px ui-monospace,monospace;letter-spacing:1px;text-shadow:0 3px 2px #3a0000;border-radius:5px}
-    #playButton:after{content:'⚔  START RUN';color:#fff1d2;font:900 15px ui-monospace,monospace;letter-spacing:1px}
-    #menuActions{left:18%;right:18%;bottom:9%;gap:7px;z-index:4}
-    #menuActions button{min-height:38px;font-size:10px}
-    #versionLabel{font-size:9px;bottom:2%;opacity:.9}
+    /* v0.3.8s — main menu is now a single authored image with transparent hit zones. */
+    #startScreen{background-image:url('./assets/menu/dungeon-survivor-menu.png');background-size:100% 100%;background-position:center;background-repeat:no-repeat;z-index:500}
+    #startScreen:after,#startScreen:before{display:none!important}
+    .menuImageButton{position:absolute;display:block;padding:0;margin:0;border:0;background:transparent;color:transparent;font-size:0;line-height:0;box-shadow:none;outline:none;cursor:pointer;z-index:3;touch-action:manipulation;-webkit-tap-highlight-color:transparent;text-indent:-9999px}
+    .menuImageButton:focus-visible{outline:2px solid #83f0d7;outline-offset:4px}
+    .menuImageButton:active{transform:translateY(2px)}
+    #playButton{left:24%;top:43.2%;width:52%;height:8.0%}
+    #scoreboardButton{left:24%;top:52.7%;width:52%;height:8.0%}
+    #exitAppButton{left:24%;top:61.9%;width:52%;height:8.0%}
+    #menuActions,#versionLabel{display:none!important}
     #scoreboardScreen,#inventoryScreen,#roomRewardScreen{background:rgba(1,7,9,.86);backdrop-filter:blur(2px)}
     #scoreboardScreen:before,#inventoryScreen:before,#roomRewardScreen:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 25%,rgba(73,126,127,.12),transparent 45%);pointer-events:none}
     .scoreboardPanel{width:min(350px,94vw);padding:22px 18px;min-height:410px}
@@ -185,12 +187,9 @@
       <canvas id="game"></canvas>
       <div id="splashScreen" aria-label="Dungeon Survivor splash screen"></div>
       <div id="startScreen" aria-label="Dungeon Survivor start menu">
-        <button id="playButton" type="button" aria-label="Play">PLAY</button>
-        <div id="menuActions">
-          <button id="scoreboardButton" type="button">LOCAL SCOREBOARD</button>
-          <button id="exitAppButton" type="button">EXIT APP</button>
-        </div>
-        <div id="versionLabel">v0.3.8r</div>
+        <button id="playButton" class="menuImageButton" type="button" aria-label="Play">PLAY</button>
+        <button id="scoreboardButton" class="menuImageButton" type="button" aria-label="Local scoreboard">LOCAL SCOREBOARD</button>
+        <button id="exitAppButton" class="menuImageButton" type="button" aria-label="Exit app">EXIT APP</button>
       </div>
       <div id="roomRewardScreen" aria-label="Room reward screen">
         <div class="menuPanel roomRewardPanel">
@@ -270,6 +269,6 @@
       <div id="fire" role="button" aria-label="Swing sword">⚔<span>SWING</span></div>
     </section>
   </main>
-  <script src="game.js?v=0.3.8r"></script>
+  <script src="game.js?v=0.3.8s"></script>
 </body>
 </html>
