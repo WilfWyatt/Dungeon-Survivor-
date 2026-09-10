@@ -371,7 +371,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.8n';
+const VERSION='0.3.8o';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -1487,25 +1487,42 @@ function openCorridor(){
  msg('THE CORRIDOR SPLITS AHEAD… WHICH WAY WILL YOU GO?');
 }
 function closeCorridor(){corridorOpen=false;paused=false;document.getElementById('corridorScreen')?.classList.remove('show')}
+let corridorSelectionLocked=false;
 function chooseCorridor(side){
- if(!corridorOpen||!corridorChoices?.[side])return;
+ if(corridorSelectionLocked||!corridorOpen||!corridorChoices?.[side])return;
+ corridorSelectionLocked=true;
  const choice=corridorChoices[side];
- corridorOpen=false;document.getElementById('corridorScreen')?.classList.remove('show');paused=false;
+ const buttons=document.querySelectorAll('#corridorScreen button[data-side]');
+ buttons.forEach(b=>{b.disabled=true;b.classList.toggle('selected',b.dataset.side===side);b.classList.toggle('dimmed',b.dataset.side!==side)});
+ corridorOpen=false;
+ document.getElementById('corridorScreen')?.classList.remove('show');
+ paused=false;
  if(choice.type==='treasure'){pendingTreasureRoom=true;pendingMerchantRoom=false}
  else if(choice.type==='merchant'){pendingTreasureRoom=false;pendingMerchantRoom=true}
  else{pendingTreasureRoom=false;pendingMerchantRoom=false}
  AUDIO.transition();
  startRoomTransition(room+1,choice.type);
+ setTimeout(()=>{corridorSelectionLocked=false},260);
 }
 function renderCorridor(){
  const overlay=document.getElementById('corridorScreen');if(!overlay||!corridorChoices)return;
  document.getElementById('corridorHintLeft').textContent=corridorChoices.left.hint;
  document.getElementById('corridorHintRight').textContent=corridorChoices.right.hint;
+ const buttons=overlay.querySelectorAll('button[data-side]');
+ buttons.forEach(b=>{b.disabled=false;b.classList.remove('selected','dimmed')});
+ corridorSelectionLocked=false;
  overlay.classList.add('show');
  overlay.style.display='flex';
  overlay.style.pointerEvents='auto';
 }
-function handleCorridorPointer(e){const b=e.target.closest('button[data-side]');if(!b)return;e.preventDefault();e.stopPropagation();AUDIO.menu();chooseCorridor(b.dataset.side)}
+function handleCorridorChoice(e){
+ e.preventDefault();
+ e.stopPropagation();
+ if(corridorSelectionLocked)return;
+ const side=e.currentTarget.dataset.side;
+ AUDIO.menu();
+ chooseCorridor(side);
+}
 
 function startRoomTransition(nextRoom,routeType='normal'){
  if(roomTransition)return; AUDIO.exit();AUDIO.doorClose();AUDIO.transition();
@@ -1666,7 +1683,12 @@ const inventoryCloseBottom=document.getElementById('inventoryCloseBottom');
 const roomRewardScreen=document.getElementById('roomRewardScreen');
 if(roomRewardScreen)roomRewardScreen.addEventListener('pointerdown',handleRewardPointer);
 const corridorScreen=document.getElementById('corridorScreen');
-if(corridorScreen)corridorScreen.addEventListener('pointerdown',handleCorridorPointer);
+if(corridorScreen){
+  corridorScreen.querySelectorAll('button[data-side]').forEach(b=>{
+    b.addEventListener('pointerup',handleCorridorChoice);
+    b.addEventListener('click',handleCorridorChoice);
+  });
+}
 startScreen.style.display='none';
 // Keep the menu underneath the splash during its fade so there is never a frame of the dungeon showing between them.
 setTimeout(()=>{startScreen.style.display='flex';splashScreen.classList.add('done');setTimeout(()=>{splashScreen.style.display='none';msg('PRESS PLAY TO ENTER THE DUNGEON')},220)},1800);
