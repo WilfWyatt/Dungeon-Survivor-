@@ -73,7 +73,7 @@
     .inventoryHeader #inventoryClose{width:42px;height:42px;font-size:26px;border:2px solid #6b7d84;background:#12282e;color:var(--ui-cream);position:relative;z-index:2}
     .invOverview{gap:7px;margin:8px 0 13px}.invStat{padding:9px 7px;border:1px solid #45636a;background:linear-gradient(180deg,#10272d,#07171b)}.invStat span{font-size:7px}.invStat b{font-size:10px}.purseInv b{font-size:12px}.invSectionTitle{font-size:9px;padding:8px 3px 5px}.invEquipGrid{gap:7px}.invEquipSlot{padding:7px;border:1px solid #45636a;background:linear-gradient(180deg,#10272d,#07171b)}.invEquipImage{height:64px}.invEquipImage img{width:52px;height:52px}.invEquipInfo strong{font-size:8px}.invEquipInfo b{font-size:9px}.invEquipInfo small,.invEquipInfo em,.invEquipInfo .rarity{font-size:7px}.invWeapon{padding:9px;border:1px solid #45636a;background:linear-gradient(180deg,#10272d,#07171b)}.invWeaponIcon{width:50px;height:50px;font-size:27px}.invWeaponMain strong{font-size:13px}.invWeaponStats span,.invRunGrid span{font-size:8px}.invWeaponStats b,.invRunGrid b{font-size:9px}
     .roomRewardPanel{width:min(720px,96vw);padding:20px;max-height:94vh}.roomRewardGrid{gap:12px}.rewardPanel{padding:14px;border:1px solid #4d6c72;background:linear-gradient(180deg,#10272d,#07171b);border-radius:4px}.rewardMiniTitle{font-size:10px;letter-spacing:1px;color:#9cefdc}.rewardEmpty{min-height:180px}.rewardEmpty b{font-size:13px;color:var(--ui-cream)}.rewardEmpty small{font-size:9px}.levelChoice{min-height:68px;padding:12px;border:2px solid #49666c;background:linear-gradient(180deg,#163139,#0b1b20);box-shadow:inset 0 2px 0 #31545b,0 3px 0 #020607}.levelChoice b{font-size:12px;color:var(--ui-cream)}.levelChoice small{font-size:9px}.weaponCompare{gap:7px}.weaponCol{padding:12px 9px;border:1px solid #45636a;background:#08181c}.weaponCol.found{border:2px solid #63d8bf;box-shadow:0 0 12px rgba(77,220,191,.12)}.smallTitle{font-size:8px}.weaponName{font-size:12px}.rarity{font-size:8px}.weaponStat{font-size:8px;padding:5px 0}.weaponButtons{gap:8px}.roomRewardActions{position:relative;z-index:2}.roomRewardActions .menuButton{min-height:50px;font-size:12px}
-    /* v0.3.8q — corridor route UI: strong menu treatment + real image slot */
+    /* v0.3.8r — corridor route UI: strong menu treatment + real image slot */
     #corridorScreen{position:absolute;inset:0;z-index:220;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(1,7,9,.94);backdrop-filter:blur(2px);touch-action:manipulation;pointer-events:auto;box-sizing:border-box}
     #corridorScreen.show{display:flex !important}
     #gameFrame{position:relative;overflow:hidden}
@@ -103,6 +103,71 @@
     .shopGrid{display:grid;gap:8px;position:relative}.shopCard{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:9px;padding:9px;border:1px solid #45636a;background:linear-gradient(180deg,#10272d,#07171b);min-height:64px}.shopIcon{width:40px;height:40px;display:grid;place-items:center;border:1px solid #38565c;background:#0a1b1f;font-size:22px}.shopName{font-size:10px;color:var(--ui-cream);font-weight:900}.shopDesc{font-size:7px;color:#91a6a2;margin-top:4px;line-height:1.35}.shopCost{font-size:10px;color:var(--ui-gold);font-weight:900;text-align:right;margin-bottom:5px}.shopCard .menuButton{min-height:34px;padding:0 9px;width:auto;font-size:9px}.loadoutTitle{font-size:9px;color:var(--ui-teal);letter-spacing:1px;border-bottom:1px solid #38565c;padding:10px 2px 5px;margin-top:7px;position:relative}.shopLoadout{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:7px;position:relative}.loadoutSlot{padding:7px;border:1px solid #38565c;background:#08181c;text-align:center}.loadoutSlot img{width:42px;height:42px;object-fit:contain;image-rendering:pixelated}.loadoutSlot strong{display:block;font-size:7px;color:var(--ui-cream);margin-top:3px}.loadoutSlot small{display:block;font-size:6px;color:#83f0d7;margin-top:2px}
     .gameOverScore{text-align:center;color:var(--ui-gold);font-size:22px;font-weight:900;margin:8px 0 4px;text-shadow:0 3px 0 #21170a}.gameOverBadge{text-align:center;color:#ed7b7d;font-size:9px;font-weight:900;min-height:14px}.summaryGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:14px 0}.summaryStat{padding:9px;border:1px solid #45636a;background:#08181c}.summaryStat span{display:block;font-size:7px;color:#829995}.summaryStat b{display:block;font-size:12px;color:var(--ui-cream);margin-top:4px}.bestRuns{border-top:1px solid #38565c;padding-top:9px;margin-bottom:12px}.bestRunsTitle{font-size:8px;color:var(--ui-teal);letter-spacing:1px;text-align:center;margin-bottom:6px}.bestRun{display:flex;justify-content:space-between;padding:5px 7px;font-size:8px;color:#cbd3cc}.bestRun b{color:var(--ui-gold)}
     @media(max-width:560px){.roomRewardPanel{padding:15px}.roomRewardGrid{grid-template-columns:1fr}.rewardPanel{padding:12px}.rewardEmpty{min-height:110px}.menuTitle{font-size:21px}.bigMenuPanel{padding:18px 13px}.shopCard{grid-template-columns:38px 1fr auto}.shopIcon{width:36px;height:36px}.corridorAtmosphere{max-height:205px}}
+
+    /* v0.3.8r — full-screen decision overlays + mobile input cleanup */
+    body.modalDecisionOpen #topUI, body.modalDecisionOpen #controls{display:none!important}
+    #roomRewardScreen,#corridorScreen,#shopScreen{
+      position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;
+      z-index:300!important;display:none;align-items:center;justify-content:center;
+      padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));
+      box-sizing:border-box;background:rgba(1,7,9,.97);backdrop-filter:blur(3px);touch-action:manipulation;overflow:hidden;
+    }
+    #roomRewardScreen.show,#corridorScreen.show,#shopScreen.show{display:flex!important}
+    #roomRewardScreen:before,#corridorScreen:before,#shopScreen:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 18%,rgba(83,170,160,.12),transparent 48%);pointer-events:none}
+    .roomRewardPanel,.corridorPanel,.bigMenuPanel{
+      width:min(900px,96vw);max-width:900px;max-height:calc(100vh - 28px);overflow:auto;
+      padding:24px;box-sizing:border-box;position:relative;z-index:1;
+      background:linear-gradient(180deg,rgba(18,35,41,.99),rgba(5,15,18,.99));
+      border:2px solid var(--ui-edge);box-shadow:inset 0 0 0 2px #0a171b,0 0 0 3px #050b0e,0 18px 45px #000f;
+      -webkit-overflow-scrolling:touch;
+    }
+    .roomRewardPanel:before,.corridorPanel:before,.bigMenuPanel:before{content:'';position:absolute;inset:6px;border:1px solid #29464d;pointer-events:none;opacity:.8}
+    .roomRewardGrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+    .rewardPanel{min-height:0}
+    .rewardEmpty{min-height:120px}
+    .corridorPanel{width:min(900px,96vw);padding:24px 22px 18px}
+    .corridorPanel .menuTitle{font-size:27px}
+    .corridorAtmosphere{width:min(700px,100%);max-height:none;aspect-ratio:16/9;margin:8px auto 16px}
+    .corridorSplit{gap:16px}
+    .corridorChoice{min-height:170px;padding:16px 14px}
+    .corridorSide{font-size:16px}
+    .corridorArrow{font-size:38px}
+    .corridorHint{font-size:10px;max-width:28em}
+    .corridorFooter{font-size:8px;margin-top:14px}
+    .bigMenuPanel{width:min(760px,94vw)}
+    .shopGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .shopCard{grid-template-columns:1fr;gap:8px;min-height:145px;text-align:center;padding:12px}
+    .shopIcon{margin:auto;width:48px;height:48px}
+    .shopCost{text-align:center}
+    .shopCard .menuButton{width:100%}
+    .shopLoadout{gap:10px}
+    .loadoutSlot{padding:10px}
+    .loadoutSlot img{width:52px;height:52px}
+    #shopContinue{min-height:52px;font-size:12px}
+    @media(max-width:700px){
+      .roomRewardPanel,.corridorPanel,.bigMenuPanel{width:94vw;max-height:calc(100vh - 20px);padding:18px 14px}
+      .roomRewardGrid{grid-template-columns:1fr;gap:10px}
+      .roomRewardHeader{margin-bottom:9px}
+      .menuTitle{font-size:21px}
+      .rewardPanel{padding:11px}
+      .rewardEmpty{min-height:92px}
+      .levelChoice{min-height:62px;padding:10px}
+      .corridorPanel .menuTitle{font-size:21px}
+      .corridorAtmosphere{margin:5px auto 11px}
+      .corridorSplit{gap:9px}
+      .corridorChoice{min-height:145px;padding:12px 8px}
+      .corridorSide{font-size:13px}
+      .corridorArrow{font-size:30px}
+      .corridorHint{font-size:8px;line-height:1.4;min-height:40px}
+      .shopGrid{grid-template-columns:1fr;gap:8px}
+      .shopCard{grid-template-columns:44px 1fr auto;min-height:70px;text-align:left;padding:9px}
+      .shopIcon{margin:0;width:40px;height:40px}
+      .shopCost{text-align:right}
+      .shopCard .menuButton{width:auto}
+      .shopLoadout{gap:6px}
+      .loadoutSlot{padding:7px}
+      .loadoutSlot img{width:42px;height:42px}
+    }
   </style>
 </head>
 <body>
@@ -125,7 +190,7 @@
           <button id="scoreboardButton" type="button">LOCAL SCOREBOARD</button>
           <button id="exitAppButton" type="button">EXIT APP</button>
         </div>
-        <div id="versionLabel">v0.3.8q</div>
+        <div id="versionLabel">v0.3.8r</div>
       </div>
       <div id="roomRewardScreen" aria-label="Room reward screen">
         <div class="menuPanel roomRewardPanel">
@@ -205,6 +270,6 @@
       <div id="fire" role="button" aria-label="Swing sword">⚔<span>SWING</span></div>
     </section>
   </main>
-  <script src="game.js?v=0.3.8q"></script>
+  <script src="game.js?v=0.3.8r"></script>
 </body>
 </html>

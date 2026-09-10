@@ -371,7 +371,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.8o';
+const VERSION='0.3.8r';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -742,9 +742,11 @@ function activateEntrance(ent){
 }
 
 function isBossRoom(){return room===bossRoom}
+function setDecisionOverlayOpen(open){document.body.classList.toggle('modalDecisionOpen',!!open)}
+function bindMenuClick(el,fn){if(!el)return;el.addEventListener('click',e=>{if(e.defaultPrevented)return;e.stopPropagation();fn(e)},{passive:false})}
 function bossDefeated(){return room===bossRoom && roomCleared}
 function beginAreaShop(){
- AUDIO.shop(); atShop=true;areaComplete=true;shopMessage=`${areaName} COMPLETE — spend your gold before the next area.`;
+ AUDIO.shop(); atShop=true;areaComplete=true;setDecisionOverlayOpen(true);shopMessage=`${areaName} COMPLETE — spend your gold before the next area.`;
  msg('AREA COMPLETE — CHOOSE YOUR UPGRADES');renderShopScreen();
 }
 function buyUpgrade(type){
@@ -1486,11 +1488,11 @@ function openCorridor(){
  document.getElementById('roomRewardScreen')?.classList.remove('show');
  buildCorridorChoices();
  corridorOpen=true;
- paused=true;
+ paused=true;setDecisionOverlayOpen(true);
  renderCorridor();
  msg('THE CORRIDOR SPLITS AHEAD… WHICH WAY WILL YOU GO?');
 }
-function closeCorridor(){corridorOpen=false;paused=false;document.getElementById('corridorScreen')?.classList.remove('show')}
+function closeCorridor(){corridorOpen=false;paused=false;document.getElementById('corridorScreen')?.classList.remove('show');if(!atShop&&!roomRewardOpen)setDecisionOverlayOpen(false)}
 let corridorSelectionLocked=false;
 function chooseCorridor(side){
  if(corridorSelectionLocked||!corridorOpen||!corridorChoices?.[side])return;
@@ -1544,6 +1546,7 @@ function startRoomTransition(nextRoom,routeType='normal'){
  const nextVariation=(nextRoom*37+area*101)%997;
  const nextName=nextRoom===bossRoom?'GUARDIAN':nextTreasure?'TREASURE ROOM':nextMerchant?'MERCHANT':ROOM_ARCHETYPES[(nextVariation+nextRoom*3+area)%ROOM_ARCHETYPES.length];
  roomTransition={timer:0,duration:.95,switchAt:.38,nextRoom,roomName:nextName,switched:false};
+ setTimeout(()=>{if(!roomRewardOpen&&!corridorOpen&&!atShop)setDecisionOverlayOpen(false)},980);
  msg(`ENTERING ${nextName}`);
 }
 
@@ -1559,7 +1562,7 @@ function renderShopScreen(){
  document.querySelectorAll('.shopBuy').forEach(btn=>{const type=btn.dataset.shop;const cost=type==='damage'?100:type==='health'?75:125;btn.disabled=gold<cost;btn.textContent=gold<cost?'NEED GOLD':'BUY';});
  screen.classList.add('show');
 }
-function closeShopScreen(){document.getElementById('shopScreen')?.classList.remove('show')}
+function closeShopScreen(){document.getElementById('shopScreen')?.classList.remove('show');if(!corridorOpen&&!roomRewardOpen)setDecisionOverlayOpen(false)}
 function renderGameOverScreen(){
  const screen=document.getElementById('gameOverScreen');if(!screen)return;
  const rank=scoreRank();
@@ -1588,10 +1591,10 @@ function renderRoomRewards(){
  if(weaponPanel)weaponPanel.innerHTML=weaponPending?rewardWeaponHTML():`<div class="rewardEmpty"><div class="rewardMiniTitle">WEAPON</div><b>NO WEAPON FOUND</b><small>Your weapon remains equipped.</small></div>`;
  if(levelPanel){if(levelPending){if(!levelChoices.length)levelChoices=rollLevelChoices();const levelNo=level-pendingLevelUps+1;levelPanel.innerHTML=`<div class="rewardMiniTitle">LEVEL UP • LEVEL ${levelNo}</div><div class="rewardLevelList">${levelChoices.map(c=>`<button type="button" class="levelChoice" data-choice="${c.id}"><b>${c.title}</b><small>${c.desc}</small></button>`).join('')}</div>`}else levelPanel.innerHTML=`<div class="rewardEmpty"><div class="rewardMiniTitle">LEVEL UP</div><b>NO LEVEL REWARD</b><small>No unspent level-ups.</small></div>`}
  if(continueBtn){const ready=!weaponPending&&!levelPending;continueBtn.disabled=!ready;continueBtn.textContent=isBossRoom()?(ready?'CONTINUE TO SHOP':'MAKE ALL CHOICES'):(ready?'ENTER NEXT ROOM':'MAKE ALL CHOICES')}
- overlay.classList.add('show');
+ overlay.classList.add('show');setDecisionOverlayOpen(true);
 }
 function openRoomRewards(){if(roomRewardOpen||atShop)return;if(!weaponFinds.length&&!pendingLevelUps){if(isBossRoom())beginAreaShop();else openCorridor();return}roomRewardOpen=true;doorSequenceActive=true;weaponPromptOpen=weaponFinds.length>0;pendingWeaponIndex=0;levelChoiceOpen=pendingLevelUps>0;levelChoices=[];paused=true;AUDIO.exit();renderRoomRewards();msg('REWARD CACHE OPEN • CHOOSE YOUR REWARDS')}
-function closeRoomRewards(){roomRewardOpen=false;doorSequenceActive=false;weaponPromptOpen=false;weaponBurning=false;levelChoiceOpen=false;levelChoices=[];paused=false;document.getElementById('roomRewardScreen')?.classList.remove('show')}
+function closeRoomRewards(){roomRewardOpen=false;doorSequenceActive=false;weaponPromptOpen=false;weaponBurning=false;levelChoiceOpen=false;levelChoices=[];paused=false;document.getElementById('roomRewardScreen')?.classList.remove('show');if(!corridorOpen&&!atShop)setDecisionOverlayOpen(false)}
 function continueDoorSequence(){if(!roomRewardOpen)return;if(weaponFinds.length||pendingLevelUps>0){renderRoomRewards();return}closeRoomRewards();if(isBossRoom())beginAreaShop();else openCorridor()}
 function advanceWeaponFind(){pendingWeaponIndex++;if(pendingWeaponIndex>=weaponFinds.length){weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;renderRoomRewards()}else renderRoomRewards()}
 function discardCurrentFind(){if(!roomRewardOpen||weaponBurning)return;weaponBurning=true;const w=weaponFinds[pendingWeaponIndex];const panel=document.getElementById('rewardWeaponPanel');if(panel){panel.classList.add('burning');const title=panel.querySelector('.rewardMiniTitle');if(title)title.textContent='THROWN INTO THE FIRE'}showPickup(`🔥 ${w.name} thrown into the fire`);setTimeout(()=>{weaponBurning=false;advanceWeaponFind()},240)}
@@ -1692,44 +1695,36 @@ const inventoryScreen=document.getElementById('inventoryScreen');
 const inventoryClose=document.getElementById('inventoryClose');
 const inventoryCloseBottom=document.getElementById('inventoryCloseBottom');
 const roomRewardScreen=document.getElementById('roomRewardScreen');
-if(roomRewardScreen)roomRewardScreen.addEventListener('pointerdown',handleRewardPointer);
-const corridorScreen=document.getElementById('corridorScreen');
-if(corridorScreen){
-  // IMPORTANT: do not select on pointerdown/pointerup. On mobile, the DOM can
-  // change between the press and release when another overlay closes/opens,
-  // causing the release to leak into the game underneath. Block the pointer
-  // event, then let the browser's normal CLICK activate the chosen button.
-  corridorScreen.addEventListener('pointerdown',handleCorridorPointerBlock,true);
-  corridorScreen.addEventListener('pointerup',handleCorridorPointerBlock,true);
-  corridorScreen.addEventListener('click',e=>{
-    const b=e.target.closest('button[data-side]');
-    if(!b)return;
-    handleCorridorChoice.call(b,e);
+if(roomRewardScreen){
+  roomRewardScreen.addEventListener('click',e=>{
+    const t=e.target.closest('button');if(!t||t.disabled)return;
+    e.preventDefault();e.stopPropagation();AUDIO.menu();
+    if(t.id==='roomRewardContinue'){continueDoorSequence();return}
+    if(t.dataset.choice){chooseLevelChoice(t.dataset.choice);return}
+    if(t.id==='equipWeapon'){handleWeaponDecision(true);return}
+    if(t.id==='keepWeapon'){handleWeaponDecision(false);return}
   });
 }
-startScreen.style.display='none';
-// Keep the menu underneath the splash during its fade so there is never a frame of the dungeon showing between them.
-setTimeout(()=>{startScreen.style.display='flex';splashScreen.classList.add('done');setTimeout(()=>{splashScreen.style.display='none';msg('PRESS PLAY TO ENTER THE DUNGEON')},220)},1800);
-playButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();if(started)return;closeScoreboard();startNewRun();msg('AREA 1 • CASTLE — ROOM 1 • CLEAR THE ROOM')});
-if(scoreboardButton)scoreboardButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();openScoreboard()});
-if(scoreboardBack)scoreboardBack.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeScoreboard()});
-if(clearScoreboardButton)clearScoreboardButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();clearScoreboard()});
-if(exitAppButton)exitAppButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();exitApp()});
-if(inventoryButton)inventoryButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();openInventory()});
-if(inventoryClose)inventoryClose.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeInventory()});
-if(inventoryCloseBottom)inventoryCloseBottom.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeInventory()});
-if(shopScreen)shopScreen.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();const b=e.target.closest('.shopBuy');if(b){AUDIO.menu();return}});
-if(shopScreen)shopScreen.addEventListener('click',e=>{const b=e.target.closest('.shopBuy');if(b){e.preventDefault();e.stopPropagation();AUDIO.menu();buyUpgrade(b.dataset.shop);return}});
-if(shopContinue){
-  shopContinue.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();});
-  shopContinue.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();AUDIO.menu();continueFromShop()});
+const corridorScreen=document.getElementById('corridorScreen');
+if(corridorScreen){
+  corridorScreen.addEventListener('click',e=>{
+    const b=e.target.closest('button[data-side]');if(!b||b.disabled)return;
+    e.preventDefault();e.stopPropagation();
+    const side=b.dataset.side;
+    if(!side||corridorSelectionLocked||!corridorOpen)return;
+    AUDIO.menu();chooseCorridor(side);
+  });
 }
+if(shopScreen)shopScreen.addEventListener('click',e=>{
+  const b=e.target.closest('.shopBuy');if(b){e.preventDefault();e.stopPropagation();if(!b.disabled){AUDIO.menu();buyUpgrade(b.dataset.shop)}return}
+  if(e.target.closest('#shopContinue')){e.preventDefault();e.stopPropagation();AUDIO.menu();continueFromShop();return}
+});
 if(gameOverHome)gameOverHome.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();document.getElementById('gameOverScreen')?.classList.remove('show');returnToTitle()});
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;corridorOpen=false;corridorChoices=null;pendingTreasureRoom=null;pendingMerchantRoom=false;treasureRoom=false;merchantRoom=false;treasureProps=[];merchantProps=[];roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.helmet=null;player.boots=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
-function returnToTitle(){AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;corridorOpen=false;corridorChoices=null;document.getElementById('corridorScreen')?.classList.remove('show');weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];doorSequenceActive=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
+function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';setDecisionOverlayOpen(false);closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;corridorOpen=false;corridorChoices=null;pendingTreasureRoom=null;pendingMerchantRoom=false;treasureRoom=false;merchantRoom=false;treasureProps=[];merchantProps=[];roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.helmet=null;player.boots=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function returnToTitle(){setDecisionOverlayOpen(false);AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;corridorOpen=false;corridorChoices=null;document.getElementById('corridorScreen')?.classList.remove('show');weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];doorSequenceActive=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
 function joyMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,m=Math.min(45,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*m/45;joy.y=Math.sin(a)*m/45;nub.style.transform=`translate(${joy.x*45}px,${joy.y*45}px)`}
