@@ -1,4 +1,10 @@
-Dungeon Survivor — v0.3.8j
+Dungeon Survivor — v0.3.8t
+## v0.3.8t — Corridor choice + splash artwork
+- Fixed mobile corridor route selection by handling pointer release directly on the full-screen route overlay while retaining click fallback.
+- Corridor choices remain locked to the selected route and then transition into the chosen room type.
+- Added the new 432×768 splash artwork at `assets/splash/splash-screen.png`.
+- Existing menu artwork and gameplay systems are otherwise unchanged.
+
 
 ### v0.3.8j — Treasure Rooms
 - Added a special Treasure Room encounter with no enemies or combat waves.

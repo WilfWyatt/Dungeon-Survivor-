@@ -371,7 +371,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.8s';
+const VERSION='0.3.8t';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -1707,6 +1707,18 @@ if(roomRewardScreen){
 }
 const corridorScreen=document.getElementById('corridorScreen');
 if(corridorScreen){
+  // Mobile browsers can suppress a synthetic CLICK after touch interaction.
+  // Handle the route choice on POINTERUP in the overlay capture phase so the
+  // choice is consumed before the canvas/joystick can see the same gesture.
+  corridorScreen.addEventListener('pointerup',e=>{
+    const b=e.target.closest('button[data-side]');
+    if(!b||b.disabled||corridorSelectionLocked||!corridorOpen)return;
+    const side=b.dataset.side;
+    if(!side)return;
+    e.stopPropagation();
+    AUDIO.menu();
+    chooseCorridor(side);
+  },true);
   corridorScreen.addEventListener('click',e=>{
     const b=e.target.closest('button[data-side]');if(!b||b.disabled)return;
     e.preventDefault();e.stopPropagation();
