@@ -272,3 +272,21 @@ The 0.2.x releases are retained here as historical development records. They are
 - Added a clearer room-clear rhythm and stronger Castle room identity.
 - Added the requested Game Over **MAIN MENU** button.
 - Updated the start-menu visual language, splash presentation and PWA artwork.
+
+## v0.3.8l — Corridor Route Choice + Merchant Room
+
+- Added the new post-reward Corridor Route Choice flow: Room Complete → Upgrade/Reward screen → Corridor Fork → Left/Right choice → next room.
+- Added a lightweight fork-choice overlay with no map or route UI.
+- Added a large pool of varied atmospheric corridor descriptions for normal, treasure and merchant destinations to reduce repetition and avoid making room types immediately obvious.
+- Corridor choices now determine the next non-boss room type.
+- Treasure Rooms are now reached through the corridor route system rather than being randomly injected between rooms.
+- Added the Merchant Room as a safe special room with no enemies.
+- Added deliberate Merchant Room layouts using the three authored stall assets: top-left, top-centre and top-right.
+- The merchant stands directly in front of the stall.
+- Added deliberate placement of the merchant-room decoration assets around the stall/merchant rather than random scattering.
+- Top-left stall layout uses three torches in the three opposite corners.
+- Top-right stall layout uses three torches in the three opposite corners.
+- Top-centre stall layout uses four corner torches.
+- Added Merchant Room HUD/room messaging and safe exit flow.
+- Fixed authored Elite Mage fireballs so the cardinal-North asset rotates with projectile travel direction, matching the goblin-arrow orientation convention.
+- New merchant-room assets are referenced under `assets/merchant-room/` and are not included in the build ZIP; add them to the GitHub project separately.

@@ -44,6 +44,20 @@ const TREASURE_ROOM_ASSET_FILES={
 };
 const treasureImages={};
 Object.entries(TREASURE_ROOM_ASSET_FILES).forEach(([key,src])=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.onerror=()=>{img._ready=false};img.src=src;treasureImages[key]=img});
+const MERCHANT_ROOM_ASSET_FILES={
+ merchant:'assets/merchant-room/merchant.png',
+ stallLeft:'assets/merchant-room/merchant-stall-left.png',
+ stallCentre:'assets/merchant-room/merchant-stall-centre.png',
+ stallRight:'assets/merchant-room/merchant-stall-right.png',
+ rolledRugs:'assets/merchant-room/rolled-rugs.png',
+ cratesSack:'assets/merchant-room/crates-and-sack.png',
+ marketPots:'assets/merchant-room/market-pots.png',
+ barrelLantern:'assets/merchant-room/barrel-and-lantern.png',
+ foldedCloth:'assets/merchant-room/folded-cloth.png',
+ merchantBanner:'assets/merchant-room/merchant-banner.png'
+};
+const merchantImages={};
+Object.entries(MERCHANT_ROOM_ASSET_FILES).forEach(([key,src])=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.onerror=()=>{img._ready=false};img.src=src;merchantImages[key]=img});
 function drawGameAsset(key,x,y,size=32,alpha=1,angle=0){const img=gameAssetImages[key];if(!img||!img._ready)return false;ctx.save();ctx.globalAlpha=alpha;ctx.imageSmoothingEnabled=false;ctx.translate(x,y);if(angle)ctx.rotate(angle);ctx.drawImage(img,-size/2,-size/2,size,size);ctx.restore();return true;}
 
 // Architectural assets. Support the organised /walls paths, Claude's earlier assets/walls layout, and root-level uploads so repository layout cannot blank the room.
@@ -101,7 +115,7 @@ function animFrame(time,rate=8){return Math.floor(time*rate)%SPRITE_COLS;}
 function timedAnimFrame(age,duration,rate=12){return Math.min(SPRITE_COLS-1,Math.floor(Math.max(0,Math.min(1,age/Math.max(.001,duration)))*SPRITE_COLS));}
 
 let roomTiles=[],roomDecor=[];
-let treasureRoom=false,pendingTreasureRoom=null,treasureProps=[];
+let treasureRoom=false,merchantRoom=false,pendingTreasureRoom=null,pendingMerchantRoom=false,treasureProps=[],merchantProps=[],merchantStall='centre';
 const TREASURE_ROOM_KEYS=['chestClosed','goldPile','hoardCrown','skullPile','helmetGoblet','crownSceptre','goldBars','goldSack','goldCandelabra','treasureUrn','jewelledLockbox','treasureRing','goldCoinStack'];
 const TREASURE_VALUES={
  chestClosed:[420,760],goldPile:[90,180],hoardCrown:[300,560],skullPile:[160,320],helmetGoblet:[180,360],
@@ -148,6 +162,7 @@ function makeRoomLayout(){
     makeTreasureLayout(seeded,shuffle);
     return;
   }
+  if(merchantRoom){makeMerchantLayout();return;}
   // 0.2.5e: clear, deterministic edge decoration. The arena centre and bottom edge stay open.
   roomDecor=[];
   const candidates=[];
@@ -193,6 +208,49 @@ function makeRoomLayout(){
     if(distanceOk(slot.x,slot.y,placed,38)) placed.push({kind,x:slot.x,y:slot.y,torch:false});
   });
   roomDecor=placed;
+}
+
+function makeMerchantLayout(){
+  roomDecor=[];merchantProps=[];
+  // Three deliberate stall positions. The side stalls hug the upper corners;
+  // the centre stall anchors the room symmetrically.
+  const variants=[
+    {name:'left',stallKey:'stallLeft',stall:{x:92,y:108},merchant:{x:92,y:150},banner:{x:136,y:101},torches:[[288,88],[72,374],[288,374]],props:[
+      ['rolledRugs',126,191],['cratesSack',82,228],['marketPots',126,250],['barrelLantern',268,166],['foldedCloth',278,226]
+    ]},
+    {name:'centre',stallKey:'stallCentre',stall:{x:180,y:108},merchant:{x:180,y:150},banner:{x:180,y:78},torches:[[72,88],[288,88],[72,374],[288,374]],props:[
+      ['rolledRugs',92,184],['cratesSack',78,248],['marketPots',282,184],['barrelLantern',276,250],['foldedCloth',112,300],['merchantBanner',248,300]
+    ]},
+    {name:'right',stallKey:'stallRight',stall:{x:268,y:108},merchant:{x:268,y:150},banner:{x:224,y:101},torches:[[72,88],[72,374],[288,374]],props:[
+      ['rolledRugs',234,191],['cratesSack',278,228],['marketPots',234,250],['barrelLantern',92,166],['foldedCloth',82,226]
+    ]}
+  ];
+  const v=variants[roomVariation%variants.length];
+  merchantStall=v.name;
+  const torchKinds=['torch1','torch2','torch3','torch4'];
+  v.torches.forEach((pt,i)=>roomDecor.push({kind:torchKinds[i%torchKinds.length],x:pt[0],y:pt[1],torch:true}));
+  merchantProps.push({kind:v.stallKey,x:v.stall.x,y:v.stall.y,role:'stall'});
+  merchantProps.push({kind:'merchant',x:v.merchant.x,y:v.merchant.y,role:'merchant'});
+  // Banner is part of the deliberate stall dressing. Side variants get a small
+  // offset banner so it doesn't crowd the merchant; centre keeps it above the stall.
+  merchantProps.push({kind:'merchantBanner',x:v.banner.x,y:v.banner.y,role:'banner'});
+  for(const [kind,x,y] of v.props) merchantProps.push({kind,x,y,role:'decor'});
+}
+function drawMerchantProp(kind,x,y,size=32){
+  const img=merchantImages[kind];
+  if(!img||!img._ready)return false;
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(img,Math.round(x-size/2),Math.round(y-size/2),size,size);ctx.restore();return true;
+}
+function drawMerchantRoomStatic(){
+  for(const d of merchantProps){
+    if(d.role==='merchant')continue;
+    drawMerchantProp(d.kind,d.x,d.y,32);
+  }
+}
+function drawMerchantCharacter(){
+  const m=merchantProps.find(p=>p.role==='merchant');
+  if(!m)return;
+  drawMerchantProp('merchant',m.x,m.y,32);
 }
 
 function drawProp(kind,x,y){
@@ -277,6 +335,7 @@ function drawModularDungeonStatic(){
   ctx.restore();
   drawWalls();
   for(const d of roomDecor) drawProp(d.kind,d.x,d.y);
+  if(merchantRoom) drawMerchantRoomStatic();
 }
 function rebuildRoomCache(){
   roomCacheCtx.setTransform(1,0,0,1,0,0);roomCacheCtx.clearRect(0,0,360,480);
@@ -288,7 +347,8 @@ function drawModularDungeon(){
     // Keep the first frame correct while images are still loading; once the assets are ready,
     // freeze the static room into an off-screen canvas so mobile devices do not redraw it every frame.
     const topWall=wallImages.top[topWallIndex()];
-    const assetsReady=floorSheetReady && !!topWall?._ready && wallImages.left?._ready && wallImages.right?._ready && wallImages.bottom?._ready && roomDecor.every(d=>propImages[d.kind]?._ready);
+    const merchantReady=!merchantRoom||merchantProps.every(d=>merchantImages[d.kind]?._ready);
+    const assetsReady=floorSheetReady && !!topWall?._ready && wallImages.left?._ready && wallImages.right?._ready && wallImages.bottom?._ready && roomDecor.every(d=>propImages[d.kind]?._ready) && merchantReady;
     if(assetsReady)rebuildRoomCache();
   }
   if(roomCacheBuilt){ctx.drawImage(roomCache,0,0);}
@@ -313,7 +373,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.8j';
+const VERSION='0.3.8l';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -447,9 +507,10 @@ const ROOM_PLAN={1:{cap:5,total:10,weights:[['bat',.80],['goblin',.10],['skeleto
 let shopMessage='',bossWarningType='',bossWarningTimer=0,paused=false;
 let fortuneLevel=0;
 let roomTransition=null;
+let corridorOpen=false,corridorChoices=null;
 const ROOM_ARCHETYPES=['GREAT HALL','PILLARED HALL','RUINED CHAMBER','CHAPEL','GUARD ROOM','CROSS HALL'];
 function roomArchetype(){return ROOM_ARCHETYPES[(roomVariation+room*3+area)%ROOM_ARCHETYPES.length]}
-function roomDisplayName(){return treasureRoom?'TREASURE ROOM':isBossRoom()?'GUARDIAN':roomArchetype()}
+function roomDisplayName(){return treasureRoom?'TREASURE ROOM':merchantRoom?'MERCHANT':isBossRoom()?'GUARDIAN':roomArchetype()}
 function makeTreasureLayout(seeded,shuffle){
   roomDecor=[];treasureProps=[];
   const torchKinds=['torch1','torch2','torch3','torch4'];
@@ -590,15 +651,22 @@ function enemySpriteKind(e){
 }
 function resetRoom(){
  roomCacheDirty=true;
- treasureRoom=pendingTreasureRoom!==null?pendingTreasureRoom:(!isBossRoom()&&Math.random()<treasureRoomChance());
+ const selectedTreasure=pendingTreasureRoom===true;
+ const selectedMerchant=pendingMerchantRoom===true;
+ treasureRoom=selectedTreasure;
+ merchantRoom=selectedMerchant&&!treasureRoom&&!isBossRoom();
  pendingTreasureRoom=null;
+ pendingMerchantRoom=false;
  player.x=58;player.y=H/2;player.hp=clamp(player.hp,0,player.maxHp);roomVariation=(room*37+area*101)%997;makeRoomLayout();player.flash=0;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;
- enemies=[];loot=[];slashes=[];deathMarks=[];impactMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=treasureRoom;atShop=false;areaComplete=false;areaClearTimer=0;areaClearShown=false;bossWarningTimer=0;setBossWarning('');
+ enemies=[];loot=[];slashes=[];deathMarks=[];impactMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=treasureRoom||merchantRoom;atShop=false;areaComplete=false;areaClearTimer=0;areaClearShown=false;bossWarningTimer=0;setBossWarning('');
  spawnQueue=[];spawnTimer=.35;totalSpawned=0;bossPatternTimer=1.1;bossPatternStep=0;bossPatternMode='burst';spawnWaveIndex=0;spawnWaves=[];waveTransitionTimer=0;
  const isBoss=room===bossRoom;
  if(treasureRoom){
   totalQuota=0;activeCap=0;spawnQueue=[];spawnWaves=[];spawnTimer=0;
   msg(`AREA ${area} • ${areaName} — TREASURE ROOM • LOOT THE HOARD`);
+ }else if(merchantRoom){
+  totalQuota=0;activeCap=0;spawnQueue=[];spawnWaves=[];spawnTimer=0;
+  msg(`AREA ${area} • ${areaName} — MERCHANT ROOM • SAFE PASSAGE`);
  }else if(isBoss){
   totalQuota=1;activeCap=1;
   const hp=Math.round((650+area*100)*enemyScale());
@@ -812,7 +880,7 @@ function update(dt){
  // Keep the player outside the Guardian's body, while leaving enough overlap-free distance for sword reach to connect.
  const guardian=enemies.find(e=>e.type==='boss');
  if(guardian){const minD=guardian.r+player.r+6;const dx=player.x-guardian.x,dy=player.y-guardian.y,d=Math.hypot(dx,dy);if(d>0&&d<minD){player.x=guardian.x+dx/d*minD;player.y=guardian.y+dy/d*minD;}}
- if(fireHeld&&!treasureRoom)performSwing();
+ if(fireHeld&&!treasureRoom&&!merchantRoom)performSwing();
 
  if(treasureRoom){
   for(let i=treasureProps.length-1;i>=0;i--){
@@ -995,7 +1063,7 @@ function update(dt){
  for(let i=loot.length-1;i>=0;i--){const l=loot[i];const pickupRadius=l.type==='Gold'?player.r+5:player.r+l.r+9;if(dist(player,l)<pickupRadius){if(l.type==='Gold'){gold+=l.amount;totalGoldCollected+=l.amount;AUDIO.pickup('Gold');showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;AUDIO.pickup('Heart');showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;AUDIO.pickup('Potion');player.hp=clamp(player.hp+scaledPotionHeal(),0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}if(l.type==='Weapon'){weaponFinds.push(l.weapon);AUDIO.pickup('Weapon');showPickup(`⚔ ${l.weapon.name} — ${l.weapon.rarity}  •  take it to the exit`)}
  if(l.type==='Equipment'){const e=l.equipment;if(e?.id==='helmet')player.helmet=e;else if(e?.id==='chest')player.armour=e;else if(e?.id==='boots')player.boots=e;AUDIO.pickup('Weapon');showPickup(`${e.icon} ${e.name} equipped — ${e.rarity}`)}burst(l.x,l.y,l.type==='Gold'?'coin':l.type==='Weapon'?'weapon':'heal',8);loot.splice(i,1);updateHud()}}
  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0); impactMarks.forEach(m=>m.age+=dt);impactMarks=impactMarks.filter(m=>m.age<m.dur);criticalMarks.forEach(m=>m.age+=dt);criticalMarks=criticalMarks.filter(m=>m.age<m.dur);evadeMarks.forEach(m=>m.age+=dt);evadeMarks=evadeMarks.filter(m=>m.age<m.dur);
- if(!treasureRoom&&!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){
+ if(!treasureRoom&&!merchantRoom&&!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){
    if(spawnWaveIndex<spawnWaves.length-1){spawnWaveIndex++;spawnQueue=spawnWaves[spawnWaveIndex].slice();spawnTimer=1.0;waveTransitionTimer=.9;AUDIO.wave();msg(`WAVE ${spawnWaveIndex+1}/${spawnWaves.length} — INCOMING`);}
    else{roomCleared=true;roomsCleared++;AUDIO.clear();msg('ROOM CLEARED  •  WALK TO EXIT »');burst(W/2,H/2,'clear',18)}
  }
@@ -1201,7 +1269,7 @@ function drawProjectile(q){
  ctx.save();
  const key=q.type==='arrow'?'goblinArrow':q.type==='fireblast'?'fireblast':'fireball';
  const size=q.type==='arrow'?30:(q.type==='fireblast'?36:32);
- if(drawGameAsset(key,q.x,q.y,size,.96,q.type==='arrow'?q.a+Math.PI/2:0)){ctx.restore();return}
+ if(drawGameAsset(key,q.x,q.y,size,.96,(q.type==='arrow'||q.type==='fireball')?q.a+Math.PI/2:0)){ctx.restore();return}
  ctx.translate(q.x,q.y);ctx.rotate(q.a);
  if(q.type==='arrow'){ctx.shadowBlur=8;ctx.shadowColor=P.gold;pixelRect(-7,-2,14,4,P.cream);pixelRect(5,-1,5,2,P.gold2);ctx.restore();return}
  const blast=q.type==='fireblast';const pulse=.85+.18*Math.sin(q.age*18);ctx.globalAlpha=.95;
@@ -1333,12 +1401,100 @@ function drawExit(){
  if(!roomCleared)return;
  drawExitSmoke();
 }
-function startRoomTransition(nextRoom){
+const CORRIDOR_HINTS={
+ normal:[
+  'A cold draft slips through the passage ahead.', 'The stonework ahead is scarred with age.',
+  'You hear only the distant drip of water.', 'The darkness ahead seems unusually still.',
+  'A faint breeze moves through the corridor.', 'The old stones groan somewhere beyond.',
+  'Dust hangs motionless in the air ahead.', 'The passage smells faintly of damp earth.',
+  'A distant echo answers your footsteps.', 'The corridor ahead disappears into shadow.',
+  'Something about the passage feels strangely familiar.', 'The torchlight barely reaches the bend ahead.',
+  'Loose grit shifts somewhere beyond the darkness.', 'The air grows cooler as the passage continues.',
+  'A long-forgotten draft whispers between the stones.', 'You catch a muffled sound, but cannot place it.',
+  'The passage ahead gives away very little.', 'A distant creak breaks the silence.',
+  'The corridor waits in uneasy silence.', 'You hear the faint scrape of stone on stone.'
+ ,
+  'A low growl rolls through the stonework.', 'Something moves beyond the darkness.',
+  'You hear claws scraping somewhere ahead.', 'A distant shriek echoes through the passage.',
+  'Something heavy drags itself across the floor.', 'There is movement ahead… and it isn’t yours.',
+  'A foul stench drifts towards you.', 'The silence ahead breaks with a sudden hiss.',
+  'Something is pacing beyond the doorway.', 'A harsh rasping sound comes from ahead.',
+  'You hear something breathing in the dark.', 'A distant snarl fades into silence.',
+  'The floor trembles with a faint, heavy step.', 'Something knocks against the stone ahead.',
+  'A sharp cry echoes somewhere beyond the bend.', 'You hear several hurried footsteps.',
+  'The air carries the unmistakable sound of a struggle.', 'A rough scraping follows from the darkness.',
+  'Something lets out a muffled roar far ahead.', 'The corridor ahead does not sound empty.'
+ ],
+ treasure:[
+  'Something glints briefly in the darkness.', 'A faint shimmer catches your eye ahead.',
+  'You hear a soft metallic clink somewhere beyond.', 'A warm flicker dances across the far wall.',
+  'There is a strange glimmer beneath the darkness.', 'Something catches the light deeper within.',
+  'A faint ringing sound echoes ahead.', 'You notice a brief flash beyond the bend.',
+  'The darkness ahead seems to hide something bright.', 'A muted golden hue flickers and vanishes.',
+  'You hear the delicate sound of metal shifting.', 'A tiny sparkle disappears around the corner.',
+  'Something reflective lies somewhere beyond.', 'The air carries a faint scent of old metal.',
+  'A brief gleam dances across the floor ahead.', 'You catch a quiet clatter from beyond.',
+  'There is a curious shimmer somewhere in the gloom.', 'A distant chime reaches your ears.',
+  'Something valuable-looking may be hiding ahead.', 'The shadows ahead seem strangely luminous.'
+ ],
+ merchant:[
+  'A faint smell of spices drifts through the passage.', 'You hear a quiet clatter of pots ahead.',
+  'Someone seems to be moving about beyond the bend.', 'A distant voice echoes softly through the stone.',
+  'You catch the smell of leather and old wood.', 'There is a faint murmur somewhere ahead.',
+  'Something smells strangely like warm bread and herbs.', 'You hear the scrape of something being unpacked.',
+  'A soft chime sounds somewhere beyond the passage.', 'The air carries unfamiliar scents from ahead.',
+  'You hear a muted conversation behind the stone.', 'A faint lantern glow flickers around the bend.',
+  'There is a curious bustle somewhere in the darkness.', 'The smell of cloth, oil and spices reaches you.',
+  'Someone coughs quietly beyond the passage.', 'You hear wooden crates shifting somewhere ahead.',
+  'A distant laugh quickly disappears into silence.', 'The corridor carries the scent of a campfire.',
+  'You hear the soft clink of glass somewhere beyond.', 'There seems to be someone waiting ahead.'
+ ]
+};
+function corridorPick(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function corridorRouteType(){
+ const r=Math.random();
+ if(r<.52)return 'normal';
+ if(r<.78)return 'treasure';
+ return 'merchant';
+}
+function buildCorridorChoices(){
+ let a=corridorRouteType(),b=corridorRouteType(),tries=0;
+ while(b===a&&tries++<8)b=corridorRouteType();
+ const make=(type,side)=>({side,type,hint:corridorPick(CORRIDOR_HINTS[type])});
+ corridorChoices={left:make(a,'left'),right:make(b,'right')};
+}
+function openCorridor(){
+ if(corridorOpen||roomTransition||atShop||gameOver)return;
+ buildCorridorChoices();corridorOpen=true;paused=true;
+ renderCorridor();msg('THE CORRIDOR SPLITS AHEAD… WHICH WAY WILL YOU GO?');
+}
+function closeCorridor(){corridorOpen=false;paused=false;document.getElementById('corridorScreen')?.classList.remove('show')}
+function chooseCorridor(side){
+ if(!corridorOpen||!corridorChoices?.[side])return;
+ const choice=corridorChoices[side];
+ corridorOpen=false;document.getElementById('corridorScreen')?.classList.remove('show');paused=false;
+ if(choice.type==='treasure'){pendingTreasureRoom=true;pendingMerchantRoom=false}
+ else if(choice.type==='merchant'){pendingTreasureRoom=false;pendingMerchantRoom=true}
+ else{pendingTreasureRoom=false;pendingMerchantRoom=false}
+ AUDIO.transition();
+ startRoomTransition(room+1,choice.type);
+}
+function renderCorridor(){
+ const overlay=document.getElementById('corridorScreen');if(!overlay||!corridorChoices)return;
+ document.getElementById('corridorHintLeft').textContent=corridorChoices.left.hint;
+ document.getElementById('corridorHintRight').textContent=corridorChoices.right.hint;
+ overlay.classList.add('show');
+}
+function handleCorridorPointer(e){const b=e.target.closest('button[data-side]');if(!b)return;e.preventDefault();AUDIO.menu();chooseCorridor(b.dataset.side)}
+
+function startRoomTransition(nextRoom,routeType='normal'){
  if(roomTransition)return; AUDIO.exit();AUDIO.doorClose();AUDIO.transition();
- const nextTreasure=nextRoom!==bossRoom&&Math.random()<treasureRoomChance();
+ const nextTreasure=routeType==='treasure'&&nextRoom!==bossRoom;
+ const nextMerchant=routeType==='merchant'&&nextRoom!==bossRoom;
  pendingTreasureRoom=nextTreasure;
+ pendingMerchantRoom=nextMerchant;
  const nextVariation=(nextRoom*37+area*101)%997;
- const nextName=nextTreasure?'TREASURE ROOM':ROOM_ARCHETYPES[(nextVariation+nextRoom*3+area)%ROOM_ARCHETYPES.length];
+ const nextName=nextRoom===bossRoom?'GUARDIAN':nextTreasure?'TREASURE ROOM':nextMerchant?'MERCHANT':ROOM_ARCHETYPES[(nextVariation+nextRoom*3+area)%ROOM_ARCHETYPES.length];
  roomTransition={timer:0,duration:.95,switchAt:.38,nextRoom,roomName:nextName,switched:false};
  msg(`ENTERING ${nextName}`);
 }
@@ -1387,9 +1543,9 @@ function renderRoomRewards(){
  if(continueBtn){const ready=!weaponPending&&!levelPending;continueBtn.disabled=!ready;continueBtn.textContent=isBossRoom()?(ready?'CONTINUE TO SHOP':'MAKE ALL CHOICES'):(ready?'ENTER NEXT ROOM':'MAKE ALL CHOICES')}
  overlay.classList.add('show');
 }
-function openRoomRewards(){if(roomRewardOpen||atShop)return;if(!weaponFinds.length&&!pendingLevelUps){if(isBossRoom())beginAreaShop();else{AUDIO.exit();startRoomTransition(room+1)}return}roomRewardOpen=true;doorSequenceActive=true;weaponPromptOpen=weaponFinds.length>0;pendingWeaponIndex=0;levelChoiceOpen=pendingLevelUps>0;levelChoices=[];paused=true;AUDIO.exit();renderRoomRewards();msg('REWARD CACHE OPEN • CHOOSE YOUR REWARDS')}
+function openRoomRewards(){if(roomRewardOpen||atShop)return;if(!weaponFinds.length&&!pendingLevelUps){if(isBossRoom())beginAreaShop();else openCorridor();return}roomRewardOpen=true;doorSequenceActive=true;weaponPromptOpen=weaponFinds.length>0;pendingWeaponIndex=0;levelChoiceOpen=pendingLevelUps>0;levelChoices=[];paused=true;AUDIO.exit();renderRoomRewards();msg('REWARD CACHE OPEN • CHOOSE YOUR REWARDS')}
 function closeRoomRewards(){roomRewardOpen=false;doorSequenceActive=false;weaponPromptOpen=false;weaponBurning=false;levelChoiceOpen=false;levelChoices=[];paused=false;document.getElementById('roomRewardScreen')?.classList.remove('show')}
-function continueDoorSequence(){if(!roomRewardOpen)return;if(weaponFinds.length||pendingLevelUps>0){renderRoomRewards();return}closeRoomRewards();if(isBossRoom())beginAreaShop();else{AUDIO.transition();startRoomTransition(room+1)}}
+function continueDoorSequence(){if(!roomRewardOpen)return;if(weaponFinds.length||pendingLevelUps>0){renderRoomRewards();return}closeRoomRewards();if(isBossRoom())beginAreaShop();else openCorridor()}
 function advanceWeaponFind(){pendingWeaponIndex++;if(pendingWeaponIndex>=weaponFinds.length){weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;renderRoomRewards()}else renderRoomRewards()}
 function discardCurrentFind(){if(!roomRewardOpen||weaponBurning)return;weaponBurning=true;const w=weaponFinds[pendingWeaponIndex];const panel=document.getElementById('rewardWeaponPanel');if(panel){panel.classList.add('burning');const title=panel.querySelector('.rewardMiniTitle');if(title)title.textContent='THROWN INTO THE FIRE'}showPickup(`🔥 ${w.name} thrown into the fire`);setTimeout(()=>{weaponBurning=false;advanceWeaponFind()},240)}
 function equipFoundWeapon(){if(!roomRewardOpen||weaponBurning)return;const w=weaponFinds[pendingWeaponIndex];player.weapon=w;player.damage=currentWeaponStats().damage;swingCooldown=0;weaponBurning=true;const panel=document.getElementById('rewardWeaponPanel');if(panel){panel.classList.add('burning');const title=panel.querySelector('.rewardMiniTitle');if(title)title.textContent='OLD WEAPON BURNED'}showPickup(`⚔ ${w.name} equipped — old weapon to the fire`);setTimeout(()=>{weaponBurning=false;advanceWeaponFind()},240)}
@@ -1423,7 +1579,7 @@ function inventoryStatsHTML(){
 }
 function updateInventoryPanel(){const el=document.getElementById('inventoryContent');if(el)el.innerHTML=inventoryStatsHTML()}
 function openInventory(){if(!started||gameOver||atShop||weaponPromptOpen)return;paused=true;updateInventoryPanel();document.getElementById('inventoryScreen').classList.add('show');msg('GAME PAUSED  •  INVENTORY OPEN')}
-function closeInventory(){document.getElementById('inventoryScreen').classList.remove('show');paused=false;msg(treasureRoom?'TREASURE ROOM • LOOT THE HOARD  •  WALK TO EXIT »':roomCleared?'ROOM CLEARED  •  WALK TO EXIT »':`AREA ${area} • ${areaName} — ROOM ${room} • CLEAR THE ROOM`)}
+function closeInventory(){document.getElementById('inventoryScreen').classList.remove('show');paused=false;msg(treasureRoom?'TREASURE ROOM • LOOT THE HOARD  •  WALK TO EXIT »':merchantRoom?'MERCHANT ROOM • SAFE PASSAGE  •  WALK TO EXIT »':roomCleared?'ROOM CLEARED  •  WALK TO EXIT »':`AREA ${area} • ${areaName} — ROOM ${room} • CLEAR THE ROOM`)}
 function formatScoreDate(ts){if(!ts)return '—';try{return new Date(ts).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return '—'}}
 function renderScoreboard(){const list=document.getElementById('scoreList');if(!list)return;const rows=highScores.length?highScores.map((r,i)=>`<div class="scoreRow"><span>#${i+1}</span><b>${r.score}</b><span>R${r.room} • LV${r.level}</span><span>${r.kills}K • ${r.stagesCleared??Math.max(0,(r.room||1)-1)}S • ${r.bossesKilled??0}B • ${formatScoreDate(r.endedAt)}</span></div>`).join(''):`<div class="emptyScores">NO RUNS RECORDED YET</div>`;list.innerHTML=rows;}
 function clearScoreboard(){if(!highScores.length)return;if(!window.confirm('Are you sure?'))return;highScores=[];try{localStorage.removeItem('dungeonSurvivorHighScores')}catch(e){}renderScoreboard();AUDIO.confirm();}
@@ -1442,7 +1598,9 @@ function draw(){
  loot.forEach(drawLoot);
  projectiles.forEach(drawProjectile);
  entrances.forEach(drawEntrance);
- enemies.forEach((e,i)=>drawEnemy(e,i));drawPlayer();
+ enemies.forEach((e,i)=>drawEnemy(e,i));
+ if(merchantRoom)drawMerchantCharacter();
+ drawPlayer();
  drawFacingArrow();
  slashes.forEach(drawSlash);
  particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.45);let col=p.type==='coin'?P.gold2:(p.type==='heal'?P.teal2:(p.type==='weapon'?P.gold2:(p.type==='hit'?P.cream:(p.type==='spawn'?(p.spawnType==='goblin'?P.green:p.spawnType==='skeleton'?'#a57b4c':P.cream):P.gold))));pixelRect(p.x,p.y,4,4,col);ctx.globalAlpha=1});
@@ -1488,6 +1646,8 @@ const inventoryClose=document.getElementById('inventoryClose');
 const inventoryCloseBottom=document.getElementById('inventoryCloseBottom');
 const roomRewardScreen=document.getElementById('roomRewardScreen');
 if(roomRewardScreen)roomRewardScreen.addEventListener('pointerdown',handleRewardPointer);
+const corridorScreen=document.getElementById('corridorScreen');
+if(corridorScreen)corridorScreen.addEventListener('pointerdown',handleCorridorPointer);
 startScreen.style.display='none';
 // Keep the menu underneath the splash during its fade so there is never a frame of the dungeon showing between them.
 setTimeout(()=>{startScreen.style.display='flex';splashScreen.classList.add('done');setTimeout(()=>{splashScreen.style.display='none';msg('PRESS PLAY TO ENTER THE DUNGEON')},220)},1800);
@@ -1505,8 +1665,8 @@ if(gameOverHome)gameOverHome.addEventListener('pointerdown',e=>{e.preventDefault
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;pendingTreasureRoom=null;treasureRoom=false;treasureProps=[];roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.helmet=null;player.boots=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
-function returnToTitle(){AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];doorSequenceActive=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
+function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;corridorOpen=false;corridorChoices=null;pendingTreasureRoom=null;pendingMerchantRoom=false;treasureRoom=false;merchantRoom=false;treasureProps=[];merchantProps=[];roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.helmet=null;player.boots=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function returnToTitle(){AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;corridorOpen=false;corridorChoices=null;document.getElementById('corridorScreen')?.classList.remove('show');weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];doorSequenceActive=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
 function joyMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,m=Math.min(45,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*m/45;joy.y=Math.sin(a)*m/45;nub.style.transform=`translate(${joy.x*45}px,${joy.y*45}px)`}
