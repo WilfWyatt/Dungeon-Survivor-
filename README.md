@@ -273,20 +273,13 @@ The 0.2.x releases are retained here as historical development records. They are
 - Added the requested Game Over **MAIN MENU** button.
 - Updated the start-menu visual language, splash presentation and PWA artwork.
 
-## v0.3.8l — Corridor Route Choice + Merchant Room
-
-- Added the new post-reward Corridor Route Choice flow: Room Complete → Upgrade/Reward screen → Corridor Fork → Left/Right choice → next room.
-- Added a lightweight fork-choice overlay with no map or route UI.
-- Added a large pool of varied atmospheric corridor descriptions for normal, treasure and merchant destinations to reduce repetition and avoid making room types immediately obvious.
-- Corridor choices now determine the next non-boss room type.
-- Treasure Rooms are now reached through the corridor route system rather than being randomly injected between rooms.
-- Added the Merchant Room as a safe special room with no enemies.
-- Added deliberate Merchant Room layouts using the three authored stall assets: top-left, top-centre and top-right.
-- The merchant stands directly in front of the stall.
-- Added deliberate placement of the merchant-room decoration assets around the stall/merchant rather than random scattering.
-- Top-left stall layout uses three torches in the three opposite corners.
-- Top-right stall layout uses three torches in the three opposite corners.
-- Top-centre stall layout uses four corner torches.
-- Added Merchant Room HUD/room messaging and safe exit flow.
-- Fixed authored Elite Mage fireballs so the cardinal-North asset rotates with projectile travel direction, matching the goblin-arrow orientation convention.
-- New merchant-room assets are referenced under `assets/merchant-room/` and are not included in the build ZIP; add them to the GitHub project separately.
+## v0.3.8m — Corridor, merchant and bug-fix pass
+- Added the Corridor Route Choice as the progression step after room rewards: completed room → rewards/upgrade → corridor fork → left/right choice → next room.
+- Expanded the corridor description pools to 24 varied hints per destination class, with deliberately overlapping/ambiguous wording so room types are not trivially identifiable.
+- Hardened corridor choice generation so the two sides always lead to different destination types and the corridor overlay cannot sit behind another UI layer.
+- Implemented Merchant Room layouts using the three authored stall variants: top-left, top-centre and top-right. The merchant stands directly in front of the selected stall.
+- Merchant Room torches are deliberate: three opposite corners for side stalls, four corners for the centre stall. Remaining merchant assets use fixed, hand-authored placements rather than random scattering.
+- Fixed end-of-area equipment artwork rendering with fallback path resolution for Helmet, Chest Piece and Boots.
+- Corrected character sprite row mapping to the supplied 512×96 (16×3) sheets so hurt/death states do not address nonexistent rows.
+- Kept authored North-facing orientation explicit for goblin arrows and Elite Mage fireballs.
+- Build ZIP contains code + README only; assets remain external and are not bundled.

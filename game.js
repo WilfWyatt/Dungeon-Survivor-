@@ -89,9 +89,10 @@ const spriteReady={};
 Object.entries(SPRITE_SHEET_FILES).forEach(([key,src])=>{const img=new Image();img.decoding='async';img.onload=()=>{spriteReady[key]=true};img.onerror=()=>{spriteReady[key]=false};img.src=src;spriteImages[key]=img;spriteReady[key]=false});
 const SPRITE_FRAME=32;
 const SPRITE_COLS=4;
-const SPRITE_ROWS={idle:0,walk:1,attack:2,hurt:3,death:4};
-// Codex sheets use the four columns differently by state: idle/walk are directional poses,
-// while attack/hurt/death are four-frame animations. Bats are the exception: all states are animated.
+const SPRITE_ROWS={idle:0,walk:1,attack:2,hurt:1,death:2};
+const SPRITE_ROW_FALLBACK={idle:0,walk:1,attack:2,hurt:1,death:2};
+// Supplied character sheets are 512×96: 16 frames across × 3 rows.
+// Gameplay uses the authored idle/walk/attack rows; hurt/death safely reuse the available rows.
 const DIRECTIONAL_POSE_SPRITES=new Set(['player','goblin','skeleton','boss','eliteMage','eliteZombie','eliteSkeleton']);
 const DIRECTION_FRAME={down:0,up:1,right:2,left:3};
 function directionFrame(dir){return DIRECTION_FRAME[dir]??DIRECTION_FRAME.right;}
@@ -373,7 +374,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.8l';
+const VERSION='0.3.8m';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -563,7 +564,15 @@ function eliteWaveCount(){return clamp(1+Math.floor((area-1)*1.2+(room-1)/3),1,8
 const ARMOUR_RARITY={Common:.03,Uncommon:.06,Rare:.10,Epic:.15,Legendary:.22};
 const HELMET_RARITY={Common:.04,Uncommon:.07,Rare:.11,Epic:.16,Legendary:.22};
 const BOOTS_RARITY={Common:.03,Uncommon:.05,Rare:.08,Epic:.12,Legendary:.17};
-const EQUIPMENT_ASSETS={helmet:'assets/loot/helmet.png',chest:'assets/loot/chest-piece.png',boots:'assets/loot/boots(1).png'};
+const EQUIPMENT_ASSET_CANDIDATES={
+ helmet:['assets/loot/helmet.png','assets/equipment/helmet.png','assets/armour/helmet.png','assets/helmet.png','helmet.png'],
+ chest:['assets/loot/chest-piece.png','assets/equipment/chest-piece.png','assets/armour/chest-piece.png','assets/chest-piece.png','chest-piece.png'],
+ boots:['assets/loot/boots(1).png','assets/equipment/boots(1).png','assets/armour/boots(1).png','assets/boots(1).png','boots(1).png']
+};
+const EQUIPMENT_ASSETS={helmet:EQUIPMENT_ASSET_CANDIDATES.helmet[0],chest:EQUIPMENT_ASSET_CANDIDATES.chest[0],boots:EQUIPMENT_ASSET_CANDIDATES.boots[0]};
+const equipmentImages={};
+Object.entries(EQUIPMENT_ASSET_CANDIDATES).forEach(([key,paths])=>{const img=new Image();img.decoding='async';let i=0;const next=()=>{if(i>=paths.length)return;img._ready=false;img.src=paths[i++]};img.onload=()=>{img._ready=true;img._source=img.src};img.onerror=next;next();equipmentImages[key]=img});
+function equipmentImageSrc(item){const key=item?.id==='chest'?'chest':item?.id;const img=equipmentImages[key];return img?._ready?(img._source||EQUIPMENT_ASSETS[key]):(item?.asset||EQUIPMENT_ASSETS[key]);}
 function armourInstance(rarityName='Common'){const rarity=rarityData(rarityName).name;return {id:'chest',name:'Iron Chest Piece',rarity,damageReduction:ARMOUR_RARITY[rarity]||ARMOUR_RARITY.Common,asset:EQUIPMENT_ASSETS.chest,icon:'🛡'}}
 function helmetInstance(rarityName='Common'){const rarity=rarityData(rarityName).name;return {id:'helmet',name:'Iron Helmet',rarity,critReduction:HELMET_RARITY[rarity]||HELMET_RARITY.Common,asset:EQUIPMENT_ASSETS.helmet,icon:'🪖'}}
 function bootsInstance(rarityName='Common'){const rarity=rarityData(rarityName).name;return {id:'boots',name:'Iron Boots',rarity,evadeChance:BOOTS_RARITY[rarity]||BOOTS_RARITY.Common,asset:EQUIPMENT_ASSETS.boots,icon:'🥾'}}
@@ -1269,8 +1278,11 @@ function drawProjectile(q){
  ctx.save();
  const key=q.type==='arrow'?'goblinArrow':q.type==='fireblast'?'fireblast':'fireball';
  const size=q.type==='arrow'?30:(q.type==='fireblast'?36:32);
- if(drawGameAsset(key,q.x,q.y,size,.96,(q.type==='arrow'||q.type==='fireball')?q.a+Math.PI/2:0)){ctx.restore();return}
- ctx.translate(q.x,q.y);ctx.rotate(q.a);
+ // Authored arrow/fireball artwork is cardinal North. Game movement uses 0° = East,
+ // +90° = South, so a North-authored sprite needs +90° to align its nose with travel.
+ const authoredAngle=(q.type==='arrow'||q.type==='fireball')?q.a+Math.PI/2:q.a;
+ if(drawGameAsset(key,q.x,q.y,size,.96,authoredAngle)){ctx.restore();return}
+ ctx.translate(q.x,q.y);ctx.rotate(q.type==='arrow'||q.type==='fireball'?authoredAngle:q.a);
  if(q.type==='arrow'){ctx.shadowBlur=8;ctx.shadowColor=P.gold;pixelRect(-7,-2,14,4,P.cream);pixelRect(5,-1,5,2,P.gold2);ctx.restore();return}
  const blast=q.type==='fireblast';const pulse=.85+.18*Math.sin(q.age*18);ctx.globalAlpha=.95;
  ctx.fillStyle=blast?'#ed6a70':'#e5b94d';ctx.beginPath();ctx.moveTo(-7,0);ctx.lineTo(-1,-6*pulse);ctx.lineTo(2,-2);ctx.lineTo(7,-7*pulse);ctx.lineTo(5,1);ctx.lineTo(9,4);ctx.lineTo(1,5);ctx.lineTo(-3,9);ctx.lineTo(-3,3);ctx.closePath();ctx.fill();
@@ -1403,53 +1415,49 @@ function drawExit(){
 }
 const CORRIDOR_HINTS={
  normal:[
-  'A cold draft slips through the passage ahead.', 'The stonework ahead is scarred with age.',
-  'You hear only the distant drip of water.', 'The darkness ahead seems unusually still.',
-  'A faint breeze moves through the corridor.', 'The old stones groan somewhere beyond.',
-  'Dust hangs motionless in the air ahead.', 'The passage smells faintly of damp earth.',
-  'A distant echo answers your footsteps.', 'The corridor ahead disappears into shadow.',
-  'Something about the passage feels strangely familiar.', 'The torchlight barely reaches the bend ahead.',
-  'Loose grit shifts somewhere beyond the darkness.', 'The air grows cooler as the passage continues.',
-  'A long-forgotten draft whispers between the stones.', 'You catch a muffled sound, but cannot place it.',
-  'The passage ahead gives away very little.', 'A distant creak breaks the silence.',
-  'The corridor waits in uneasy silence.', 'You hear the faint scrape of stone on stone.'
- ,
-  'A low growl rolls through the stonework.', 'Something moves beyond the darkness.',
-  'You hear claws scraping somewhere ahead.', 'A distant shriek echoes through the passage.',
-  'Something heavy drags itself across the floor.', 'There is movement ahead… and it isn’t yours.',
-  'A foul stench drifts towards you.', 'The silence ahead breaks with a sudden hiss.',
-  'Something is pacing beyond the doorway.', 'A harsh rasping sound comes from ahead.',
-  'You hear something breathing in the dark.', 'A distant snarl fades into silence.',
-  'The floor trembles with a faint, heavy step.', 'Something knocks against the stone ahead.',
-  'A sharp cry echoes somewhere beyond the bend.', 'You hear several hurried footsteps.',
-  'The air carries the unmistakable sound of a struggle.', 'A rough scraping follows from the darkness.',
-  'Something lets out a muffled roar far ahead.', 'The corridor ahead does not sound empty.'
+  'A cold draft slips through the passage ahead.', 'The old stonework gives away little.',
+  'You hear only the distant drip of water.', 'The darkness ahead is unusually still.',
+  'A faint breeze moves through the corridor.', 'Dust hangs motionless in the air.',
+  'The passage smells faintly of damp earth.', 'A distant echo answers your footsteps.',
+  'The torchlight barely reaches the next bend.', 'Loose grit shifts somewhere beyond the darkness.',
+  'The air grows cooler as the passage continues.', 'A long-forgotten draft whispers between the stones.',
+  'You catch a muffled sound, but cannot place it.', 'The passage ahead gives away very little.',
+  'A distant creak breaks the silence.', 'The corridor waits in uneasy silence.',
+  'You hear the faint scrape of stone on stone.', 'Something shifts, then everything falls quiet.',
+  'The darkness seems deeper around the next turn.', 'A hollow echo travels through the walls.',
+  'The air feels different beyond the bend.', 'A tiny sound disappears into the distance.',
+  'Nothing obvious waits beyond the passage.', 'The corridor disappears into shadow.'
  ],
  treasure:[
-  'Something glints briefly in the darkness.', 'A faint shimmer catches your eye ahead.',
-  'You hear a soft metallic clink somewhere beyond.', 'A warm flicker dances across the far wall.',
-  'There is a strange glimmer beneath the darkness.', 'Something catches the light deeper within.',
-  'A faint ringing sound echoes ahead.', 'You notice a brief flash beyond the bend.',
-  'The darkness ahead seems to hide something bright.', 'A muted golden hue flickers and vanishes.',
-  'You hear the delicate sound of metal shifting.', 'A tiny sparkle disappears around the corner.',
-  'Something reflective lies somewhere beyond.', 'The air carries a faint scent of old metal.',
-  'A brief gleam dances across the floor ahead.', 'You catch a quiet clatter from beyond.',
-  'There is a curious shimmer somewhere in the gloom.', 'A distant chime reaches your ears.',
-  'Something valuable-looking may be hiding ahead.', 'The shadows ahead seem strangely luminous.'
+  'Something catches the light for just a moment.', 'A faint shimmer appears, then vanishes.',
+  'You hear a soft sound somewhere beyond.', 'A brief glint moves across the far wall.',
+  'There is a curious flicker in the darkness.', 'Something reflective may lie beyond the bend.',
+  'A muted glimmer reaches the edge of your vision.', 'You notice a tiny flash ahead.',
+  'The darkness seems to conceal something bright.', 'A distant chime is almost too quiet to hear.',
+  'Something makes a delicate clatter somewhere ahead.', 'A brief gleam dances across the floor.',
+  'You hear a faint ringing from deeper within.', 'Something shifts with a quiet metallic sound.',
+  'A strange flicker plays across the stones.', 'There is movement beyond the bend, but no clear shape.',
+  'A soft echo comes from somewhere ahead.', 'Something briefly reflects the torchlight.',
+  'A faint sparkle disappears around the corner.', 'The passage ahead seems to hide something.',
+  'A tiny clink breaks the silence.', 'You catch an indistinct glimmer in the gloom.',
+  'A distant sound suggests something has been disturbed.', 'For a moment, the darkness seems to flicker.'
  ],
  merchant:[
-  'A faint smell of spices drifts through the passage.', 'You hear a quiet clatter of pots ahead.',
-  'Someone seems to be moving about beyond the bend.', 'A distant voice echoes softly through the stone.',
-  'You catch the smell of leather and old wood.', 'There is a faint murmur somewhere ahead.',
-  'Something smells strangely like warm bread and herbs.', 'You hear the scrape of something being unpacked.',
-  'A soft chime sounds somewhere beyond the passage.', 'The air carries unfamiliar scents from ahead.',
-  'You hear a muted conversation behind the stone.', 'A faint lantern glow flickers around the bend.',
-  'There is a curious bustle somewhere in the darkness.', 'The smell of cloth, oil and spices reaches you.',
-  'Someone coughs quietly beyond the passage.', 'You hear wooden crates shifting somewhere ahead.',
-  'A distant laugh quickly disappears into silence.', 'The corridor carries the scent of a campfire.',
-  'You hear the soft clink of glass somewhere beyond.', 'There seems to be someone waiting ahead.'
+  'You catch an unfamiliar scent drifting from ahead.', 'Someone may have passed through recently.',
+  'A quiet clatter echoes somewhere beyond.', 'There is a faint murmur around the bend.',
+  'The air carries a scent you cannot quite place.', 'You hear something being moved in the distance.',
+  'A soft chime sounds somewhere ahead.', 'A distant voice echoes softly through the stone.',
+  'The passage carries a hint of smoke and warm air.', 'You hear a muted scrape beyond the doorway.',
+  'Something knocks softly against wood.', 'A faint glow flickers somewhere ahead.',
+  'There is a curious bustle in the darkness.', 'You hear a quiet rustle beyond the bend.',
+  'A distant sound suggests someone is nearby.', 'The air seems warmer further along.',
+  'A soft clink reaches you from the passage ahead.', 'Something shifts behind the silence.',
+  'You hear a brief laugh, then nothing.', 'A faint scent of oil and old wood drifts past.',
+  'There is a quiet rhythm of movement somewhere ahead.', 'A muffled conversation may be carrying through the stone.',
+  'The corridor seems less deserted than it first appeared.', 'Something metallic taps softly in the distance.'
  ]
 };
+
 function corridorPick(arr){return arr[Math.floor(Math.random()*arr.length)]}
 function corridorRouteType(){
  const r=Math.random();
@@ -1458,15 +1466,26 @@ function corridorRouteType(){
  return 'merchant';
 }
 function buildCorridorChoices(){
- let a=corridorRouteType(),b=corridorRouteType(),tries=0;
- while(b===a&&tries++<8)b=corridorRouteType();
- const make=(type,side)=>({side,type,hint:corridorPick(CORRIDOR_HINTS[type])});
- corridorChoices={left:make(a,'left'),right:make(b,'right')};
+ // Always offer two genuinely different destinations. This makes the fork a real choice
+ // rather than a decorative screen with identical outcomes.
+ let a=corridorRouteType(),b=corridorRouteType();
+ if(b===a){
+   const alternatives=['normal','treasure','merchant'].filter(t=>t!==a);
+   b=alternatives[Math.floor(Math.random()*alternatives.length)];
+ }
+ let leftHint=corridorPick(CORRIDOR_HINTS[a]),rightHint=corridorPick(CORRIDOR_HINTS[b]);
+ if(leftHint===rightHint) rightHint=corridorPick(CORRIDOR_HINTS[b].filter(h=>h!==leftHint));
+ corridorChoices={left:{side:'left',type:a,hint:leftHint},right:{side:'right',type:b,hint:rightHint}};
 }
+
 function openCorridor(){
- if(corridorOpen||roomTransition||atShop||gameOver)return;
- buildCorridorChoices();corridorOpen=true;paused=true;
- renderCorridor();msg('THE CORRIDOR SPLITS AHEAD… WHICH WAY WILL YOU GO?');
+ if(corridorOpen||roomTransition||atShop||gameOver||isBossRoom()||!roomCleared)return;
+ closeRoomRewards();
+ buildCorridorChoices();
+ corridorOpen=true;
+ paused=true;
+ renderCorridor();
+ msg('THE CORRIDOR SPLITS AHEAD… WHICH WAY WILL YOU GO?');
 }
 function closeCorridor(){corridorOpen=false;paused=false;document.getElementById('corridorScreen')?.classList.remove('show')}
 function chooseCorridor(side){
@@ -1499,7 +1518,6 @@ function startRoomTransition(nextRoom,routeType='normal'){
  msg(`ENTERING ${nextName}`);
 }
 
-function drawShop(){}
 function renderShopScreen(){
  const screen=document.getElementById('shopScreen');if(!screen)return;
  const areaSub=document.getElementById('shopAreaSub'),goldEl=document.getElementById('shopGold'),loadout=document.getElementById('shopLoadout');
@@ -1507,7 +1525,7 @@ function renderShopScreen(){
  if(goldEl)goldEl.textContent=`💰 ${gold} GOLD`;
  if(loadout){
   const gear=[['helmet',player.helmet,'HELMET'],['chest-piece',player.armour,'CHEST'],['boots(1)',player.boots,'BOOTS']];
-  loadout.innerHTML=gear.map(([asset,item,label])=>`<div class="loadoutSlot">${item?.asset?`<img src="${item.asset}" alt="${label}">`:'<div style="height:42px;display:grid;place-items:center;color:#476f6e;font-size:22px">—</div>'}<strong>${label}</strong><small>${item?item.rarity.toUpperCase():'EMPTY'}</small></div>`).join('');
+  loadout.innerHTML=gear.map(([asset,item,label])=>{const src=item?equipmentImageSrc(item):'';return `<div class="loadoutSlot">${src?`<img src="${src}" alt="${label}" onerror="this.style.display='none'">`:'<div style="height:42px;display:grid;place-items:center;color:#476f6e;font-size:22px">—</div>'}<strong>${label}</strong><small>${item?item.rarity.toUpperCase():'EMPTY'}</small></div>`}).join('');
  }
  document.querySelectorAll('.shopBuy').forEach(btn=>{const type=btn.dataset.shop;const cost=type==='damage'?100:type==='health'?75:125;btn.disabled=gold<cost;btn.textContent=gold<cost?'NEED GOLD':'BUY';});
  screen.classList.add('show');
@@ -1552,7 +1570,7 @@ function equipFoundWeapon(){if(!roomRewardOpen||weaponBurning)return;const w=wea
 function handleWeaponDecision(equip){if(!roomRewardOpen||weaponBurning)return;if(equip)equipFoundWeapon();else discardCurrentFind()}
 function handleRewardPointer(e){const t=e.target.closest('button');if(!t||t.disabled)return;e.preventDefault();AUDIO.menu();if(t.id==='roomRewardContinue'){continueDoorSequence();return}if(t.dataset.choice){chooseLevelChoice(t.dataset.choice);return}if(t.id==='equipWeapon'){handleWeaponDecision(true);return}if(t.id==='keepWeapon'){handleWeaponDecision(false)}}
 
-function equipmentSlotHTML(title,item,empty,stat){return `<div class="invEquipSlot"><div class="invEquipImage">${item?.asset?`<img src="${item.asset}" alt="${title}">`:'<span>—</span>'}</div><div class="invEquipInfo"><strong>${title}</strong><b>${item?item.name:'— EMPTY —'}</b>${item?`<small class="rarity ${rarityClass(item.rarity)}">${item.rarity.toUpperCase()}</small><em>${stat}</em>`:`<small>${empty}</small>`}</div></div>`}
+function equipmentSlotHTML(title,item,empty,stat){const src=item?equipmentImageSrc(item):'';return `<div class="invEquipSlot"><div class="invEquipImage">${src?`<img src="${src}" alt="${title}" onerror="this.style.display='none'">`:'<span>—</span>'}</div><div class="invEquipInfo"><strong>${title}</strong><b>${item?item.name:'— EMPTY —'}</b>${item?`<small class="rarity ${rarityClass(item.rarity)}">${item.rarity.toUpperCase()}</small><em>${stat}</em>`:`<small>${empty}</small>`}</div></div>`}
 function inventoryStatsHTML(){
  const w=playerWeapon(),s=currentWeaponStats();
  const hpPct=Math.max(0,Math.min(100,player.hp/player.maxHp*100));
