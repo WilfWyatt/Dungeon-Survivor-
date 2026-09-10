@@ -1515,11 +1515,18 @@ function renderCorridor(){
  overlay.style.display='flex';
  overlay.style.pointerEvents='auto';
 }
+function handleCorridorPointerBlock(e){
+ // The route overlay must consume the touch so it cannot leak through to the
+ // canvas/joystick underneath. Selection itself happens on CLICK.
+ e.preventDefault();
+ e.stopPropagation();
+}
 function handleCorridorChoice(e){
  e.preventDefault();
  e.stopPropagation();
- if(corridorSelectionLocked)return;
+ if(corridorSelectionLocked||!corridorOpen)return;
  const side=e.currentTarget.dataset.side;
+ if(!side)return;
  AUDIO.menu();
  chooseCorridor(side);
 }
@@ -1684,9 +1691,16 @@ const roomRewardScreen=document.getElementById('roomRewardScreen');
 if(roomRewardScreen)roomRewardScreen.addEventListener('pointerdown',handleRewardPointer);
 const corridorScreen=document.getElementById('corridorScreen');
 if(corridorScreen){
-  corridorScreen.querySelectorAll('button[data-side]').forEach(b=>{
-    b.addEventListener('pointerup',handleCorridorChoice);
-    b.addEventListener('click',handleCorridorChoice);
+  // IMPORTANT: do not select on pointerdown/pointerup. On mobile, the DOM can
+  // change between the press and release when another overlay closes/opens,
+  // causing the release to leak into the game underneath. Block the pointer
+  // event, then let the browser's normal CLICK activate the chosen button.
+  corridorScreen.addEventListener('pointerdown',handleCorridorPointerBlock,true);
+  corridorScreen.addEventListener('pointerup',handleCorridorPointerBlock,true);
+  corridorScreen.addEventListener('click',e=>{
+    const b=e.target.closest('button[data-side]');
+    if(!b)return;
+    handleCorridorChoice.call(b,e);
   });
 }
 startScreen.style.display='none';
@@ -1700,8 +1714,12 @@ if(exitAppButton)exitAppButton.addEventListener('pointerdown',e=>{e.preventDefau
 if(inventoryButton)inventoryButton.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();openInventory()});
 if(inventoryClose)inventoryClose.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeInventory()});
 if(inventoryCloseBottom)inventoryCloseBottom.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();closeInventory()});
-if(shopScreen)shopScreen.addEventListener('pointerdown',e=>{const b=e.target.closest('.shopBuy');if(b){e.preventDefault();AUDIO.menu();buyUpgrade(b.dataset.shop);return}});
-if(shopContinue)shopContinue.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();continueFromShop()});
+if(shopScreen)shopScreen.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();const b=e.target.closest('.shopBuy');if(b){AUDIO.menu();return}});
+if(shopScreen)shopScreen.addEventListener('click',e=>{const b=e.target.closest('.shopBuy');if(b){e.preventDefault();e.stopPropagation();AUDIO.menu();buyUpgrade(b.dataset.shop);return}});
+if(shopContinue){
+  shopContinue.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();});
+  shopContinue.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();AUDIO.menu();continueFromShop()});
+}
 if(gameOverHome)gameOverHome.addEventListener('pointerdown',e=>{e.preventDefault();AUDIO.menu();document.getElementById('gameOverScreen')?.classList.remove('show');returnToTitle()});
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
