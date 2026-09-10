@@ -862,6 +862,10 @@ function damagePlayer(amount,sourceX,sourceY,knockbackScale=1,hitType='normal',i
 function update(dt){
  if(!started)return;
  if(gameOver)return;
+ // Corridor is a hard modal gameplay lock. Even if another touch/browser event
+ // ever disturbs the generic paused flag, the dungeon cannot advance while the
+ // route decision is visible. Only chooseCorridor() releases this lock.
+ if(corridorOpen){paused=true;updateHud();return;}
  if(paused){updateHud();return;}
  if(roomTransition){
   roomTransition.timer+=dt;
