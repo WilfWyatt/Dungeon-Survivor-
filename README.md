@@ -1,3 +1,16 @@
+Dungeon Survivor — v0.3.8j
+
+### v0.3.8j — Treasure Rooms
+- Added a special Treasure Room encounter with no enemies or combat waves.
+- Treasure Rooms use exactly four corner torches and no other existing room prop decorations.
+- Eight treasure objects are placed per room: a guaranteed closed chest plus seven randomly selected treasure types.
+- Treasure objects use assets from `assets/treasure-room/`.
+- Walking over treasure collects it physically; the treasure disappears and awards a larger gold payout.
+- Closed chests switch to the authored open-chest asset briefly before disappearing.
+- Treasure rewards scale upward by area.
+- Treasure Rooms are random non-boss rooms and are immediately considered cleared, so the exit is available while the player loots.
+- Existing combat, loot, equipment, Elite waves and menu systems are otherwise unchanged.
+
 # DUNGEON SURVIVOR
 
 Dungeon Survivor is a mobile-first, top-down roguelite dungeon survival game designed to run from GitHub Pages and install as a PWA on Android.

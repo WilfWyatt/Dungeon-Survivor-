@@ -26,6 +26,24 @@ const GAME_ASSET_FILES={
 };
 const gameAssetImages={};
 Object.entries(GAME_ASSET_FILES).forEach(([key,src])=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.onerror=()=>{img._ready=false};img.src=src;gameAssetImages[key]=img});
+const TREASURE_ROOM_ASSET_FILES={
+  chestClosed:'assets/treasure-room/treasure-chest-closed.png',
+  chestOpen:'assets/treasure-room/treasure-chest-open.png',
+  goldPile:'assets/treasure-room/gold-pile.png',
+  hoardCrown:'assets/treasure-room/treasure-hoard-crown.png',
+  skullPile:'assets/treasure-room/treasure-skull-pile.png',
+  helmetGoblet:'assets/treasure-room/treasure-helmet-goblet.png',
+  crownSceptre:'assets/treasure-room/treasure-crown-sceptre.png',
+  goldBars:'assets/treasure-room/gold-bars.png',
+  goldSack:'assets/treasure-room/gold-sack.png',
+  goldCandelabra:'assets/treasure-room/gold-candelabra.png',
+  treasureUrn:'assets/treasure-room/treasure-urn.png',
+  jewelledLockbox:'assets/treasure-room/jewelled-lockbox.png',
+  treasureRing:'assets/treasure-room/treasure-ring.png',
+  goldCoinStack:'assets/treasure-room/gold-coin-stack.png'
+};
+const treasureImages={};
+Object.entries(TREASURE_ROOM_ASSET_FILES).forEach(([key,src])=>{const img=new Image();img.decoding='async';img.onload=()=>{img._ready=true};img.onerror=()=>{img._ready=false};img.src=src;treasureImages[key]=img});
 function drawGameAsset(key,x,y,size=32,alpha=1,angle=0){const img=gameAssetImages[key];if(!img||!img._ready)return false;ctx.save();ctx.globalAlpha=alpha;ctx.imageSmoothingEnabled=false;ctx.translate(x,y);if(angle)ctx.rotate(angle);ctx.drawImage(img,-size/2,-size/2,size,size);ctx.restore();return true;}
 
 // Architectural assets. Support the organised /walls paths, Claude's earlier assets/walls layout, and root-level uploads so repository layout cannot blank the room.
@@ -83,6 +101,15 @@ function animFrame(time,rate=8){return Math.floor(time*rate)%SPRITE_COLS;}
 function timedAnimFrame(age,duration,rate=12){return Math.min(SPRITE_COLS-1,Math.floor(Math.max(0,Math.min(1,age/Math.max(.001,duration)))*SPRITE_COLS));}
 
 let roomTiles=[],roomDecor=[];
+let treasureRoom=false,pendingTreasureRoom=null,treasureProps=[];
+const TREASURE_ROOM_KEYS=['chestClosed','goldPile','hoardCrown','skullPile','helmetGoblet','crownSceptre','goldBars','goldSack','goldCandelabra','treasureUrn','jewelledLockbox','treasureRing','goldCoinStack'];
+const TREASURE_VALUES={
+ chestClosed:[420,760],goldPile:[90,180],hoardCrown:[300,560],skullPile:[160,320],helmetGoblet:[180,360],
+ crownSceptre:[280,520],goldBars:[220,440],goldSack:[140,300],goldCandelabra:[190,380],treasureUrn:[120,260],
+ jewelledLockbox:[260,500],treasureRing:[230,460],goldCoinStack:[70,150]
+};
+const TREASURE_ROOM_BASE_CHANCE=.10;
+const treasureRoomChance=()=>clamp(TREASURE_ROOM_BASE_CHANCE+(area-1)*.025+(room-1)*.012,.10,.20);
 const TILE=32, COLS=8, ROWS=12;
 function makeRoomLayout(){
   const rand=()=>{const n=Math.sin((roomVariation+1)*12.9898 + room*78.233 + area*37.719)*43758.5453;return n-Math.floor(n);};
@@ -114,6 +141,12 @@ function makeRoomLayout(){
   for(let gy=2;gy<ROWS-2;gy++){
     const gx=Math.floor(COLS/2);
     if(roomTiles[gy][gx]>=4 && roomTiles[gy][gx]<8) roomTiles[gy][gx]=Math.floor(rand()*4);
+  }
+  if(treasureRoom){
+    const seeded=(n)=>{const v=Math.sin((room+1)*127.1+(area+1)*311.7+(roomVariation+1)*71.9+n*19.37)*43758.5453;return v-Math.floor(v)};
+    const shuffle=(arr)=>{for(let i=arr.length-1;i>0;i--){const j=Math.floor(seeded(i*7.1)*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}return arr};
+    makeTreasureLayout(seeded,shuffle);
+    return;
   }
   // 0.2.5e: clear, deterministic edge decoration. The arena centre and bottom edge stay open.
   roomDecor=[];
@@ -280,7 +313,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.8i';
+const VERSION='0.3.8j';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -416,6 +449,34 @@ let fortuneLevel=0;
 let roomTransition=null;
 const ROOM_ARCHETYPES=['GREAT HALL','PILLARED HALL','RUINED CHAMBER','CHAPEL','GUARD ROOM','CROSS HALL'];
 function roomArchetype(){return ROOM_ARCHETYPES[(roomVariation+room*3+area)%ROOM_ARCHETYPES.length]}
+function roomDisplayName(){return treasureRoom?'TREASURE ROOM':isBossRoom()?'GUARDIAN':roomArchetype()}
+function makeTreasureLayout(seeded,shuffle){
+  roomDecor=[];treasureProps=[];
+  const torchKinds=['torch1','torch2','torch3','torch4'];
+  const cornerSlots=[{x:72,y:88},{x:288,y:88},{x:72,y:374},{x:288,y:374}];
+  cornerSlots.forEach((slot,i)=>roomDecor.push({kind:torchKinds[i%torchKinds.length],x:slot.x,y:slot.y,torch:true}));
+
+  // Exactly eight initial treasure objects, randomly selected from the treasure list.
+  // The open chest is a state for the closed chest, not a separate initial object.
+  const pool=shuffle(TREASURE_ROOM_KEYS.filter(k=>k!=='chestClosed'));
+  const chosen=['chestClosed',...pool.slice(0,7)];
+  const positions=[
+    {x:104,y:126},{x:180,y:112},{x:254,y:132},{x:88,y:214},
+    {x:170,y:204},{x:264,y:220},{x:112,y:318},{x:230,y:330},{x:176,y:360},{x:294,y:304}
+  ];
+  const placed=[];
+  const available=shuffle(positions.slice());
+  chosen.forEach((key,i)=>{
+    let pos=available.find(pt=>placed.every(p=>Math.hypot(p.x-pt.x,p.y-pt.y)>=44)&&Math.hypot(pt.x-58,pt.y-H/2)>=48);
+    if(!pos)pos=available.find(pt=>placed.every(p=>Math.hypot(p.x-pt.x,p.y-pt.y)>=38))||available[0];
+    available.splice(Math.max(0,available.indexOf(pos)),1);
+    const range=TREASURE_VALUES[key]||[100,200];
+    const areaBonus=1+(area-1)*.18;
+    const amount=Math.round((range[0]+Math.random()*(range[1]-range[0]))*areaBonus);
+    placed.push(pos);
+    treasureProps.push({key,x:pos.x,y:pos.y,amount,bob:Math.random()*6.28,spin:Math.random()*6.28,open:false,openAge:0});
+  });
+}
 function clampEnemySeparation(){
  const normal=enemies.filter(e=>e.type!=='boss');
  for(let i=0;i<normal.length;i++)for(let j=i+1;j<normal.length;j++){
@@ -493,7 +554,7 @@ function setBossWarning(type=''){
  el.classList.toggle('fireblast',type==='blast');
 }
 function updateHud(){
- const roomValue=isBossRoom()?'BOSS':`${room}`;
+ const roomValue=treasureRoom?'TREASURE':isBossRoom()?'BOSS':`${room}`;
  const areaValue=`${areaName} • R${room}`;
  const hpValue=Math.max(0,player.hp/player.maxHp*100)+'%';
  const hpTextValue=`${Math.ceil(player.hp)} / ${player.maxHp}`;
@@ -529,11 +590,16 @@ function enemySpriteKind(e){
 }
 function resetRoom(){
  roomCacheDirty=true;
+ treasureRoom=pendingTreasureRoom!==null?pendingTreasureRoom:(!isBossRoom()&&Math.random()<treasureRoomChance());
+ pendingTreasureRoom=null;
  player.x=58;player.y=H/2;player.hp=clamp(player.hp,0,player.maxHp);roomVariation=(room*37+area*101)%997;makeRoomLayout();player.flash=0;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;
- enemies=[];loot=[];slashes=[];deathMarks=[];impactMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=false;atShop=false;areaComplete=false;areaClearTimer=0;areaClearShown=false;bossWarningTimer=0;setBossWarning('');
+ enemies=[];loot=[];slashes=[];deathMarks=[];impactMarks=[];particles=[];projectiles=[];entrances=[];roomCleared=treasureRoom;atShop=false;areaComplete=false;areaClearTimer=0;areaClearShown=false;bossWarningTimer=0;setBossWarning('');
  spawnQueue=[];spawnTimer=.35;totalSpawned=0;bossPatternTimer=1.1;bossPatternStep=0;bossPatternMode='burst';spawnWaveIndex=0;spawnWaves=[];waveTransitionTimer=0;
  const isBoss=room===bossRoom;
- if(isBoss){
+ if(treasureRoom){
+  totalQuota=0;activeCap=0;spawnQueue=[];spawnWaves=[];spawnTimer=0;
+  msg(`AREA ${area} • ${areaName} — TREASURE ROOM • LOOT THE HOARD`);
+ }else if(isBoss){
   totalQuota=1;activeCap=1;
   const hp=Math.round((650+area*100)*enemyScale());
   enemies.push({x:W-105,y:H/2,r:34*SPRITE_SCALE,type:'boss',hp,max:hp,active:true,speed:48+area*2,hit:0,boss:true,attackTimer:1.1,attackAge:0,swingHit:false,weapon:'shortSword',warning:'',warningTimer:0,patternActive:false});
@@ -746,7 +812,22 @@ function update(dt){
  // Keep the player outside the Guardian's body, while leaving enough overlap-free distance for sword reach to connect.
  const guardian=enemies.find(e=>e.type==='boss');
  if(guardian){const minD=guardian.r+player.r+6;const dx=player.x-guardian.x,dy=player.y-guardian.y,d=Math.hypot(dx,dy);if(d>0&&d<minD){player.x=guardian.x+dx/d*minD;player.y=guardian.y+dy/d*minD;}}
- if(fireHeld)performSwing();
+ if(fireHeld&&!treasureRoom)performSwing();
+
+ if(treasureRoom){
+  for(let i=treasureProps.length-1;i>=0;i--){
+   const tr=treasureProps[i];
+   if(tr.open){tr.openAge+=dt;if(tr.openAge>.42)treasureProps.splice(i,1);continue;}
+   if(Math.hypot(player.x-tr.x,player.y-tr.y)<=player.r+18){
+    const wasChest=tr.key==='chestClosed';
+    gold+=tr.amount;totalGoldCollected+=tr.amount;AUDIO.pickup('Gold');
+    burst(tr.x,tr.y,'coin',wasChest?18:10);
+    showPickup(`${wasChest?'👑 CHEST OPENED':'💰 TREASURE'}  +${tr.amount} GOLD  •  purse: ${gold}`);
+    if(wasChest){tr.open=true;tr.openAge=0;tr.key='chestOpen';}else treasureProps.splice(i,1);
+    updateHud();
+   }
+  }
+ }
 
  spawnTimer=Math.max(0,spawnTimer-dt);
  if(enemies.length<activeCap && spawnQueue.length && spawnTimer<=0)trySpawnEnemy();
@@ -914,7 +995,7 @@ function update(dt){
  for(let i=loot.length-1;i>=0;i--){const l=loot[i];const pickupRadius=l.type==='Gold'?player.r+5:player.r+l.r+9;if(dist(player,l)<pickupRadius){if(l.type==='Gold'){gold+=l.amount;totalGoldCollected+=l.amount;AUDIO.pickup('Gold');showPickup(`🪙 +${l.amount} GOLD  •  purse: ${gold}`)}if(l.type==='Heart'){player.hp=player.maxHp;AUDIO.pickup('Heart');showPickup('♥ FULL HEAL!')}if(l.type==='Potion'){const before=player.hp;AUDIO.pickup('Potion');player.hp=clamp(player.hp+scaledPotionHeal(),0,player.maxHp);showPickup(`✚ +${Math.round(player.hp-before)} HP`)}if(l.type==='Weapon'){weaponFinds.push(l.weapon);AUDIO.pickup('Weapon');showPickup(`⚔ ${l.weapon.name} — ${l.weapon.rarity}  •  take it to the exit`)}
  if(l.type==='Equipment'){const e=l.equipment;if(e?.id==='helmet')player.helmet=e;else if(e?.id==='chest')player.armour=e;else if(e?.id==='boots')player.boots=e;AUDIO.pickup('Weapon');showPickup(`${e.icon} ${e.name} equipped — ${e.rarity}`)}burst(l.x,l.y,l.type==='Gold'?'coin':l.type==='Weapon'?'weapon':'heal',8);loot.splice(i,1);updateHud()}}
  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.985;p.vy*=.985});particles=particles.filter(p=>p.life>0); impactMarks.forEach(m=>m.age+=dt);impactMarks=impactMarks.filter(m=>m.age<m.dur);criticalMarks.forEach(m=>m.age+=dt);criticalMarks=criticalMarks.filter(m=>m.age<m.dur);evadeMarks.forEach(m=>m.age+=dt);evadeMarks=evadeMarks.filter(m=>m.age<m.dur);
- if(!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){
+ if(!treasureRoom&&!isBossRoom()&&spawnQueue.length===0&&entrances.length===0&&enemies.length===0&&!roomCleared){
    if(spawnWaveIndex<spawnWaves.length-1){spawnWaveIndex++;spawnQueue=spawnWaves[spawnWaveIndex].slice();spawnTimer=1.0;waveTransitionTimer=.9;AUDIO.wave();msg(`WAVE ${spawnWaveIndex+1}/${spawnWaves.length} — INCOMING`);}
    else{roomCleared=true;roomsCleared++;AUDIO.clear();msg('ROOM CLEARED  •  WALK TO EXIT »');burst(W/2,H/2,'clear',18)}
  }
@@ -1129,6 +1210,19 @@ function drawProjectile(q){
  ctx.fillStyle='#fff1c7';pixelRect(-1,-2,4,4,'#fff1c7');ctx.restore();
 }
 
+function drawTreasureProps(){
+ for(const tr of treasureProps){
+  const img=treasureImages[tr.key];
+  if(!img||!img._ready)continue;
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalAlpha=tr.open?Math.max(0,1-tr.openAge/.42):1;
+  ctx.drawImage(img,Math.round(tr.x-16),Math.round(tr.y-16),32,32);
+  const pulse=.45+.55*(.5+.5*Math.sin((tr.spin||0)+frameNow*.008));
+  const len=2.5+5*pulse;ctx.globalCompositeOperation='screen';ctx.globalAlpha*=.20+.32*pulse;ctx.strokeStyle=P.gold2;ctx.lineWidth=1.3;
+  ctx.beginPath();ctx.moveTo(tr.x-len,tr.y);ctx.lineTo(tr.x+len,tr.y);ctx.moveTo(tr.x,tr.y-len);ctx.lineTo(tr.x,tr.y+len);ctx.stroke();
+  ctx.globalAlpha*=.8;pixelRect(tr.x-1,tr.y-1,2,2,P.cream);ctx.restore();
+ }
+}
+
 function drawLoot(l){
  const wobble=l.type==='Heart'||l.type==='Potion';const y=l.y+(wobble?Math.sin(l.bob)*3:0),x=l.x;ctx.save();ctx.translate(x,y);
  const key=l.type==='Gold'?'gold':l.type==='Heart'?'healthFull':l.type==='Potion'?'healthSmall':l.type==='Weapon'?'weaponDrop':l.type==='Equipment'?(l.equipment?.id==='helmet'?'helmet':l.equipment?.id==='boots'?'boots':'chestPiece') :null;
@@ -1241,8 +1335,10 @@ function drawExit(){
 }
 function startRoomTransition(nextRoom){
  if(roomTransition)return; AUDIO.exit();AUDIO.doorClose();AUDIO.transition();
+ const nextTreasure=nextRoom!==bossRoom&&Math.random()<treasureRoomChance();
+ pendingTreasureRoom=nextTreasure;
  const nextVariation=(nextRoom*37+area*101)%997;
- const nextName=ROOM_ARCHETYPES[(nextVariation+nextRoom*3+area)%ROOM_ARCHETYPES.length];
+ const nextName=nextTreasure?'TREASURE ROOM':ROOM_ARCHETYPES[(nextVariation+nextRoom*3+area)%ROOM_ARCHETYPES.length];
  roomTransition={timer:0,duration:.95,switchAt:.38,nextRoom,roomName:nextName,switched:false};
  msg(`ENTERING ${nextName}`);
 }
@@ -1327,7 +1423,7 @@ function inventoryStatsHTML(){
 }
 function updateInventoryPanel(){const el=document.getElementById('inventoryContent');if(el)el.innerHTML=inventoryStatsHTML()}
 function openInventory(){if(!started||gameOver||atShop||weaponPromptOpen)return;paused=true;updateInventoryPanel();document.getElementById('inventoryScreen').classList.add('show');msg('GAME PAUSED  •  INVENTORY OPEN')}
-function closeInventory(){document.getElementById('inventoryScreen').classList.remove('show');paused=false;msg(roomCleared?'ROOM CLEARED  •  WALK TO EXIT »':`AREA ${area} • ${areaName} — ROOM ${room} • CLEAR THE ROOM`)}
+function closeInventory(){document.getElementById('inventoryScreen').classList.remove('show');paused=false;msg(treasureRoom?'TREASURE ROOM • LOOT THE HOARD  •  WALK TO EXIT »':roomCleared?'ROOM CLEARED  •  WALK TO EXIT »':`AREA ${area} • ${areaName} — ROOM ${room} • CLEAR THE ROOM`)}
 function formatScoreDate(ts){if(!ts)return '—';try{return new Date(ts).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return '—'}}
 function renderScoreboard(){const list=document.getElementById('scoreList');if(!list)return;const rows=highScores.length?highScores.map((r,i)=>`<div class="scoreRow"><span>#${i+1}</span><b>${r.score}</b><span>R${r.room} • LV${r.level}</span><span>${r.kills}K • ${r.stagesCleared??Math.max(0,(r.room||1)-1)}S • ${r.bossesKilled??0}B • ${formatScoreDate(r.endedAt)}</span></div>`).join(''):`<div class="emptyScores">NO RUNS RECORDED YET</div>`;list.innerHTML=rows;}
 function clearScoreboard(){if(!highScores.length)return;if(!window.confirm('Are you sure?'))return;highScores=[];try{localStorage.removeItem('dungeonSurvivorHighScores')}catch(e){}renderScoreboard();AUDIO.confirm();}
@@ -1338,6 +1434,7 @@ function draw(){
  ctx.clearRect(0,0,W,H);
  const shake=!gameOver&&player.hitTimer>0?(player.hitTimer/.24)*2.2:0; if(shake){ctx.save();ctx.translate((Math.random()*2-1)*shake,(Math.random()*2-1)*shake)}
  drawDungeon();
+ drawTreasureProps();
  if(!atShop)drawExit();
  drawDeathMarks();
  drawImpactMarks();
@@ -1408,7 +1505,7 @@ if(gameOverHome)gameOverHome.addEventListener('pointerdown',e=>{e.preventDefault
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.helmet=null;player.boots=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;pendingTreasureRoom=null;treasureRoom=false;treasureProps=[];roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.helmet=null;player.boots=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
 function returnToTitle(){AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];doorSequenceActive=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
