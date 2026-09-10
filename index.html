@@ -41,7 +41,7 @@
       .rewardEmpty{min-height:80px}
     }
 
-    /* v0.3.8l — readable dungeon menu system */
+    /* v0.3.8n — readable dungeon menu system */
     :root{--ui-bg:#071316;--ui-panel:#0b1b20;--ui-panel2:#10242a;--ui-edge:#6b7d84;--ui-teal:#83f0d7;--ui-cream:#f1e5c5;--ui-gold:#ffd86a;--ui-red:#d93832;--ui-blue:#66b9d7;}
     .menuPanel,.roomRewardPanel{background:linear-gradient(180deg,rgba(18,35,41,.98),rgba(5,15,18,.98));border:2px solid var(--ui-edge);box-shadow:inset 0 0 0 2px #0a171b,0 0 0 3px #050b0e,0 16px 35px #000d;position:relative}
     .menuPanel:before,.roomRewardPanel:before{content:'';position:absolute;inset:5px;border:1px solid #29464d;pointer-events:none;opacity:.75}
@@ -87,6 +87,13 @@
     .corridorArrow{font-size:22px;color:var(--ui-teal);line-height:1}
     .corridorHint{font-size:8px;line-height:1.45;color:#b6c4bf;min-height:43px;display:flex;align-items:center;justify-content:center}
     .corridorFooter{text-align:center;margin-top:11px;font-size:7px;color:#6f8988;letter-spacing:.6px;position:relative;z-index:2}
+
+    /* v0.3.8n — corridor overlay hardening */
+    #corridorScreen{position:absolute;inset:0;z-index:220;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(1,7,9,.94);backdrop-filter:blur(2px);touch-action:manipulation;pointer-events:auto;box-sizing:border-box}
+    #corridorScreen.show{display:flex !important}
+    .corridorChoice{pointer-events:auto;user-select:none;-webkit-tap-highlight-color:transparent}
+    .loadoutFallback{height:42px;display:grid;place-items:center;font-size:28px}
+    .loadoutSlot img{display:block;margin:auto}
     #shopScreen,#gameOverScreen{position:fixed;inset:0;z-index:140;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(1,7,9,.88);backdrop-filter:blur(2px);touch-action:manipulation}
     #shopScreen.show,#gameOverScreen.show{display:flex}
     .bigMenuPanel{width:min(360px,94vw);max-height:92vh;overflow:auto;padding:20px 16px;background:linear-gradient(180deg,#122930,#07161a);border:2px solid #6b7d84;box-shadow:inset 0 0 0 2px #091519,0 0 0 3px #050b0e,0 16px 35px #000d;position:relative}
@@ -117,7 +124,7 @@
           <button id="scoreboardButton" type="button">LOCAL SCOREBOARD</button>
           <button id="exitAppButton" type="button">EXIT APP</button>
         </div>
-        <div id="versionLabel">v0.3.8l</div>
+        <div id="versionLabel">v0.3.8n</div>
       </div>
       <div id="roomRewardScreen" aria-label="Room reward screen">
         <div class="menuPanel roomRewardPanel">

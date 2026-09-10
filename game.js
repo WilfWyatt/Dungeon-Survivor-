@@ -212,46 +212,43 @@ function makeRoomLayout(){
 }
 
 function makeMerchantLayout(){
-  roomDecor=[];merchantProps=[];
-  // Three deliberate stall positions. The side stalls hug the upper corners;
-  // the centre stall anchors the room symmetrically.
-  const variants=[
-    {name:'left',stallKey:'stallLeft',stall:{x:92,y:108},merchant:{x:92,y:150},banner:{x:136,y:101},torches:[[288,88],[72,374],[288,374]],props:[
-      ['rolledRugs',126,191],['cratesSack',82,228],['marketPots',126,250],['barrelLantern',268,166],['foldedCloth',278,226]
-    ]},
-    {name:'centre',stallKey:'stallCentre',stall:{x:180,y:108},merchant:{x:180,y:150},banner:{x:180,y:78},torches:[[72,88],[288,88],[72,374],[288,374]],props:[
-      ['rolledRugs',92,184],['cratesSack',78,248],['marketPots',282,184],['barrelLantern',276,250],['foldedCloth',112,300],['merchantBanner',248,300]
-    ]},
-    {name:'right',stallKey:'stallRight',stall:{x:268,y:108},merchant:{x:268,y:150},banner:{x:224,y:101},torches:[[72,88],[72,374],[288,374]],props:[
-      ['rolledRugs',234,191],['cratesSack',278,228],['marketPots',234,250],['barrelLantern',92,166],['foldedCloth',82,226]
-    ]}
-  ];
-  const v=variants[roomVariation%variants.length];
-  merchantStall=v.name;
-  const torchKinds=['torch1','torch2','torch3','torch4'];
-  v.torches.forEach((pt,i)=>roomDecor.push({kind:torchKinds[i%torchKinds.length],x:pt[0],y:pt[1],torch:true}));
-  merchantProps.push({kind:v.stallKey,x:v.stall.x,y:v.stall.y,role:'stall'});
-  merchantProps.push({kind:'merchant',x:v.merchant.x,y:v.merchant.y,role:'merchant'});
-  // Banner is part of the deliberate stall dressing. Side variants get a small
-  // offset banner so it doesn't crowd the merchant; centre keeps it above the stall.
-  merchantProps.push({kind:'merchantBanner',x:v.banner.x,y:v.banner.y,role:'banner'});
-  for(const [kind,x,y] of v.props) merchantProps.push({kind,x,y,role:'decor'});
+ roomDecor=[];merchantProps=[];
+ // Deliberate market composition. Stall pieces are authored as 32px tiles but are
+ // presented as a larger, unified backdrop so the merchant reads as the focal point.
+ const variants=[
+  {name:'left',stallKey:'stallLeft',stall:{x:118,y:118},merchant:{x:118,y:178},banner:{x:164,y:105},torches:[[288,88],[72,374],[288,374]],props:[
+    ['rolledRugs',72,192,52],['cratesSack',72,255,50],['marketPots',275,192,50],['barrelLantern',275,258,50],['foldedCloth',224,265,48]
+  ]},
+  {name:'centre',stallKey:'stallCentre',stall:{x:180,y:118},merchant:{x:180,y:178},banner:{x:180,y:84},torches:[[72,88],[288,88],[72,374],[288,374]],props:[
+    ['rolledRugs',74,196,52],['cratesSack',74,264,50],['marketPots',286,196,50],['barrelLantern',286,266,50],['foldedCloth',106,312,48],['merchantBanner',254,312,48]
+  ]},
+  {name:'right',stallKey:'stallRight',stall:{x:242,y:118},merchant:{x:242,y:178},banner:{x:196,y:105},torches:[[72,88],[72,374],[288,374]],props:[
+    ['marketPots',85,192,50],['barrelLantern',85,258,50],['rolledRugs',288,192,52],['cratesSack',288,255,50],['foldedCloth',136,265,48]
+  ]}
+ ];
+ const v=variants[roomVariation%variants.length];
+ merchantStall=v.name;
+ const torchKinds=['torch1','torch2','torch3','torch4'];
+ v.torches.forEach((pt,i)=>roomDecor.push({kind:torchKinds[i%torchKinds.length],x:pt[0],y:pt[1],torch:true}));
+ merchantProps.push({kind:v.stallKey,x:v.stall.x,y:v.stall.y,size:96,role:'stall'});
+ merchantProps.push({kind:'merchant',x:v.merchant.x,y:v.merchant.y,size:64,role:'merchant'});
+ merchantProps.push({kind:'merchantBanner',x:v.banner.x,y:v.banner.y,size:48,role:'banner'});
+ for(const [kind,x,y,size] of v.props) merchantProps.push({kind,x,y,size,role:'decor'});
 }
 function drawMerchantProp(kind,x,y,size=32){
-  const img=merchantImages[kind];
-  if(!img||!img._ready)return false;
-  ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(img,Math.round(x-size/2),Math.round(y-size/2),size,size);ctx.restore();return true;
+ const img=merchantImages[kind];
+ if(!img||!img._ready)return false;
+ ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(img,Math.round(x-size/2),Math.round(y-size/2),size,size);ctx.restore();return true;
 }
 function drawMerchantRoomStatic(){
-  for(const d of merchantProps){
-    if(d.role==='merchant')continue;
-    drawMerchantProp(d.kind,d.x,d.y,32);
-  }
+ // Back-to-front: stall, banner/stock, then the merchant standing clearly in front.
+ const back=merchantProps.filter(d=>d.role!=='merchant');
+ for(const d of back) drawMerchantProp(d.kind,d.x,d.y,d.size||32);
 }
 function drawMerchantCharacter(){
-  const m=merchantProps.find(p=>p.role==='merchant');
-  if(!m)return;
-  drawMerchantProp('merchant',m.x,m.y,32);
+ const m=merchantProps.find(p=>p.role==='merchant');
+ if(!m)return;
+ drawMerchantProp('merchant',m.x,m.y,m.size||64);
 }
 
 function drawProp(kind,x,y){
@@ -374,7 +371,7 @@ const roomCache=document.createElement('canvas');roomCache.width=360;roomCache.h
 let roomCacheDirty=true,roomCacheBuilt=false;
 const torchGlowCache=document.createElement('canvas');torchGlowCache.width=112;torchGlowCache.height=112;const torchGlowCtx=torchGlowCache.getContext('2d');
 (function buildTorchGlow(){const g=torchGlowCtx.createRadialGradient(56,46,2,56,46,50);g.addColorStop(0,'rgba(255,178,78,.22)');g.addColorStop(.28,'rgba(255,140,48,.10)');g.addColorStop(1,'rgba(255,110,30,0)');torchGlowCtx.fillStyle=g;torchGlowCtx.fillRect(0,0,112,112)})();
-const VERSION='0.3.8m';
+const VERSION='0.3.8n';
 
 // 0.3.2 — full soundscape upgrade using the authored WAV library in assets/audio/.
 // Audio is decoded into Web Audio buffers after the player's first gesture. If a sound
@@ -1480,7 +1477,9 @@ function buildCorridorChoices(){
 
 function openCorridor(){
  if(corridorOpen||roomTransition||atShop||gameOver||isBossRoom()||!roomCleared)return;
- closeRoomRewards();
+ // Always reset the reward/door state before presenting the route decision.
+ roomRewardOpen=false;doorSequenceActive=false;weaponPromptOpen=false;weaponBurning=false;levelChoiceOpen=false;levelChoices=[];
+ document.getElementById('roomRewardScreen')?.classList.remove('show');
  buildCorridorChoices();
  corridorOpen=true;
  paused=true;
@@ -1503,8 +1502,10 @@ function renderCorridor(){
  document.getElementById('corridorHintLeft').textContent=corridorChoices.left.hint;
  document.getElementById('corridorHintRight').textContent=corridorChoices.right.hint;
  overlay.classList.add('show');
+ overlay.style.display='flex';
+ overlay.style.pointerEvents='auto';
 }
-function handleCorridorPointer(e){const b=e.target.closest('button[data-side]');if(!b)return;e.preventDefault();AUDIO.menu();chooseCorridor(b.dataset.side)}
+function handleCorridorPointer(e){const b=e.target.closest('button[data-side]');if(!b)return;e.preventDefault();e.stopPropagation();AUDIO.menu();chooseCorridor(b.dataset.side)}
 
 function startRoomTransition(nextRoom,routeType='normal'){
  if(roomTransition)return; AUDIO.exit();AUDIO.doorClose();AUDIO.transition();
@@ -1525,7 +1526,7 @@ function renderShopScreen(){
  if(goldEl)goldEl.textContent=`💰 ${gold} GOLD`;
  if(loadout){
   const gear=[['helmet',player.helmet,'HELMET'],['chest-piece',player.armour,'CHEST'],['boots(1)',player.boots,'BOOTS']];
-  loadout.innerHTML=gear.map(([asset,item,label])=>{const src=item?equipmentImageSrc(item):'';return `<div class="loadoutSlot">${src?`<img src="${src}" alt="${label}" onerror="this.style.display='none'">`:'<div style="height:42px;display:grid;place-items:center;color:#476f6e;font-size:22px">—</div>'}<strong>${label}</strong><small>${item?item.rarity.toUpperCase():'EMPTY'}</small></div>`}).join('');
+  loadout.innerHTML=gear.map(([asset,item,label])=>{const src=item?equipmentImageSrc(item):'';const fallback=item?.id==='helmet'?'🪖':item?.id==='chest'?'🛡':'🥾';return `<div class="loadoutSlot">${src?`<img src="${src}" alt="${label}" onerror="this.onerror=null;this.outerHTML='<span class=\"loadoutFallback\">${fallback}</span>'">`:'<div style="height:42px;display:grid;place-items:center;color:#476f6e;font-size:22px">—</div>'}<strong>${label}</strong><small>${item?item.rarity.toUpperCase():'EMPTY'}</small></div>`}).join('');
  }
  document.querySelectorAll('.shopBuy').forEach(btn=>{const type=btn.dataset.shop;const cost=type==='damage'?100:type==='health'?75:125;btn.disabled=gold<cost;btn.textContent=gold<cost?'NEED GOLD':'BUY';});
  screen.classList.add('show');

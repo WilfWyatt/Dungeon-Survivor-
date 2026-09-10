@@ -273,7 +273,7 @@ The 0.2.x releases are retained here as historical development records. They are
 - Added the requested Game Over **MAIN MENU** button.
 - Updated the start-menu visual language, splash presentation and PWA artwork.
 
-## v0.3.8m — Corridor, merchant and bug-fix pass
+## v0.3.8n — Corridor, merchant and bug-fix pass
 - Added the Corridor Route Choice as the progression step after room rewards: completed room → rewards/upgrade → corridor fork → left/right choice → next room.
 - Expanded the corridor description pools to 24 varied hints per destination class, with deliberately overlapping/ambiguous wording so room types are not trivially identifiable.
 - Hardened corridor choice generation so the two sides always lead to different destination types and the corridor overlay cannot sit behind another UI layer.
@@ -283,3 +283,11 @@ The 0.2.x releases are retained here as historical development records. They are
 - Corrected character sprite row mapping to the supplied 512×96 (16×3) sheets so hurt/death states do not address nonexistent rows.
 - Kept authored North-facing orientation explicit for goblin arrows and Elite Mage fireballs.
 - Build ZIP contains code + README only; assets remain external and are not bundled.
+
+
+## v0.3.8n
+- Enlarged and deliberately composed Merchant Room stall/merchant presentation to better match the approved mock-up.
+- Kept the three stall positions and corresponding 3/4 torch rules.
+- Hardened Corridor Route Choice overlay/transition handling so the fork reliably appears after room rewards and accepts touch input.
+- Preserved varied, ambiguous corridor hints.
+- Hardened Area Complete equipment artwork display with fallback rendering when an image path fails.
