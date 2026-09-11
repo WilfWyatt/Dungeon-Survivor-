@@ -868,13 +868,13 @@ function update(dt){
  // ever disturbs the generic paused flag, the dungeon cannot advance while the
  // route decision is visible. Only chooseCorridor() releases this lock.
  if(corridorOpen){paused=true;updateHud();return;}
- if(paused){updateHud();return;}
  if(roomTransition){
   roomTransition.timer+=dt;
   if(roomTransition.timer>=roomTransition.switchAt&&!roomTransition.switched){room=roomTransition.nextRoom;resetRoom();AUDIO.doorOpen();roomTransition.switched=true;}
   if(roomTransition.timer>=roomTransition.duration){roomTransition=null;paused=false;fitGameFrame();}
   updateHud();return;
  }
+ if(paused){updateHud();return;}
  if(waveTransitionTimer>0)waveTransitionTimer=Math.max(0,waveTransitionTimer-dt);
  if(atShop||weaponPromptOpen){updateHud();return;}
  if(areaClearTimer>0)areaClearTimer=Math.max(0,areaClearTimer-dt);

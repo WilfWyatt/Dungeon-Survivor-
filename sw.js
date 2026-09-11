@@ -1,4 +1,4 @@
-const CACHE='dungeon-survivor-v0.3.8uu';
+const CACHE='dungeon-survivor-v0.3.8uuuu';
 const PRECACHE=[
  './','./index.html','./style.css','./game.js','./manifest.json','./icon-192.png','./icon-512.png','./assets/splash/splash-screen.png','./assets/menu/dungeon-survivor-menu.png','./assets/sprites/player.png','./assets/sprites/bat.png','./assets/sprites/goblin.png','./assets/sprites/skeleton.png','./assets/sprites/boss_mage.png',
  './assets/floor/floor_tiles.png','./floor_tiles.png','./floor-tiles-atlas.png',
