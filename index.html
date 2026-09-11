@@ -52,7 +52,8 @@
     .menuButton.danger,#menuActions button:last-child{background:linear-gradient(#a52e31,#702024 50%,#421216);border-color:#d99a9b;box-shadow:inset 0 2px 0 #ed6668,inset 0 -2px 0 #26090b,0 4px 0 #020607,0 0 0 1px #654042}
     .menuButton:active,#menuActions button:active{transform:translateY(2px)}
     /* v0.3.8s — main menu is now a single authored image with transparent hit zones. */
-    #splashScreen{position:absolute;inset:0;z-index:600;display:block;background-image:url('./assets/splash/splash-screen.png');background-size:100% 100%;background-position:center;background-repeat:no-repeat;background-color:#050b0e;opacity:1;pointer-events:none;transition:opacity .22s ease}#splashScreen.done{opacity:0}\n    #startScreen{background-image:url('./assets/menu/dungeon-survivor-menu.png');background-size:100% 100%;background-position:center;background-repeat:no-repeat;z-index:500}
+    #splashScreen{position:fixed;inset:0;z-index:600;display:block;background-image:url('./assets/splash/splash-screen.png');background-size:100% 100%;background-position:center;background-repeat:no-repeat;background-color:#050b0e;opacity:1;pointer-events:none;transition:opacity .22s ease}#splashScreen.done{opacity:0}
+    #startScreen{background-image:url('./assets/menu/dungeon-survivor-menu.png');background-size:100% 100%;background-position:center;background-repeat:no-repeat;z-index:500}
     #startScreen:after,#startScreen:before{display:none!important}
     .menuImageButton{position:absolute;display:block;padding:0;margin:0;border:0;background:transparent;color:transparent;font-size:0;line-height:0;box-shadow:none;outline:none;cursor:pointer;z-index:3;touch-action:manipulation;-webkit-tap-highlight-color:transparent;text-indent:-9999px}
     .menuImageButton:focus-visible{outline:2px solid #83f0d7;outline-offset:4px}
@@ -269,6 +270,6 @@
       <div id="fire" role="button" aria-label="Swing sword">⚔<span>SWING</span></div>
     </section>
   </main>
-  <script src="game.js?v=0.3.8u"></script>
+  <script src="game.js?v=0.3.8uu"></script>
 </body>
 </html>

@@ -742,7 +742,7 @@ function activateEntrance(ent){
 }
 
 function isBossRoom(){return room===bossRoom}
-function setDecisionOverlayOpen(open){document.body.classList.toggle('modalDecisionOpen',!!open)}
+function setDecisionOverlayOpen(open){document.body.classList.toggle('modalDecisionOpen',!!open);requestAnimationFrame(()=>fitGameFrame());setTimeout(()=>fitGameFrame(),40)}
 function bindMenuClick(el,fn){if(!el)return;el.addEventListener('click',e=>{if(e.defaultPrevented)return;e.stopPropagation();fn(e)},{passive:false})}
 function bossDefeated(){return room===bossRoom && roomCleared}
 function beginAreaShop(){
@@ -872,7 +872,7 @@ function update(dt){
  if(roomTransition){
   roomTransition.timer+=dt;
   if(roomTransition.timer>=roomTransition.switchAt&&!roomTransition.switched){room=roomTransition.nextRoom;resetRoom();AUDIO.doorOpen();roomTransition.switched=true;}
-  if(roomTransition.timer>=roomTransition.duration)roomTransition=null;
+  if(roomTransition.timer>=roomTransition.duration){roomTransition=null;paused=false;fitGameFrame();}
   updateHud();return;
  }
  if(waveTransitionTimer>0)waveTransitionTimer=Math.max(0,waveTransitionTimer-dt);
@@ -1526,22 +1526,6 @@ function renderCorridor(){
  overlay.style.display='flex';
  overlay.style.pointerEvents='auto';
 }
-function handleCorridorPointerBlock(e){
- // The route overlay must consume the touch so it cannot leak through to the
- // canvas/joystick underneath. Selection itself happens on CLICK.
- e.preventDefault();
- e.stopPropagation();
-}
-function handleCorridorChoice(e){
- e.preventDefault();
- e.stopPropagation();
- if(corridorSelectionLocked||!corridorOpen)return;
- const side=e.currentTarget.dataset.side;
- if(!side)return;
- AUDIO.menu();
- chooseCorridor(side);
-}
-
 function startRoomTransition(nextRoom,routeType='normal'){
  if(roomTransition)return; AUDIO.exit();AUDIO.doorClose();AUDIO.transition();
  const nextTreasure=routeType==='treasure'&&nextRoom!==bossRoom;
@@ -1551,7 +1535,8 @@ function startRoomTransition(nextRoom,routeType='normal'){
  const nextVariation=(nextRoom*37+area*101)%997;
  const nextName=nextRoom===bossRoom?'GUARDIAN':nextTreasure?'TREASURE ROOM':nextMerchant?'MERCHANT':ROOM_ARCHETYPES[(nextVariation+nextRoom*3+area)%ROOM_ARCHETYPES.length];
  roomTransition={timer:0,duration:.95,switchAt:.38,nextRoom,roomName:nextName,switched:false};
- paused=false;
+ paused=true;
+ fitGameFrame();
  setTimeout(()=>{if(!roomRewardOpen&&!corridorOpen&&!atShop)setDecisionOverlayOpen(false)},980);
  msg(`ENTERING ${nextName}`);
 }
@@ -1716,17 +1701,14 @@ if(corridorScreen){
   // Bind directly to the route buttons. Android WebViews can suppress or
   // retarget delegated/synthetic clicks after a touch gesture.
   corridorScreen.querySelectorAll('button[data-side]').forEach(button=>{
-    const chooseFromButton=e=>{
-      e.preventDefault();
-      e.stopPropagation();
+    button.addEventListener('click',e=>{
       if(button.disabled||corridorSelectionLocked||!corridorOpen)return;
+      e.stopPropagation();
       const side=button.dataset.side;
       if(!side)return;
       AUDIO.menu();
       chooseCorridor(side);
-    };
-    button.addEventListener('pointerup',chooseFromButton,{passive:false});
-    button.addEventListener('click',chooseFromButton,{passive:false});
+    });
   });
 }
 if(shopScreen)shopScreen.addEventListener('click',e=>{
@@ -1750,7 +1732,7 @@ setTimeout(()=>{startScreen.style.display='flex';splashScreen.classList.add('don
 requestAnimationFrame(loop);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'&&!gameOver)fireHeld=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')fireHeld=false});
-function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';setDecisionOverlayOpen(false);closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;corridorOpen=false;corridorChoices=null;pendingTreasureRoom=null;pendingMerchantRoom=false;treasureRoom=false;merchantRoom=false;treasureProps=[];merchantProps=[];roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.helmet=null;player.boots=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
+function startNewRun(){hudCache={room:'',area:'',hp:'',hpText:'',gold:'',xp:'',level:'',xpTop:''};AUDIO.start();started=true;paused=false;startScreen.style.display='none';setDecisionOverlayOpen(false);fitGameFrame();closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');gameOver=false;area=1;areaName='CASTLE';room=1;kills=0;bossesKilled=0;gold=0;score=0;xp=0;level=1;xpNeed=12;roomsCleared=0;totalGoldCollected=0;scoreSaved=false;fortuneLevel=0;pendingLevelUps=0;levelChoiceOpen=false;levelChoices=[];roomTransition=null;corridorOpen=false;corridorChoices=null;pendingTreasureRoom=null;pendingMerchantRoom=false;treasureRoom=false;merchantRoom=false;treasureProps=[];merchantProps=[];roomRewardOpen=false;atShop=false;areaComplete=false;player.hp=100;player.maxHp=100;player.damageBonus=0;player.moveSpeedBonus=0;player.critBonus=0;player.attackSpeedBonus=0;player.knockbackBonus=0;player.armour=null;player.helmet=null;player.boots=null;player.weapon=weaponInstance('shortSword','Common');player.damage=playerWeapon().damage;weaponFinds=[];pendingWeaponIndex=0;weaponPromptOpen=false;weaponBurning=false;doorSequenceActive=false;roomRewardOpen=false;player.hitTimer=0;player.hitCooldown=0;player.knockX=0;player.knockY=0;nextSwingSide=1;swingCooldown=0;fireHeld=false;joy.active=false;joy.x=joy.y=0;resetRoom()}
 function returnToTitle(){setDecisionOverlayOpen(false);AUDIO.stop();gameOver=false;paused=false;started=false;atShop=false;areaComplete=false;corridorOpen=false;corridorChoices=null;document.getElementById('corridorScreen')?.classList.remove('show');weaponPromptOpen=false;weaponBurning=false;weaponFinds=[];doorSequenceActive=false;fireHeld=false;joy.active=false;joy.x=joy.y=0;startScreen.style.display='flex';closeShopScreen();document.getElementById('gameOverScreen')?.classList.remove('show');document.getElementById('inventoryScreen')?.classList.remove('show');setBossWarning('');msg('PRESS PLAY TO ENTER THE DUNGEON')}
 
 const stick=document.getElementById('stick'),nub=document.getElementById('nub');
