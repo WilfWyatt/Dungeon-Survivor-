@@ -1501,8 +1501,13 @@ function chooseCorridor(side){
  const buttons=document.querySelectorAll('#corridorScreen button[data-side]');
  buttons.forEach(b=>{b.disabled=true;b.classList.toggle('selected',b.dataset.side===side);b.classList.toggle('dimmed',b.dataset.side!==side)});
  corridorOpen=false;
- document.getElementById('corridorScreen')?.classList.remove('show');
- paused=false;
+ const corridorOverlay=document.getElementById('corridorScreen');
+ if(corridorOverlay){
+  corridorOverlay.classList.remove('show');
+  corridorOverlay.style.display='none';
+  corridorOverlay.style.pointerEvents='none';
+ }
+ paused=true;
  if(choice.type==='treasure'){pendingTreasureRoom=true;pendingMerchantRoom=false}
  else if(choice.type==='merchant'){pendingTreasureRoom=false;pendingMerchantRoom=true}
  else{pendingTreasureRoom=false;pendingMerchantRoom=false}
@@ -1546,6 +1551,7 @@ function startRoomTransition(nextRoom,routeType='normal'){
  const nextVariation=(nextRoom*37+area*101)%997;
  const nextName=nextRoom===bossRoom?'GUARDIAN':nextTreasure?'TREASURE ROOM':nextMerchant?'MERCHANT':ROOM_ARCHETYPES[(nextVariation+nextRoom*3+area)%ROOM_ARCHETYPES.length];
  roomTransition={timer:0,duration:.95,switchAt:.38,nextRoom,roomName:nextName,switched:false};
+ paused=false;
  setTimeout(()=>{if(!roomRewardOpen&&!corridorOpen&&!atShop)setDecisionOverlayOpen(false)},980);
  msg(`ENTERING ${nextName}`);
 }
@@ -1707,24 +1713,20 @@ if(roomRewardScreen){
 }
 const corridorScreen=document.getElementById('corridorScreen');
 if(corridorScreen){
-  // Mobile browsers can suppress a synthetic CLICK after touch interaction.
-  // Handle the route choice on POINTERUP in the overlay capture phase so the
-  // choice is consumed before the canvas/joystick can see the same gesture.
-  corridorScreen.addEventListener('pointerup',e=>{
-    const b=e.target.closest('button[data-side]');
-    if(!b||b.disabled||corridorSelectionLocked||!corridorOpen)return;
-    const side=b.dataset.side;
-    if(!side)return;
-    e.stopPropagation();
-    AUDIO.menu();
-    chooseCorridor(side);
-  },true);
-  corridorScreen.addEventListener('click',e=>{
-    const b=e.target.closest('button[data-side]');if(!b||b.disabled)return;
-    e.preventDefault();e.stopPropagation();
-    const side=b.dataset.side;
-    if(!side||corridorSelectionLocked||!corridorOpen)return;
-    AUDIO.menu();chooseCorridor(side);
+  // Bind directly to the route buttons. Android WebViews can suppress or
+  // retarget delegated/synthetic clicks after a touch gesture.
+  corridorScreen.querySelectorAll('button[data-side]').forEach(button=>{
+    const chooseFromButton=e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      if(button.disabled||corridorSelectionLocked||!corridorOpen)return;
+      const side=button.dataset.side;
+      if(!side)return;
+      AUDIO.menu();
+      chooseCorridor(side);
+    };
+    button.addEventListener('pointerup',chooseFromButton,{passive:false});
+    button.addEventListener('click',chooseFromButton,{passive:false});
   });
 }
 if(shopScreen)shopScreen.addEventListener('click',e=>{
